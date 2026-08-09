@@ -116,21 +116,29 @@ function RootNavigator() {
     // listing URLs worth sharing. Everything else needs a session.
     const isPublicRoute = (group === '(tabs)' && segments[1] === 'discover') || group === 'listing';
 
-    // `auth/callback` runs before a session exists by definition — bouncing it
-    // to sign-in would abort the token exchange it was opened to finish.
-    if (group === 'auth') return;
+    // auth/callback and auth/telegram-login run before a session exists by
+    // definition — bouncing them to sign-in would abort the token exchange
+    // they were opened to finish.
+    const isAuthFlowRoute = group === 'auth';
 
-    if (!session && !inAuthGroup && !isPublicRoute) {
-      router.replace('/(auth)/sign-in');
+    if (!session) {
+      // Bouncing here must stop once the exchange lands a session below — an
+      // unconditional early return for the whole "auth" group used to do that,
+      // which also meant nothing ever moved the user off auth/callback once
+      // sign-in actually succeeded, leaving it spinning on its loading state
+      // forever. Skipping only the sign-in redirect fixes that.
+      if (!inAuthGroup && !isAuthFlowRoute && !isPublicRoute) {
+        router.replace('/(auth)/sign-in');
+      }
       return;
     }
 
-    if (session && needsOnboarding && !onOnboarding) {
+    if (needsOnboarding && !onOnboarding) {
       router.replace('/onboarding');
       return;
     }
 
-    if (session && !needsOnboarding && (inAuthGroup || onOnboarding)) {
+    if (!needsOnboarding && (inAuthGroup || onOnboarding || isAuthFlowRoute)) {
       router.replace('/(tabs)');
     }
   }, [session, needsOnboarding, initializing, navigationReady, segments, router]);
