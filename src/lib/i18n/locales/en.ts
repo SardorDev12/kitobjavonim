@@ -58,6 +58,10 @@ export const en = {
   'auth.nameRequired': 'Please enter your name',
   'auth.confirmEmail': 'We sent a confirmation link to {{email}}.',
 
+  'auth.telegramConfirm': 'Confirm your Telegram account to continue.',
+  'auth.telegramNotConfigured': 'Telegram sign-in is not set up',
+  'auth.telegramNotConfiguredBody': 'EXPO_PUBLIC_TELEGRAM_BOT_USERNAME or the Supabase URL is missing.',
+
   'onboarding.title': 'Tell us a little about you',
   'onboarding.subtitle':
     'Your name and area appear on books you list. Contact details are only shown to someone who taps “Contact owner”.',

@@ -179,9 +179,20 @@ the button anywhere it is unavailable, so nothing changes in the code.
 
 ## 8. Telegram sign-in
 
-Telegram is not an OAuth provider and cannot be enabled from the dashboard — it
-needs the Edge Function in `supabase/functions/telegram-auth/`. Setup is in the
-README next to it.
+Telegram is not an OAuth provider and cannot be enabled from the dashboard.
+Full setup is in `supabase/functions/telegram-auth/README.md` — worth reading
+before you start, because the architecture is not what you'd expect: the login
+widget is hosted **by the app itself**, at `/auth/telegram-login`, not by the
+Edge Function. Supabase's shared domain refuses to serve `text/html` on an
+ordinary page load, so a widget hosted there renders as raw source in a real
+browser rather than a page — no amount of function configuration fixes that,
+since it's a property of the domain, not the response. The Edge Function's job
+is reduced to verifying Telegram's signed callback, which is unaffected.
+
+The practical consequence: **Telegram's widget flatly refuses `localhost`** in
+BotFather's `/setdomain`, so it cannot be tested against `npm run web` without
+either deploying once or running a quick HTTPS tunnel
+(`cloudflared tunnel --url http://localhost:8081`). The README covers both.
 
 If you would rather launch without it, delete the Telegram button from
 `src/app/(auth)/sign-in.tsx`. Nothing else depends on it.

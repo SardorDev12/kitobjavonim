@@ -93,9 +93,13 @@ detects this and offers manual entry instead.
 **Apple** — required by App Store review because another social login is offered.
 Same dashboard page; needs an Apple Developer account to generate the key.
 
-**Telegram** — not an OAuth provider, so it needs the Edge Function in
-`supabase/functions/telegram-auth/`. Setup is documented in the README next to
-it. If you would rather launch without it, delete the Telegram button from
+**Telegram** — not an OAuth provider. The login widget is hosted by the app
+itself at `/auth/telegram-login`, not by Supabase — its shared domain refuses
+to serve `text/html`, so a widget hosted there renders as raw source instead
+of a page. The Edge Function in `supabase/functions/telegram-auth/` only
+verifies the signed result. Full setup, including why `localhost` cannot work
+with Telegram's widget at all, is in the README next to it. If you would
+rather launch without it, delete the Telegram button from
 `src/app/(auth)/sign-in.tsx`; nothing else depends on it.
 
 ---

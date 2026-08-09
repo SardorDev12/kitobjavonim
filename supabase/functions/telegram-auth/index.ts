@@ -1,14 +1,25 @@
 /**
- * Telegram sign-in.
+ * Telegram sign-in — verification and session minting only.
  *
  * Telegram is not an OAuth provider, so Supabase cannot talk to it the way it
- * talks to Google. Instead the Login Widget posts a signed payload back to a
- * page hosted on a domain that has been registered against the bot. This
- * function is that page, and the verifier behind it.
+ * talks to Google. Instead the Login Widget posts a signed payload to a page
+ * registered against the bot, and that page hands the payload here.
  *
- *   GET  /telegram-auth?redirect_to=<app url>   → serves the widget page
  *   GET  /telegram-auth/callback?...&hash=...   → verifies, mints a session,
  *                                                 redirects back to the app
+ *
+ * The widget itself is NOT served from here, deliberately. An earlier version
+ * of this function rendered the widget's HTML page directly, and it looked
+ * fine in every manual check — until a real browser requested it. Supabase's
+ * shared *.supabase.co domain will not return `text/html` to a normal GET; it
+ * substitutes `text/plain` with `X-Content-Type-Options: nosniff`, almost
+ * certainly to stop the domain being used to host arbitrary pages under a
+ * trusted hostname. The practical effect is that a browser shows the raw
+ * source instead of a rendered page — which is also why HEAD requests and
+ * curl without Accept-Encoding looked fine during testing: neither reflects
+ * what happens on an actual page load. The widget now lives in the app itself
+ * (`src/app/auth/telegram-login.tsx`), on a domain you control, and only the
+ * signed redirect — which has no body for that rule to apply to — comes here.
  *
  * The HMAC check is the security boundary: without it, anyone could POST any
  * Telegram id here and take over that account. Payloads older than 5 minutes are
@@ -20,7 +31,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
 const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') ?? '';
-const BOT_USERNAME = Deno.env.get('TELEGRAM_BOT_USERNAME') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
@@ -70,7 +80,6 @@ function redirect(target: string): Response {
 
 function missingConfig(): string | null {
   if (!BOT_TOKEN) return 'TELEGRAM_BOT_TOKEN is not set';
-  if (!BOT_USERNAME) return 'TELEGRAM_BOT_USERNAME is not set';
   if (!SUPABASE_URL || !SERVICE_ROLE_KEY) return 'Supabase environment is not available';
   return null;
 }
@@ -99,70 +108,17 @@ Deno.serve(async (request) => {
     return await handleCallback(url);
   }
 
-  return serveWidget(url);
+  // Anyone hitting the base URL directly — a stale bookmark, a curl check — gets
+  // an explanation rather than a 404, since this endpoint used to do more.
+  return new Response(
+    'This endpoint only verifies a Telegram sign-in callback. The login widget ' +
+      'is hosted by the app itself at /auth/telegram-login.',
+    { status: 200, headers: { 'content-type': 'text/plain; charset=utf-8' } }
+  );
 });
 
 // -----------------------------------------------------------------------------
-// Step 1 — the widget page
-// -----------------------------------------------------------------------------
-
-function serveWidget(url: URL): Response {
-  const redirectTo = url.searchParams.get('redirect_to') ?? '';
-
-  // Rejected here as well as in the callback, so a bad target fails before the
-  // user has bothered to confirm anything in Telegram.
-  if (!redirectTo || !isAllowedRedirect(redirectTo)) {
-    return new Response(
-      'This sign-in link is not valid for this app. Check TELEGRAM_ALLOWED_ORIGINS and APP_SCHEME.',
-      { status: 400 }
-    );
-  }
-
-  const callbackUrl = new URL(url);
-  callbackUrl.pathname = `${url.pathname.replace(/\/$/, '')}/callback`;
-  callbackUrl.search = redirectTo ? `?redirect_to=${encodeURIComponent(redirectTo)}` : '';
-
-  const html = `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Continue with Telegram</title>
-    <style>
-      :root { color-scheme: light dark; }
-      body {
-        margin: 0; min-height: 100vh; display: grid; place-items: center;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-        background: #f7f3ea; color: #231e18;
-      }
-      @media (prefers-color-scheme: dark) { body { background: #17130f; color: #f3ede2; } }
-      main { text-align: center; padding: 24px; display: grid; gap: 16px; justify-items: center; }
-      p { margin: 0; opacity: .7; font-size: 15px; }
-    </style>
-  </head>
-  <body>
-    <main>
-      <p>Confirm your Telegram account to continue.</p>
-      <script
-        async
-        src="https://telegram.org/js/telegram-widget.js?22"
-        data-telegram-login="${escapeHtml(BOT_USERNAME)}"
-        data-size="large"
-        data-userpic="false"
-        data-auth-url="${escapeHtml(callbackUrl.toString())}"
-        data-request-access="write"
-      ></script>
-    </main>
-  </body>
-</html>`;
-
-  return new Response(html, {
-    headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
-  });
-}
-
-// -----------------------------------------------------------------------------
-// Step 2 — verify the payload and mint a session
+// Verify the payload and mint a session
 // -----------------------------------------------------------------------------
 
 async function handleCallback(url: URL): Promise<Response> {
@@ -301,16 +257,4 @@ function fail(message: string, redirectTo: string | null): Response {
   const target = new URL(redirectTo);
   target.searchParams.set('error_description', message);
   return redirect(target.toString());
-}
-
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (char) => {
-    switch (char) {
-      case '&': return '&amp;';
-      case '<': return '&lt;';
-      case '>': return '&gt;';
-      case '"': return '&quot;';
-      default: return '&#39;';
-    }
-  });
 }
