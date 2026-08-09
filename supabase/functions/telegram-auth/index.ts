@@ -19,13 +19,61 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 
-const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN')!;
-const BOT_USERNAME = Deno.env.get('TELEGRAM_BOT_USERNAME')!;
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
-const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') ?? '';
+const BOT_USERNAME = Deno.env.get('TELEGRAM_BOT_USERNAME') ?? '';
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
+const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+
+/** The app's deep-link scheme, matching `scheme` in app.json. */
+const APP_SCHEME = Deno.env.get('APP_SCHEME') ?? 'homelibrary';
+
+/**
+ * Web origins allowed to receive a completed sign-in, comma separated —
+ * for example `http://localhost:8081,https://homelibrary.uz`.
+ */
+const ALLOWED_ORIGINS = (Deno.env.get('TELEGRAM_ALLOWED_ORIGINS') ?? '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
 /** How old a Telegram payload may be before it is refused. */
 const MAX_AUTH_AGE_SECONDS = 300;
+
+/**
+ * Whether a `redirect_to` may be honoured.
+ *
+ * This is a security boundary, not tidiness. The callback finishes by appending
+ * a `token_hash` — which is exchangeable for a real session — to this URL. An
+ * unchecked value would let anyone send a victim to
+ * `/telegram-auth?redirect_to=https://attacker.example`, have them complete a
+ * genuine Telegram login, and receive their session token. So the target must be
+ * the app's own scheme or an origin listed at deploy time.
+ */
+function isAllowedRedirect(value: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    return false;
+  }
+
+  // Custom schemes have no meaningful origin, so they are matched on scheme.
+  if (parsed.protocol === `${APP_SCHEME}:`) return true;
+
+  return ALLOWED_ORIGINS.includes(parsed.origin);
+}
+
+/** Redirects by hand: Response.redirect rejects non-HTTP schemes in Deno. */
+function redirect(target: string): Response {
+  return new Response(null, { status: 303, headers: { location: target } });
+}
+
+function missingConfig(): string | null {
+  if (!BOT_TOKEN) return 'TELEGRAM_BOT_TOKEN is not set';
+  if (!BOT_USERNAME) return 'TELEGRAM_BOT_USERNAME is not set';
+  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) return 'Supabase environment is not available';
+  return null;
+}
 
 type TelegramUser = {
   id: string;
@@ -38,21 +86,38 @@ type TelegramUser = {
 };
 
 Deno.serve(async (request) => {
+  const configError = missingConfig();
+  if (configError) {
+    // Surfaced as plain text rather than a redirect: this is a deploy mistake,
+    // and bouncing it back into the app would disguise it as a login failure.
+    return new Response(`telegram-auth is misconfigured: ${configError}`, { status: 500 });
+  }
+
   const url = new URL(request.url);
 
   if (url.pathname.endsWith('/callback')) {
     return await handleCallback(url);
   }
 
-  return servewidget(url);
+  return serveWidget(url);
 });
 
 // -----------------------------------------------------------------------------
 // Step 1 — the widget page
 // -----------------------------------------------------------------------------
 
-function servewidget(url: URL): Response {
+function serveWidget(url: URL): Response {
   const redirectTo = url.searchParams.get('redirect_to') ?? '';
+
+  // Rejected here as well as in the callback, so a bad target fails before the
+  // user has bothered to confirm anything in Telegram.
+  if (!redirectTo || !isAllowedRedirect(redirectTo)) {
+    return new Response(
+      'This sign-in link is not valid for this app. Check TELEGRAM_ALLOWED_ORIGINS and APP_SCHEME.',
+      { status: 400 }
+    );
+  }
+
   const callbackUrl = new URL(url);
   callbackUrl.pathname = `${url.pathname.replace(/\/$/, '')}/callback`;
   callbackUrl.search = redirectTo ? `?redirect_to=${encodeURIComponent(redirectTo)}` : '';
@@ -102,7 +167,11 @@ function servewidget(url: URL): Response {
 
 async function handleCallback(url: URL): Promise<Response> {
   const redirectTo = url.searchParams.get('redirect_to');
-  if (!redirectTo) return fail('Missing redirect target', redirectTo);
+  if (!redirectTo || !isAllowedRedirect(redirectTo)) {
+    // Deliberately not redirected: if the target is not trusted, sending
+    // anything to it — including an error — is the thing being prevented.
+    return new Response('Invalid redirect target', { status: 400 });
+  }
 
   const payload: Record<string, string> = {};
   for (const [key, value] of url.searchParams) {
@@ -116,7 +185,9 @@ async function handleCallback(url: URL): Promise<Response> {
     return fail('Could not verify the Telegram response', redirectTo);
   }
 
-  const age = Math.floor(Date.now() / 1000) - Number(telegramUser.auth_date);
+  // Math.abs so a clock skewed into the future is refused too, rather than
+  // yielding a negative age that sails past the maximum.
+  const age = Math.abs(Math.floor(Date.now() / 1000) - Number(telegramUser.auth_date));
   if (!Number.isFinite(age) || age > MAX_AUTH_AGE_SECONDS) {
     return fail('That sign-in link has expired', redirectTo);
   }
@@ -131,7 +202,7 @@ async function handleCallback(url: URL): Promise<Response> {
   const email = `tg_${telegramUser.id}@telegram.local`;
   const displayName = [telegramUser.first_name, telegramUser.last_name].filter(Boolean).join(' ').trim();
 
-  const { data: created, error: createError } = await admin.auth.admin.createUser({
+  const { error: createError } = await admin.auth.admin.createUser({
     email,
     email_confirm: true,
     user_metadata: {
@@ -142,23 +213,18 @@ async function handleCallback(url: URL): Promise<Response> {
     },
   });
 
-  // A duplicate simply means this Telegram account has signed in before.
-  const isReturning = Boolean(createError) && !created?.user;
-  if (createError && !isReturning) return fail(createError.message, redirectTo);
-
-  if (telegramUser.username) {
-    const userId = created?.user?.id ?? (await findUserIdByEmail(admin, email));
-    if (userId) {
-      await admin
-        .from('profiles')
-        .update({ telegram_username: telegramUser.username })
-        .eq('id', userId)
-        .is('telegram_username', null);
-    }
+  // "Already registered" is the ordinary case — this Telegram account has signed
+  // in before. Every other error is real and must not be swallowed: treating any
+  // failure as a returning user would turn a broken service-role key or an
+  // unreachable database into a silent, unexplainable login failure.
+  if (createError && !isAlreadyRegistered(createError)) {
+    return fail(createError.message, redirectTo);
   }
 
-  // generateLink hands back a one-time code the client can exchange for a real
+  // generateLink hands back a one-time code the client exchanges for a real
   // session, which keeps the service-role key on the server where it belongs.
+  // It also returns the user, which is how the id is obtained for both the new
+  // and the returning case without paging through every account.
   const { data: link, error: linkError } = await admin.auth.admin.generateLink({
     type: 'magiclink',
     email,
@@ -168,19 +234,29 @@ async function handleCallback(url: URL): Promise<Response> {
     return fail(linkError?.message ?? 'Could not start a session', redirectTo);
   }
 
+  if (telegramUser.username && link.user?.id) {
+    // `.is(null)` so a handle the user has since edited in the app is left alone.
+    await admin
+      .from('profiles')
+      .update({ telegram_username: telegramUser.username })
+      .eq('id', link.user.id)
+      .is('telegram_username', null);
+  }
+
   const target = new URL(redirectTo);
   target.searchParams.set('token_hash', link.properties.hashed_token);
   target.searchParams.set('type', 'magiclink');
 
-  return Response.redirect(target.toString(), 303);
+  return redirect(target.toString());
 }
 
-async function findUserIdByEmail(
-  admin: ReturnType<typeof createClient>,
-  email: string
-): Promise<string | null> {
-  const { data } = await admin.auth.admin.listUsers();
-  return data?.users.find((user) => user.email === email)?.id ?? null;
+/** supabase-js has reported this differently across versions, so check all three. */
+function isAlreadyRegistered(error: { message?: string; status?: number; code?: string }): boolean {
+  return (
+    error.code === 'email_exists' ||
+    error.status === 422 ||
+    /already (been )?registered|already exists/i.test(error.message ?? '')
+  );
 }
 
 /**
@@ -219,11 +295,12 @@ function timingSafeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+/** Callers reach this only after `redirectTo` has been checked against the allow-list. */
 function fail(message: string, redirectTo: string | null): Response {
   if (!redirectTo) return new Response(message, { status: 400 });
   const target = new URL(redirectTo);
   target.searchParams.set('error_description', message);
-  return Response.redirect(target.toString(), 303);
+  return redirect(target.toString());
 }
 
 function escapeHtml(value: string): string {

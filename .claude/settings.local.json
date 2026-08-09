@@ -20,7 +20,9 @@
       "Bash(git add *)",
       "Bash(git -c user.name=Claude -c user.email=noreply@anthropic.com commit -q -m ' *)",
       "Bash(./supabase/tests/run.sh)",
-      "Bash(python3 -)"
+      "Bash(python3 -)",
+      "Bash(deno check *)",
+      "Bash(node supabase/functions/telegram-auth/redirect.test.mjs)"
     ]
   }
 }

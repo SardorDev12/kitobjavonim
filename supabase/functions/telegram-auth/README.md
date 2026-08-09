@@ -25,7 +25,7 @@ email, Google and Apple only, skip this file and hide the Telegram button in
 ## Deploying
 
 ```bash
-supabase secrets set TELEGRAM_BOT_TOKEN=123456789:AA... TELEGRAM_BOT_USERNAME=your_bot
+supabase secrets set TELEGRAM_BOT_TOKEN=123456789:AA... TELEGRAM_BOT_USERNAME=your_bot TELEGRAM_ALLOWED_ORIGINS=http://localhost:8081
 ```
 
 ```bash
@@ -35,6 +35,30 @@ supabase functions deploy telegram-auth --no-verify-jwt
 `--no-verify-jwt` is required and safe here: the caller is a signed-out user, so
 there is no JWT to check. The security boundary is the HMAC verification inside
 the function, not Supabase's gateway.
+
+`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are injected automatically — do
+not set them yourself.
+
+### Settings
+
+| Secret | Required | Purpose |
+|---|---|---|
+| `TELEGRAM_BOT_TOKEN` | yes | From BotFather. Also the HMAC key. |
+| `TELEGRAM_BOT_USERNAME` | yes | Which bot the widget renders for, without the `@`. |
+| `TELEGRAM_ALLOWED_ORIGINS` | for web | Comma-separated web origins allowed to receive a completed sign-in. |
+| `APP_SCHEME` | no | Deep-link scheme, defaults to `homelibrary`. Match `scheme` in `app.json`. |
+
+**`TELEGRAM_ALLOWED_ORIGINS` is a security control, not configuration.** The
+callback finishes by appending a `token_hash` — exchangeable for a real session
+— to `redirect_to`. Without an allow-list, anyone could send a victim to
+`/telegram-auth?redirect_to=https://attacker.example`, have them complete a
+genuine Telegram login, and collect their session. Only the app's own scheme and
+the origins listed here are honoured; everything else is refused with a 400
+before the user is asked to confirm anything.
+
+Add each web origin you serve from, exactly — scheme, host and port all have to
+match, so `http://localhost:8081` does not cover `https://homelibrary.uz`.
+Native builds need no entry; they are covered by `APP_SCHEME`.
 
 ## How a sign-in flows
 
