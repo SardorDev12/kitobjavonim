@@ -34,18 +34,26 @@ npm install
 
 ### 2. Create the Supabase project
 
-Make a project at [supabase.com](https://supabase.com) (free tier is fine), then
-open the SQL editor and run the files in `supabase/migrations/` **in order**:
+**Full walkthrough: [docs/supabase-setup.md](docs/supabase-setup.md).** In short:
+make a project at [supabase.com](https://supabase.com), then run the files in
+`supabase/migrations/` **in order** through the SQL editor:
 
 ```
-0001_init.sql            tables, enums, indexes, triggers
-0002_views.sql           listings / library_entries / public_profiles
-0003_rls.sql             row level security + the request_contact function
-0004_storage.sql         avatar and listing-photo buckets
-0005_seed_reference.sql  14 regions, 61 districts, 20 categories
+0001_init.sql                tables, enums, indexes, triggers
+0002_views.sql               listings / library_entries / public_profiles
+0003_rls.sql                 row level security + the request_contact function
+0004_storage.sql             avatar and listing-photo buckets
+0005_seed_reference.sql      14 regions, 61 districts, 20 categories
+0006_category_permissions.sql  who may classify a shared book
 ```
 
-If you have the Supabase CLI, `supabase db push` does the same thing.
+Order matters — each file builds on the last. The SQL editor runs each file in a
+transaction, so a failure rolls the whole file back rather than leaving a
+half-applied schema.
+
+The Supabase CLI's `supabase db push` will not pick these up as written: it
+expects timestamped filenames like `20260809120000_init.sql`, and these are
+`0001_`-prefixed. Use the SQL editor, or rename them first.
 
 ### 3. Point the app at it
 

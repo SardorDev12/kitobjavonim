@@ -9,6 +9,7 @@ import { ActivityIndicator, AppState, View, type AppStateStatus } from 'react-na
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { EmptyState, Screen } from '@/components/ui';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { I18nProvider, useI18n } from '@/lib/i18n';
 import { ThemeProvider, useTheme } from '@/theme';
@@ -89,7 +90,7 @@ export default function RootLayout() {
 
 function RootNavigator() {
   const theme = useTheme();
-  const { session, needsOnboarding, initializing } = useAuth();
+  const { session, needsOnboarding, initializing, setupError } = useAuth();
   const { ready: localeReady } = useI18n();
   const segments = useSegments();
   const router = useRouter();
@@ -102,7 +103,10 @@ function RootNavigator() {
   useEffect(() => {
     if (initializing || !navigationReady) return;
 
-    const group = segments[0];
+    // Widened to string: expo-router generates the segment union from the routes
+    // it has seen, so a freshly added route makes these comparisons look
+    // impossible to the compiler until the types are regenerated.
+    const group: string | undefined = segments[0];
     const inAuthGroup = group === '(auth)';
     const onOnboarding = group === 'onboarding';
 
@@ -111,6 +115,10 @@ function RootNavigator() {
     // what is on offer before committing to an account, and it is what makes
     // listing URLs worth sharing. Everything else needs a session.
     const isPublicRoute = (group === '(tabs)' && segments[1] === 'discover') || group === 'listing';
+
+    // `auth/callback` runs before a session exists by definition — bouncing it
+    // to sign-in would abort the token exchange it was opened to finish.
+    if (group === 'auth') return;
 
     if (!session && !inAuthGroup && !isPublicRoute) {
       router.replace('/(auth)/sign-in');
@@ -135,6 +143,18 @@ function RootNavigator() {
     );
   }
 
+  // Stop here rather than letting the user into an app where nothing can load.
+  if (setupError) {
+    return (
+      <>
+        <StatusBar style={theme.scheme === 'dark' ? 'light' : 'dark'} />
+        <Screen>
+          <EmptyState tone="error" title="Backend not set up" body={setupError} />
+        </Screen>
+      </>
+    );
+  }
+
   return (
     <>
       <StatusBar style={theme.scheme === 'dark' ? 'light' : 'dark'} />
@@ -150,6 +170,7 @@ function RootNavigator() {
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
+        <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
         <Stack.Screen name="book/[id]" options={{ title: '' }} />
         <Stack.Screen name="listing/[id]" options={{ title: '' }} />
         <Stack.Screen name="add/scan" options={{ presentation: 'modal', title: '' }} />

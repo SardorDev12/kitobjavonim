@@ -19,7 +19,8 @@
       "Bash(npx tsc *)",
       "Bash(git add *)",
       "Bash(git -c user.name=Claude -c user.email=noreply@anthropic.com commit -q -m ' *)",
-      "Bash(./supabase/tests/run.sh)"
+      "Bash(./supabase/tests/run.sh)",
+      "Bash(python3 -)"
     ]
   }
 }
