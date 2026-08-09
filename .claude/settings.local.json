@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm -v)",
+      "Bash(npx --version)",
+      "Bash(git --version)",
+      "Read(//usr/local/bin/**)",
+      "Read(//Users/macbook_uz/**)",
+      "Read(//opt/homebrew/bin/**)",
+      "Bash(brew install *)",
+      "Bash(npx --yes create-expo-app@latest . --template blank-typescript --no-install)",
+      "Bash(rm -rf scaffold)",
+      "Bash(npx --yes create-expo-app@latest scaffold --no-install)",
+      "Bash(npm install *)",
+      "Bash(npx expo *)",
+      "Bash(which docker *)",
+      "Bash(rm -rf src/app src/components/themed-text.tsx src/components/animated-icon.tsx src/components/themed-view.tsx src/components/hint-row.tsx src/components/app-tabs.web.tsx src/components/web-badge.tsx src/components/app-tabs.tsx src/components/external-link.tsx src/components/animated-icon.module.css src/components/animated-icon.web.tsx src/components/ui/collapsible.tsx src/constants src/hooks)",
+      "Bash(mkdir -p src/app)",
+      "Bash(npx tsc *)",
+      "Bash(git add *)",
+      "Bash(git -c user.name=Claude -c user.email=noreply@anthropic.com commit -q -m ' *)"
+    ]
+  }
+}
