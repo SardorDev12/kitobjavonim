@@ -132,7 +132,10 @@ export function useAddBook() {
         .single();
 
       if (error) throw error;
-      return data.id as string;
+
+      // Both ids matter to the caller: the copy id to navigate to, and the
+      // canonical book id so categories can be attached to the shared record.
+      return { userBookId: data.id as string, bookId };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.library.all });

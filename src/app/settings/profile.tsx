@@ -2,9 +2,10 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { Button, Card, Screen, Select, Text, TextField, Toggle } from '@/components/ui';
+import { Avatar, Button, Card, Screen, Select, Text, TextField, Toggle } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useI18n } from '@/lib/i18n';
+import { useUploadAvatar } from '@/lib/queries/photos';
 import { hasContactMethod, useUpdateProfile } from '@/lib/queries/profile';
 import { useLocationOptions } from '@/lib/queries/reference';
 import { useTheme } from '@/theme';
@@ -17,6 +18,7 @@ export default function EditProfileScreen() {
   const { profile } = useAuth();
   const locations = useLocationOptions();
   const updateProfile = useUpdateProfile();
+  const uploadAvatar = useUploadAvatar();
 
   const [name, setName] = useState(profile?.display_name ?? '');
   const [bio, setBio] = useState(profile?.bio ?? '');
@@ -69,6 +71,20 @@ export default function EditProfileScreen() {
     >
       <View style={[styles.container, { gap: theme.spacing.lg, paddingTop: theme.spacing.md }]}>
         <Text variant="display">{t('profile.edit')}</Text>
+
+        {/* Uploaded and saved immediately rather than on Save — the picker is
+            already a deliberate, multi-step confirmation of intent. */}
+        <View style={[styles.avatarRow, { gap: theme.spacing.lg }]}>
+          <Avatar uri={profile?.avatar_url} name={profile?.display_name} size={72} />
+          <Button
+            title={t('profile.changePhoto')}
+            variant="secondary"
+            size="sm"
+            icon="image-outline"
+            loading={uploadAvatar.isPending}
+            onPress={() => uploadAvatar.mutate()}
+          />
+        </View>
 
         <TextField label={t('auth.displayName')} value={name} onChangeText={setName} autoComplete="name" />
 
@@ -147,4 +163,5 @@ export default function EditProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { maxWidth: 560, width: '100%', alignSelf: 'center' },
+  avatarRow: { flexDirection: 'row', alignItems: 'center' },
 });

@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { BookCover } from '@/components/BookCover';
+import { CategoryPicker } from '@/components/CategoryPicker';
+import { PhotoManager } from '@/components/PhotoManager';
 import {
   Button,
   Card,
@@ -24,6 +26,7 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { formatAuthors, formatDate, formatPosition, formatPrice, parsePriceInput } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { usePositionOptions } from '@/lib/queries/bookshelves';
+import { useBookCategories, useSetBookCategories } from '@/lib/queries/categories';
 import { useDeleteUserBook, useLibraryEntry, useUpdateUserBook } from '@/lib/queries/library';
 import { hasContactMethod } from '@/lib/queries/profile';
 import { useTheme } from '@/theme';
@@ -40,6 +43,8 @@ export default function BookDetailScreen() {
   const positions = usePositionOptions();
   const updateBook = useUpdateUserBook();
   const deleteBook = useDeleteUserBook();
+  const { data: categories } = useBookCategories(entry?.book_id);
+  const setCategories = useSetBookCategories();
 
   const [reviewOpen, setReviewOpen] = useState(false);
   const [listingOpen, setListingOpen] = useState(false);
@@ -263,6 +268,10 @@ export default function BookDetailScreen() {
                 </Text>
               ) : null}
 
+              <View style={{ marginTop: theme.spacing.sm }}>
+                <PhotoManager userBookId={entry.id} />
+              </View>
+
               <Button
                 title={t('book.removeListing')}
                 variant="ghost"
@@ -275,6 +284,24 @@ export default function BookDetailScreen() {
               {t('book.notListed')}
             </Text>
           )}
+        </Card>
+
+        {/* Categories -------------------------------------------------------
+            Saved straight away rather than behind a Save button: these are one
+            tap each, and they are what makes this book findable under a category
+            filter on the Exchange screen. */}
+        <Card>
+          <CategoryPicker
+            label={t('book.categories')}
+            selected={categories ?? []}
+            onChange={(next) =>
+              setCategories.mutate({
+                bookId: entry.book_id,
+                categoryIds: next,
+                previous: categories ?? [],
+              })
+            }
+          />
         </Card>
 
         {/* Book metadata ---------------------------------------------------- */}

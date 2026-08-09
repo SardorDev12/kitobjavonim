@@ -3,11 +3,13 @@ import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { BookCover } from '@/components/BookCover';
+import { CategoryPicker } from '@/components/CategoryPicker';
 import { Button, Card, Chip, EmptyState, Screen, Select, Text } from '@/components/ui';
 import { usePendingBook } from '@/features/add/pendingBook';
 import { formatAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { usePositionOptions } from '@/lib/queries/bookshelves';
+import { useSetBookCategories } from '@/lib/queries/categories';
 import { useAddBook, useLibrary } from '@/lib/queries/library';
 import { useTheme } from '@/theme';
 import { BOOK_CONDITIONS, READING_STATUSES, type BookCondition, type ReadingStatus } from '@/types/database';
@@ -28,10 +30,12 @@ export default function ConfigureScreen() {
   const positions = usePositionOptions();
   const { data: library } = useLibrary();
   const addBook = useAddBook();
+  const setCategories = useSetBookCategories();
 
   const [positionId, setPositionId] = useState<string | null>(null);
   const [status, setStatus] = useState<ReadingStatus>('want_to_read');
   const [condition, setCondition] = useState<BookCondition | null>(null);
+  const [categoryIds, setCategoryIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
 
@@ -59,13 +63,24 @@ export default function ConfigureScreen() {
     setError(null);
 
     try {
-      const id = await addBook.mutateAsync({
+      const { userBookId, bookId } = await addBook.mutateAsync({
         candidate,
         bookshelfPositionId: positionId,
         readingStatus: status,
         condition,
       });
-      router.replace(`/book/${id}`);
+
+      // Categories are secondary to getting the book onto the shelf, so a
+      // failure here must not lose the book the user just added.
+      if (categoryIds.length > 0) {
+        try {
+          await setCategories.mutateAsync({ bookId, categoryIds, previous: [] });
+        } catch {
+          // Recoverable from the book's own screen.
+        }
+      }
+
+      router.replace(`/book/${userBookId}`);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : t('error.saveFailed'));
     }
@@ -144,6 +159,8 @@ export default function ConfigureScreen() {
             ))}
           </View>
         </View>
+
+        <CategoryPicker label={t('book.categories')} selected={categoryIds} onChange={setCategoryIds} />
 
         {positions.length > 0 ? (
           <Select

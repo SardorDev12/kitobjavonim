@@ -1,0 +1,107 @@
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+
+import { useAuth } from '@/features/auth/AuthProvider';
+import { pickAndUploadAvatar, pickAndUploadListingPhoto, publicUrlFor } from '@/lib/images';
+import { supabase } from '@/lib/supabase';
+import type { UserBookPhoto } from '@/types/database';
+
+import { queryKeys } from './keys';
+
+export type ListingPhoto = UserBookPhoto & { url: string };
+
+/** The owner's view of a listing's photos — includes storage paths for deletion. */
+export function useOwnListingPhotos(userBookId: string | undefined) {
+  return useQuery({
+    queryKey: ['own-photos', userBookId ?? ''],
+    enabled: Boolean(userBookId),
+    queryFn: async (): Promise<ListingPhoto[]> => {
+      const { data, error } = await supabase
+        .from('user_book_photos')
+        .select('*')
+        .eq('user_book_id', userBookId!)
+        .order('sort_order');
+      if (error) throw error;
+
+      return (data as UserBookPhoto[]).map((row) => ({
+        ...row,
+        url: publicUrlFor('book-photos', row.storage_path),
+      }));
+    },
+  });
+}
+
+export function useAddListingPhoto() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ userBookId, sortOrder }: { userBookId: string; sortOrder: number }) => {
+      if (!user) throw new Error('Not signed in');
+
+      const path = await pickAndUploadListingPhoto(user.id, userBookId);
+      // Null means the user backed out of the picker or declined the permission
+      // prompt, which is not an error worth surfacing.
+      if (!path) return null;
+
+      const { error } = await supabase.from('user_book_photos').insert({
+        user_book_id: userBookId,
+        user_id: user.id,
+        storage_path: path,
+        sort_order: sortOrder,
+      });
+      if (error) throw error;
+
+      return path;
+    },
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['own-photos', variables.userBookId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.listings.photos(variables.userBookId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
+    },
+  });
+}
+
+export function useDeleteListingPhoto() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (photo: ListingPhoto) => {
+      const { error } = await supabase.from('user_book_photos').delete().eq('id', photo.id);
+      if (error) throw error;
+
+      // Remove the object too, or the bucket fills with rows nothing points at
+      // and the 1 GB free allowance disappears into orphans.
+      await supabase.storage.from('book-photos').remove([photo.storage_path]);
+    },
+    onSuccess: (_result, photo) => {
+      queryClient.invalidateQueries({ queryKey: ['own-photos', photo.user_book_id] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.listings.photos(photo.user_book_id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
+    },
+  });
+}
+
+export function useUploadAvatar() {
+  const { user, refreshProfile } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error('Not signed in');
+
+      const url = await pickAndUploadAvatar(user.id);
+      if (!url) return null;
+
+      const { error } = await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id);
+      if (error) throw error;
+
+      return url;
+    },
+    onSuccess: async (url) => {
+      if (!url) return;
+      await refreshProfile();
+      // The owner's avatar rides along with every listing they have.
+      queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
+    },
+  });
+}

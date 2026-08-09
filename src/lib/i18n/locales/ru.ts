@@ -162,6 +162,12 @@ export const ru: LocaleCatalogue = {
   'book.contactRequired':
     'Добавьте Telegram или номер телефона в профиль, прежде чем выставлять книги.',
 
+  'book.categories': 'Категории',
+  'book.categoryLimit': 'Не более {{count}} категорий.',
+  'book.photosHint': 'Фото вашего экземпляра помогают покупателю доверять описанию.',
+  'book.photosHintWeb': 'Фотографии удобнее добавлять из мобильного приложения.',
+  'profile.changePhoto': 'Изменить фото',
+
   'add.title': 'Добавить книгу',
   'add.subtitle': 'Отсканируйте штрихкод на задней обложке или найдите по названию.',
   'add.scan': 'Сканировать штрихкод',

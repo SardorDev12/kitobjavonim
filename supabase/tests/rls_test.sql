@@ -101,6 +101,34 @@ select * from request_contact('dddddddd-0000-0000-0000-000000000001', 'phone');
 reset role;
 
 -- ---------------------------------------------------------------------------
+-- Categories: only someone who owns a copy may classify a shared book
+-- ---------------------------------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+
+\echo '### bob (owns no copy) categorising alice''s book (expect error)'
+\set ON_ERROR_STOP off
+insert into book_categories (book_id, category_id)
+values ('aaaaaaaa-0000-0000-0000-000000000001', 'business');
+\set ON_ERROR_STOP on
+
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+\echo '### alice (owns a copy) categorising it (expect success)'
+insert into book_categories (book_id, category_id)
+values ('aaaaaaaa-0000-0000-0000-000000000001', 'business');
+
+\echo '### category now visible on the listing (expect {business})'
+select category_ids from listings where id = 'dddddddd-0000-0000-0000-000000000001';
+
+\echo '### alice can remove her classification (expect 0 left)'
+delete from book_categories
+ where book_id = 'aaaaaaaa-0000-0000-0000-000000000001' and category_id = 'business';
+select count(*) from book_categories;
+
+reset role;
+
+-- ---------------------------------------------------------------------------
 -- Constraint checks
 -- ---------------------------------------------------------------------------
 \echo '### sale without price rejected (expect error)'

@@ -164,6 +164,12 @@ export const uz: LocaleCatalogue = {
   'book.contactRequired':
     'Kitob eʼlon qilishdan oldin profilingizga Telegram yoki telefon raqamini qoʻshing.',
 
+  'book.categories': 'Kategoriyalar',
+  'book.categoryLimit': 'Koʻpi bilan {{count}} ta kategoriya.',
+  'book.photosHint': 'Oʻz nusxangiz surati xaridorlarda ishonch uygʻotadi.',
+  'book.photosHintWeb': 'Suratlarni mobil ilovadan qoʻshish qulayroq.',
+  'profile.changePhoto': 'Suratni oʻzgartirish',
+
   'add.title': 'Kitob qoʻshish',
   'add.subtitle': 'Orqa muqovadagi shtrix-kodni skanerlang yoki nomi boʻyicha qidiring.',
   'add.scan': 'Shtrix-kodni skanerlash',

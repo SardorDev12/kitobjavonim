@@ -161,6 +161,12 @@ export const en = {
   'book.priceRequired': 'Enter a price to list this book for sale.',
   'book.contactRequired': 'Add a Telegram username or phone number to your profile before listing books.',
 
+  'book.categories': 'Categories',
+  'book.categoryLimit': 'Up to {{count}} categories.',
+  'book.photosHint': 'Photos of your actual copy help buyers trust the condition.',
+  'book.photosHintWeb': 'Photos are easiest to add from the mobile app.',
+  'profile.changePhoto': 'Change photo',
+
   'add.title': 'Add a book',
   'add.subtitle': 'Scan the barcode on the back cover, or search by title.',
   'add.scan': 'Scan barcode',
