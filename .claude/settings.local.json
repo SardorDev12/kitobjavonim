@@ -90,7 +90,11 @@
       "Bash(rm -rf dist .expo)",
       "Bash(rm -f /tmp/deploy.sh.orig /tmp/deploy_test.sh)",
       "Bash(rm -rf /private/tmp/claude-501/-Users-macbook-uz-Projects-Home-library/31021656-58a9-4ab8-8d8e-1e4208ee0b1b/scratchpad/fake_webroot)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(bash -n \"/Users/macbook_uz/Projects/Home library/scripts/deploy.sh\")",
+      "Bash(env -i PATH= HOME=/Users/macbook_uz bash -c 'source \"/Users/macbook_uz/Projects/Home library/scripts/deploy.sh\"')",
+      "Bash(env -i PATH= HOME=/Users/macbook_uz /bin/bash -c 'cd \"/Users/macbook_uz/Projects/Home library\" && bash scripts/deploy.sh')",
+      "Bash(env -i PATH= HOME=/Users/macbook_uz /bin/bash -c 'cd \"/Users/macbook_uz/Projects/Home library\" && /bin/bash scripts/deploy.sh')"
     ]
   }
 }
