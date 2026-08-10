@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { BookCandidate } from '@/lib/books/metadata';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
-import type { LibraryEntry, UserBook } from '@/types/database';
+import type { Book, LibraryEntry, UserBook } from '@/types/database';
 
 import { queryKeys } from './keys';
 
@@ -179,6 +179,40 @@ export function useUpdateUserBook() {
       queryClient.invalidateQueries({ queryKey: queryKeys.library.entry(variables.id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
       if (user) queryClient.invalidateQueries({ queryKey: queryKeys.profile.stats(user.id) });
+    },
+  });
+}
+
+export type UpdateBookInput = {
+  bookId: string;
+  userBookId: string;
+  patch: Partial<
+    Pick<Book, 'title' | 'subtitle' | 'authors' | 'isbn13' | 'publisher' | 'publication_year' | 'language' | 'page_count' | 'cover_url'>
+  >;
+};
+
+/**
+ * Edits the shared `books` row, not the user's copy of it.
+ *
+ * RLS ("creator can correct a book") only permits this when the caller is the
+ * row's own creator — every other user_books.book_id foreign key pointing at it
+ * would otherwise let a stranger silently rewrite what a hundred other
+ * libraries display. The UI only offers this action when book_created_by
+ * matches the signed-in user for the same reason; this mutation is the
+ * enforcement, that is only the affordance.
+ */
+export function useUpdateBook() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ bookId, patch }: UpdateBookInput) => {
+      const { error } = await supabase.from('books').update(patch).eq('id', bookId);
+      if (error) throw error;
+    },
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.library.entry(variables.userBookId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
     },
   });
 }

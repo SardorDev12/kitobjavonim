@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getLocales } from 'expo-localization';
 import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { en, type MessageKey } from './locales/en';
@@ -69,19 +68,14 @@ type I18nValue = {
 
 const I18nContext = createContext<I18nValue | null>(null);
 
-function deviceLocale(): Locale {
-  const codes = getLocales().map((l) => l.languageCode);
-  for (const code of codes) {
-    if (code === 'uz' || code === 'ru' || code === 'en') return code;
-  }
-  // Uzbek is the default rather than English: the app launches in Uzbekistan,
-  // and a device set to a language we do not carry is more likely to be a local
-  // one (Karakalpak, Tajik) than an English-speaking visitor.
-  return 'uz';
-}
-
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(deviceLocale);
+  // Uzbek unconditionally, not the device's reported language. Following the
+  // browser/OS locale sounds friendlier but back-fires here: plenty of Uzbek
+  // speakers run their phone or browser in English, and a Cyrillic Uzbek user
+  // agent doesn't reliably map to 'ru' either — the safe default for a product
+  // that launches in Uzbekistan is Uzbek, full stop, until the visitor picks
+  // something else themselves.
+  const [locale, setLocaleState] = useState<Locale>('uz');
   const [ready, setReady] = useState(false);
 
   useEffect(() => {

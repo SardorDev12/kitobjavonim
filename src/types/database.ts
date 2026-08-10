@@ -163,6 +163,9 @@ export type LibraryEntry = {
   shelf_number: number | null;
   row_number: number | null;
   position_label: string | null;
+
+  /** Whether the signed-in user may edit this book's shared metadata — set only when they created it. */
+  book_created_by: string | null;
 };
 
 /** A row of the `listings` view — deliberately carries no private columns. */

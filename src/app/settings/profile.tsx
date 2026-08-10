@@ -1,11 +1,11 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Alert, Platform, StyleSheet, View } from 'react-native';
 
 import { Avatar, Button, Card, Screen, Select, Text, TextField, Toggle } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useI18n } from '@/lib/i18n';
-import { useUploadAvatar } from '@/lib/queries/photos';
+import { useRemoveAvatar, useUploadAvatar } from '@/lib/queries/photos';
 import { hasContactMethod, useUpdateProfile } from '@/lib/queries/profile';
 import { useLocationOptions } from '@/lib/queries/reference';
 import { useTheme } from '@/theme';
@@ -19,6 +19,7 @@ export default function EditProfileScreen() {
   const locations = useLocationOptions();
   const updateProfile = useUpdateProfile();
   const uploadAvatar = useUploadAvatar();
+  const removeAvatar = useRemoveAvatar();
 
   const [name, setName] = useState(profile?.display_name ?? '');
   const [bio, setBio] = useState(profile?.bio ?? '');
@@ -73,17 +74,43 @@ export default function EditProfileScreen() {
         <Text variant="display">{t('profile.edit')}</Text>
 
         {/* Uploaded and saved immediately rather than on Save — the picker is
-            already a deliberate, multi-step confirmation of intent. */}
+            already a deliberate, multi-step confirmation of intent. Removal
+            asks first, since unlike a replace it has no undo. */}
         <View style={[styles.avatarRow, { gap: theme.spacing.lg }]}>
           <Avatar uri={profile?.avatar_url} name={profile?.display_name} size={72} />
-          <Button
-            title={t('profile.changePhoto')}
-            variant="secondary"
-            size="sm"
-            icon="image-outline"
-            loading={uploadAvatar.isPending}
-            onPress={() => uploadAvatar.mutate()}
-          />
+          <View style={{ gap: theme.spacing.sm }}>
+            <Button
+              title={t('profile.changePhoto')}
+              variant="secondary"
+              size="sm"
+              icon="image-outline"
+              loading={uploadAvatar.isPending}
+              onPress={() => uploadAvatar.mutate()}
+            />
+            {profile?.avatar_url ? (
+              <Button
+                title={t('profile.removePhoto')}
+                variant="ghost"
+                size="sm"
+                icon="trash-outline"
+                loading={removeAvatar.isPending}
+                onPress={() => {
+                  const currentUrl = profile.avatar_url;
+                  const doRemove = () => removeAvatar.mutate(currentUrl);
+
+                  if (Platform.OS === 'web') {
+                    if (globalThis.confirm(t('profile.removePhotoConfirm'))) doRemove();
+                    return;
+                  }
+
+                  Alert.alert('', t('profile.removePhotoConfirm'), [
+                    { text: t('common.cancel'), style: 'cancel' },
+                    { text: t('common.remove'), style: 'destructive', onPress: doRemove },
+                  ]);
+                }}
+              />
+            ) : null}
+          </View>
         </View>
 
         <TextField label={t('auth.displayName')} value={name} onChangeText={setName} autoComplete="name" />

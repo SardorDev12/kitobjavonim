@@ -168,10 +168,15 @@ export const uz: LocaleCatalogue = {
   'book.contactRequired':
     'Kitob eʼlon qilishdan oldin profilingizga Telegram yoki telefon raqamini qoʻshing.',
 
+  'book.editDetails': 'Kitob maʼlumotlarini tahrirlash',
+  'book.subtitle': 'Subtitr',
+
   'book.categories': 'Kategoriyalar',
   'book.categoryLimit': 'Koʻpi bilan {{count}} ta kategoriya.',
   'book.photosHint': 'Oʻz nusxangiz surati xaridorlarda ishonch uygʻotadi.',
   'book.photosHintWeb': 'Suratlarni mobil ilovadan qoʻshish qulayroq.',
+  'profile.removePhoto': 'Suratni oʻchirish',
+  'profile.removePhotoConfirm': 'Profil suratingizni oʻchirasizmi?',
   'profile.changePhoto': 'Suratni oʻzgartirish',
 
   'add.title': 'Kitob qoʻshish',
@@ -205,6 +210,10 @@ export const uz: LocaleCatalogue = {
   'manual.year': 'Nashr yili',
   'manual.language': 'Til',
   'manual.pages': 'Sahifalar',
+  'manual.cover': 'Muqova surati',
+  'manual.addCover': 'Muqova qoʻshish',
+  'manual.changeCover': 'Muqovani almashtirish',
+
   'manual.titleRequired': 'Kitob nomi kerak',
 
   'shelves.title': 'Kitob javonlari',
@@ -282,6 +291,10 @@ export const uz: LocaleCatalogue = {
   'profile.contactDetails': 'Bogʻlanish maʼlumotlari',
   'profile.settings': 'Sozlamalar',
   'profile.language': 'Til',
+  'profile.appearance.light': 'Yorugʻ',
+  'profile.appearance.dark': 'Qorongʻi',
+  'profile.appearance.system': 'Qurilma sozlamasi',
+
   'profile.appearance': 'Koʻrinish',
   'profile.signOutConfirm': 'Hisobdan chiqasizmi?',
   'profile.memberSince': '{{date}} dan beri kitobxon',

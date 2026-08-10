@@ -166,10 +166,15 @@ export const ru: LocaleCatalogue = {
   'book.contactRequired':
     'Добавьте Telegram или номер телефона в профиль, прежде чем выставлять книги.',
 
+  'book.editDetails': 'Изменить сведения о книге',
+  'book.subtitle': 'Подзаголовок',
+
   'book.categories': 'Категории',
   'book.categoryLimit': 'Не более {{count}} категорий.',
   'book.photosHint': 'Фото вашего экземпляра помогают покупателю доверять описанию.',
   'book.photosHintWeb': 'Фотографии удобнее добавлять из мобильного приложения.',
+  'profile.removePhoto': 'Удалить фото',
+  'profile.removePhotoConfirm': 'Удалить фото профиля?',
   'profile.changePhoto': 'Изменить фото',
 
   'add.title': 'Добавить книгу',
@@ -203,6 +208,10 @@ export const ru: LocaleCatalogue = {
   'manual.year': 'Год издания',
   'manual.language': 'Язык',
   'manual.pages': 'Страниц',
+  'manual.cover': 'Обложка',
+  'manual.addCover': 'Добавить обложку',
+  'manual.changeCover': 'Изменить обложку',
+
   'manual.titleRequired': 'Укажите название',
 
   'shelves.title': 'Книжные полки',
@@ -281,6 +290,10 @@ export const ru: LocaleCatalogue = {
   'profile.contactDetails': 'Контакты',
   'profile.settings': 'Настройки',
   'profile.language': 'Язык',
+  'profile.appearance.light': 'Светлая',
+  'profile.appearance.dark': 'Тёмная',
+  'profile.appearance.system': 'Как на устройстве',
+
   'profile.appearance': 'Оформление',
   'profile.signOutConfirm': 'Выйти из аккаунта?',
   'profile.memberSince': 'Читатель с {{date}}',

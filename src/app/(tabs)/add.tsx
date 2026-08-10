@@ -58,18 +58,12 @@ export default function AddScreen() {
         </Text>
 
         {/* Scanning is the fast path the PRD is built around, so it sits above
-            the search field rather than behind an icon. */}
-        <Button
-          title={t('add.scan')}
-          icon="barcode-outline"
-          fullWidth
-          onPress={() => router.push('/add/scan')}
-          disabled={Platform.OS === 'web'}
-        />
-        {Platform.OS === 'web' ? (
-          <Text variant="caption" color="textSubtle">
-            {t('add.scanUnavailable')}
-          </Text>
+            the search field rather than behind an icon — on native. The camera
+            API it depends on has no web equivalent worth building against, so
+            rather than show a button that only explains why it doesn't work,
+            web skips straight to search and manual entry. */}
+        {Platform.OS !== 'web' ? (
+          <Button title={t('add.scan')} icon="barcode-outline" fullWidth onPress={() => router.push('/add/scan')} />
         ) : null}
 
         <TextField

@@ -88,6 +88,25 @@ export async function pickAndUploadListingPhoto(
   return upload('book-photos', path, image);
 }
 
+/**
+ * Picks a cover photo for a manually-entered book.
+ *
+ * Reuses the `book-photos` bucket under a `covers/` prefix rather than adding a
+ * dedicated bucket — the storage policies already key off the user id being the
+ * first path segment, so a new bucket would only duplicate the same policies
+ * for no real gain. Uncropped, unlike the avatar picker: covers are not square,
+ * and forcing one would distort every photographed cover.
+ */
+export async function pickAndUploadBookCover(userId: string): Promise<string | null> {
+  const image = await pickAndCompress(MAX_EDGE);
+  if (!image) return null;
+
+  const path = `${userId}/covers/${Date.now()}.${image.extension}`;
+  await upload('book-photos', path, image);
+
+  return publicUrlFor('book-photos', path);
+}
+
 export async function pickAndUploadAvatar(userId: string): Promise<string | null> {
   const image = await pickAndCompress(AVATAR_EDGE);
   if (!image) return null;
@@ -100,4 +119,17 @@ export async function pickAndUploadAvatar(userId: string): Promise<string | null
 
 export function publicUrlFor(bucket: string, path: string): string {
   return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;
+}
+
+/**
+ * The inverse of `publicUrlFor` — pulls the storage path back out of a public
+ * URL, since `avatar_url` stores the full URL but `.remove()` needs just the
+ * path. Returns null for anything that is not actually a URL in this bucket
+ * (an avatar sourced from Google/Apple sign-in, say), which callers treat as
+ * "nothing of ours to delete."
+ */
+export function storagePathFromPublicUrl(bucket: string, url: string): string | null {
+  const marker = `/object/public/${bucket}/`;
+  const index = url.indexOf(marker);
+  return index === -1 ? null : url.slice(index + marker.length);
 }

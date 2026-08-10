@@ -1,7 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/AuthProvider';
-import { pickAndUploadAvatar, pickAndUploadListingPhoto, publicUrlFor } from '@/lib/images';
+import {
+  pickAndUploadAvatar,
+  pickAndUploadListingPhoto,
+  publicUrlFor,
+  storagePathFromPublicUrl,
+} from '@/lib/images';
 import { supabase } from '@/lib/supabase';
 import type { UserBookPhoto } from '@/types/database';
 
@@ -101,6 +106,32 @@ export function useUploadAvatar() {
       if (!url) return;
       await refreshProfile();
       // The owner's avatar rides along with every listing they have.
+      queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
+    },
+  });
+}
+
+export function useRemoveAvatar() {
+  const { user, refreshProfile } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    // The current avatar_url is passed in rather than read from cache — the
+    // profile lives in AuthProvider's own state, not React Query, so the
+    // caller (which already has it from useAuth()) is the only place with it.
+    mutationFn: async (currentAvatarUrl: string | null) => {
+      if (!user) throw new Error('Not signed in');
+
+      const { error } = await supabase.from('profiles').update({ avatar_url: null }).eq('id', user.id);
+      if (error) throw error;
+
+      // A Google/Apple avatar lives on their CDN, not ours — nothing to clean up
+      // there, only for photos this app uploaded itself.
+      const path = currentAvatarUrl ? storagePathFromPublicUrl('avatars', currentAvatarUrl) : null;
+      if (path) await supabase.storage.from('avatars').remove([path]);
+    },
+    onSuccess: async () => {
+      await refreshProfile();
       queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
     },
   });

@@ -1,4 +1,5 @@
-import { createContext, use, useMemo, type ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createContext, use, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useColorScheme, useWindowDimensions } from 'react-native';
 
 import {
@@ -15,9 +16,18 @@ import {
 
 export * from './tokens';
 
+export type ThemeMode = 'light' | 'dark' | 'system';
+
+export const THEME_MODES: readonly ThemeMode[] = ['light', 'dark', 'system'] as const;
+
+const STORAGE_KEY = 'settings.themeMode';
+
 type Theme = {
   colors: Colors;
   scheme: 'light' | 'dark';
+  /** The user's stored preference — distinct from `scheme`, which is the resolved value 'system' maps to. */
+  mode: ThemeMode;
+  setMode: (mode: ThemeMode) => void;
   spacing: typeof spacing;
   radius: typeof radius;
   typography: typeof typography;
@@ -27,18 +37,46 @@ type Theme = {
 const ThemeContext = createContext<Theme | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const scheme = useColorScheme() === 'dark' ? 'dark' : 'light';
+  const systemScheme = useColorScheme() === 'dark' ? 'dark' : 'light';
+
+  // Defaults to light rather than following the system, so a visitor whose OS
+  // happens to be in dark mode is not surprised by an unrequested dark site —
+  // 'system' is available, but it is a choice, not the starting point.
+  const [mode, setModeState] = useState<ThemeMode>('light');
+
+  useEffect(() => {
+    let cancelled = false;
+    AsyncStorage.getItem(STORAGE_KEY)
+      .then((stored) => {
+        if (!cancelled && stored && THEME_MODES.includes(stored as ThemeMode)) {
+          setModeState(stored as ThemeMode);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const setMode = useCallback((next: ThemeMode) => {
+    setModeState(next);
+    AsyncStorage.setItem(STORAGE_KEY, next).catch(() => {});
+  }, []);
+
+  const scheme = mode === 'system' ? systemScheme : mode;
 
   const value = useMemo<Theme>(
     () => ({
       colors: palette[scheme],
       scheme,
+      mode,
+      setMode,
       spacing,
       radius,
       typography,
       shadow,
     }),
-    [scheme]
+    [scheme, mode, setMode]
   );
 
   return <ThemeContext value={value}>{children}</ThemeContext>;

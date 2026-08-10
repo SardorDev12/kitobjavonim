@@ -23,11 +23,18 @@ import {
   Toggle,
 } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { formatAuthors, formatDate, formatPosition, formatPrice, parsePriceInput } from '@/lib/format';
+import { formatAuthors, formatDate, formatPosition, formatPrice, normalizeIsbn, parsePriceInput } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
+import { pickAndUploadBookCover } from '@/lib/images';
 import { usePositionOptions } from '@/lib/queries/bookshelves';
 import { useBookCategories, useSetBookCategories } from '@/lib/queries/categories';
-import { useDeleteUserBook, useLibraryEntry, useUpdateUserBook } from '@/lib/queries/library';
+import {
+  useDeleteUserBook,
+  useLibraryEntry,
+  useUpdateBook,
+  useUpdateUserBook,
+  type UpdateBookInput,
+} from '@/lib/queries/library';
 import { hasContactMethod } from '@/lib/queries/profile';
 import { useTheme } from '@/theme';
 import { BOOK_CONDITIONS, READING_STATUSES, type AvailabilityType, type ReadingStatus } from '@/types/database';
@@ -37,14 +44,17 @@ export default function BookDetailScreen() {
   const { t, locale } = useI18n();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
 
   const { data: entry, isPending, isError } = useLibraryEntry(id);
   const positions = usePositionOptions();
   const updateBook = useUpdateUserBook();
+  const updateBookDetails = useUpdateBook();
   const deleteBook = useDeleteUserBook();
   const { data: categories } = useBookCategories(entry?.book_id);
   const setCategories = useSetBookCategories();
+
+  const [editBookOpen, setEditBookOpen] = useState(false);
 
   const [reviewOpen, setReviewOpen] = useState(false);
   const [listingOpen, setListingOpen] = useState(false);
@@ -304,10 +314,25 @@ export default function BookDetailScreen() {
           />
         </Card>
 
-        {/* Book metadata ---------------------------------------------------- */}
+        {/* Book metadata ----------------------------------------------------
+            Editing is restricted to whoever added this book to the shared
+            catalogue — the RLS policy behind useUpdateBook enforces the same
+            rule, this is only what decides whether to show the action. */}
         <Card padded={false}>
-          <View style={{ padding: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
+          <View
+            style={[
+              styles.metaHeader,
+              { padding: theme.spacing.lg, paddingBottom: theme.spacing.sm },
+            ]}
+          >
             <Text variant="heading">{t('book.about')}</Text>
+            {entry.book_created_by === user?.id ? (
+              <Pressable onPress={() => setEditBookOpen(true)} hitSlop={8}>
+                <Text variant="label" color="primary">
+                  {t('common.edit')}
+                </Text>
+              </Pressable>
+            ) : null}
           </View>
 
           <MetaRow label={t('book.isbn')} value={entry.isbn13} />
@@ -351,7 +376,195 @@ export default function BookDetailScreen() {
         }}
         onSave={patch}
       />
+
+      <EditBookSheet
+        key={`book-${entry.book_id}-${entry.updated_at}`}
+        visible={editBookOpen}
+        onClose={() => setEditBookOpen(false)}
+        entry={entry}
+        onSave={(patchValues) =>
+          updateBookDetails.mutate({ bookId: entry.book_id, userBookId: entry.id, patch: patchValues })
+        }
+      />
     </Screen>
+  );
+}
+
+// -----------------------------------------------------------------------------
+
+const EDIT_LANGUAGE_OPTIONS = [
+  { value: 'uz', label: 'Oʻzbekcha' },
+  { value: 'ru', label: 'Русский' },
+  { value: 'en', label: 'English' },
+  { value: 'kaa', label: 'Qaraqalpaqsha' },
+  { value: 'tr', label: 'Türkçe' },
+  { value: 'ar', label: 'العربية' },
+];
+
+function EditBookSheet({
+  visible,
+  onClose,
+  entry,
+  onSave,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  entry: {
+    title: string;
+    subtitle: string | null;
+    authors: string[];
+    isbn13: string | null;
+    publisher: string | null;
+    publication_year: number | null;
+    language: string | null;
+    page_count: number | null;
+    cover_url: string | null;
+  };
+  onSave: (patch: UpdateBookInput['patch']) => void;
+}) {
+  const theme = useTheme();
+  const { t } = useI18n();
+  const { user } = useAuth();
+
+  const [title, setTitle] = useState(entry.title);
+  const [subtitle, setSubtitle] = useState(entry.subtitle ?? '');
+  const [authors, setAuthors] = useState(entry.authors.join(', '));
+  const [isbn, setIsbn] = useState(entry.isbn13 ?? '');
+  const [publisher, setPublisher] = useState(entry.publisher ?? '');
+  const [year, setYear] = useState(entry.publication_year?.toString() ?? '');
+  const [language, setLanguage] = useState<string | null>(entry.language);
+  const [pages, setPages] = useState(entry.page_count?.toString() ?? '');
+  const [coverUrl, setCoverUrl] = useState(entry.cover_url);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [titleError, setTitleError] = useState<string | null>(null);
+
+  async function pickCover() {
+    if (!user || coverUploading) return;
+    setCoverUploading(true);
+    try {
+      const url = await pickAndUploadBookCover(user.id);
+      if (url) setCoverUrl(url);
+    } finally {
+      setCoverUploading(false);
+    }
+  }
+
+  function save() {
+    if (!title.trim()) {
+      setTitleError(t('manual.titleRequired'));
+      return;
+    }
+
+    const normalizedIsbn = normalizeIsbn(isbn);
+    const parsedYear = Number(year);
+    const parsedPages = Number(pages);
+
+    onSave({
+      title: title.trim(),
+      subtitle: subtitle.trim() || null,
+      authors: authors
+        .split(',')
+        .map((author) => author.trim())
+        .filter(Boolean),
+      isbn13: normalizedIsbn.length === 13 ? normalizedIsbn : entry.isbn13,
+      publisher: publisher.trim() || null,
+      publication_year:
+        Number.isFinite(parsedYear) && parsedYear >= 1400 && parsedYear <= 2200 ? parsedYear : null,
+      language,
+      page_count: Number.isFinite(parsedPages) && parsedPages > 0 ? parsedPages : null,
+      cover_url: coverUrl,
+    });
+
+    onClose();
+  }
+
+  return (
+    <Sheet visible={visible} onClose={onClose} title={t('book.editDetails')}>
+      <View style={{ gap: theme.spacing.lg }}>
+        <Pressable
+          onPress={pickCover}
+          disabled={coverUploading}
+          accessibilityRole="button"
+          accessibilityLabel={t('manual.cover')}
+          style={({ pressed }) => [styles.editCoverRow, { opacity: pressed || coverUploading ? 0.7 : 1 }]}
+        >
+          <BookCover uri={coverUrl} title={title || entry.title} width={80} radius={theme.radius.sm} />
+          <View style={styles.editCoverAction}>
+            <Ionicons
+              name={coverUploading ? 'cloud-upload-outline' : 'camera-outline'}
+              size={16}
+              color={theme.colors.primary}
+            />
+            <Text variant="label" color="primary">
+              {coverUploading ? t('common.saving') : coverUrl ? t('manual.changeCover') : t('manual.addCover')}
+            </Text>
+          </View>
+        </Pressable>
+
+        <TextField
+          label={t('manual.bookTitle')}
+          value={title}
+          onChangeText={(value) => {
+            setTitle(value);
+            if (titleError) setTitleError(null);
+          }}
+          error={titleError}
+        />
+
+        <TextField label={t('book.subtitle')} value={subtitle} onChangeText={setSubtitle} />
+
+        <TextField
+          label={t('manual.authors')}
+          hint={t('manual.authorsHint')}
+          value={authors}
+          onChangeText={setAuthors}
+        />
+
+        <TextField
+          label={t('manual.isbn')}
+          value={isbn}
+          onChangeText={setIsbn}
+          keyboardType="numbers-and-punctuation"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        <TextField label={t('manual.publisher')} value={publisher} onChangeText={setPublisher} />
+
+        <View style={[styles.pair, { gap: theme.spacing.md }]}>
+          <TextField
+            label={t('manual.year')}
+            value={year}
+            onChangeText={setYear}
+            keyboardType="number-pad"
+            inputMode="numeric"
+            maxLength={4}
+            containerStyle={styles.pairItem}
+          />
+          <TextField
+            label={t('manual.pages')}
+            value={pages}
+            onChangeText={setPages}
+            keyboardType="number-pad"
+            inputMode="numeric"
+            maxLength={5}
+            containerStyle={styles.pairItem}
+          />
+        </View>
+
+        <Select
+          label={t('manual.language')}
+          placeholder={t('common.none')}
+          value={language}
+          options={EDIT_LANGUAGE_OPTIONS}
+          onChange={setLanguage}
+          clearable
+          clearLabel={t('common.none')}
+        />
+
+        <Button title={t('common.save')} fullWidth onPress={save} />
+      </View>
+    </Sheet>
   );
 }
 
@@ -562,6 +775,11 @@ const styles = StyleSheet.create({
   heroText: { flex: 1, gap: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  metaHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
   metaValue: { flex: 1, textAlign: 'right' },
+  editCoverRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  editCoverAction: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  pair: { flexDirection: 'row' },
+  pairItem: { flex: 1 },
 });

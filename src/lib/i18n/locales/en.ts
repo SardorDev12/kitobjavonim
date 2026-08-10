@@ -165,10 +165,15 @@ export const en = {
   'book.priceRequired': 'Enter a price to list this book for sale.',
   'book.contactRequired': 'Add a Telegram username or phone number to your profile before listing books.',
 
+  'book.editDetails': 'Edit book details',
+  'book.subtitle': 'Subtitle',
+
   'book.categories': 'Categories',
   'book.categoryLimit': 'Up to {{count}} categories.',
   'book.photosHint': 'Photos of your actual copy help buyers trust the condition.',
   'book.photosHintWeb': 'Photos are easiest to add from the mobile app.',
+  'profile.removePhoto': 'Remove photo',
+  'profile.removePhotoConfirm': 'Remove your profile photo?',
   'profile.changePhoto': 'Change photo',
 
   'add.title': 'Add a book',
@@ -202,6 +207,10 @@ export const en = {
   'manual.year': 'Year published',
   'manual.language': 'Language',
   'manual.pages': 'Pages',
+  'manual.cover': 'Cover photo',
+  'manual.addCover': 'Add cover',
+  'manual.changeCover': 'Change cover',
+
   'manual.titleRequired': 'A title is required',
 
   'shelves.title': 'Bookshelves',
@@ -276,6 +285,10 @@ export const en = {
   'profile.contactDetails': 'Contact details',
   'profile.settings': 'Settings',
   'profile.language': 'Language',
+  'profile.appearance.light': 'Light',
+  'profile.appearance.dark': 'Dark',
+  'profile.appearance.system': 'Match device',
+
   'profile.appearance': 'Appearance',
   'profile.signOutConfirm': 'Sign out of this account?',
   'profile.memberSince': 'Reader since {{date}}',

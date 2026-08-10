@@ -1,12 +1,16 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
+import { BookCover } from '@/components/BookCover';
 import { Button, Screen, Select, Text, TextField } from '@/components/ui';
+import { useAuth } from '@/features/auth/AuthProvider';
 import { setPendingBook } from '@/features/add/pendingBook';
 import { emptyCandidate } from '@/lib/books/metadata';
 import { normalizeIsbn } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
+import { pickAndUploadBookCover } from '@/lib/images';
 import { useTheme } from '@/theme';
 
 /**
@@ -32,6 +36,7 @@ export default function ManualEntryScreen() {
   const { t } = useI18n();
   const router = useRouter();
   const params = useLocalSearchParams<{ isbn?: string; title?: string }>();
+  const { user } = useAuth();
 
   const [title, setTitle] = useState(params.title ?? '');
   const [authors, setAuthors] = useState('');
@@ -41,6 +46,20 @@ export default function ManualEntryScreen() {
   const [language, setLanguage] = useState<string | null>(null);
   const [pages, setPages] = useState('');
   const [titleError, setTitleError] = useState<string | null>(null);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [coverUploading, setCoverUploading] = useState(false);
+
+  async function pickCover() {
+    if (!user || coverUploading) return;
+
+    setCoverUploading(true);
+    try {
+      const url = await pickAndUploadBookCover(user.id);
+      if (url) setCoverUrl(url);
+    } finally {
+      setCoverUploading(false);
+    }
+  }
 
   function next() {
     if (!title.trim()) {
@@ -66,6 +85,7 @@ export default function ManualEntryScreen() {
         Number.isFinite(parsedYear) && parsedYear >= 1400 && parsedYear <= 2200 ? parsedYear : null,
       language,
       page_count: Number.isFinite(parsedPages) && parsedPages > 0 ? parsedPages : null,
+      cover_url: coverUrl,
     });
 
     router.push('/add/configure');
@@ -78,6 +98,26 @@ export default function ManualEntryScreen() {
     >
       <View style={[styles.container, { gap: theme.spacing.lg, paddingTop: theme.spacing.md }]}>
         <Text variant="display">{t('manual.title')}</Text>
+
+        <Pressable
+          onPress={pickCover}
+          disabled={coverUploading}
+          accessibilityRole="button"
+          accessibilityLabel={t('manual.cover')}
+          style={({ pressed }) => [styles.coverRow, { opacity: pressed || coverUploading ? 0.7 : 1 }]}
+        >
+          <BookCover uri={coverUrl} title={title || t('manual.bookTitle')} width={80} radius={theme.radius.sm} />
+          <View style={styles.coverAction}>
+            <Ionicons
+              name={coverUploading ? 'cloud-upload-outline' : 'camera-outline'}
+              size={16}
+              color={theme.colors.primary}
+            />
+            <Text variant="label" color="primary">
+              {coverUploading ? t('common.saving') : coverUrl ? t('manual.changeCover') : t('manual.addCover')}
+            </Text>
+          </View>
+        </Pressable>
 
         <TextField
           label={t('manual.bookTitle')}
@@ -147,4 +187,6 @@ const styles = StyleSheet.create({
   container: { maxWidth: 560, width: '100%', alignSelf: 'center' },
   pair: { flexDirection: 'row' },
   pairItem: { flex: 1 },
+  coverRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  coverAction: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 });

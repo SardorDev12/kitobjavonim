@@ -66,7 +66,21 @@
       "Bash(dig @ns1.uz kitobjavonim.uz NS)",
       "Bash(dig +short NS kitobjavonim.uz @1.1.1.1)",
       "Bash(dig +short NS kitobjavonim.uz @8.8.8.8)",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(gh auth *)",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(gh repo *)",
+      "Bash(supabase db *)",
+      "Bash(curl -sI https://kitobjavonim.uz)",
+      "Bash(curl -sI https://www.kitobjavonim.uz)",
+      "Bash(curl -s https://www.kitobjavonim.uz)",
+      "Bash(curl -s -o /dev/null -w \"status=%{http_code}\\\\n\" https://www.kitobjavonim.uz/discover)",
+      "Bash(curl -s -o /dev/null -w \"status=%{http_code}\\\\n\" https://www.kitobjavonim.uz/book/fake-test-id-12345)",
+      "Bash(curl -s https://www.kitobjavonim.uz/book/fake-test-id-12345)",
+      "Bash(curl -s -o /dev/null -w \"status=%{http_code}\\\\n\" https://www.kitobjavonim.uz/listing/fake-test-id-67890)",
+      "Bash(curl -s -o /dev/null -w \"status=%{http_code}\\\\n\" https://www.kitobjavonim.uz/this-path-does-not-exist-xyz)",
+      "Bash(curl -s -o /dev/null -w \"status=%{http_code} location=%{redirect_url}\\\\n\" http://www.kitobjavonim.uz/)",
+      "Bash(grep -E \"htaccess$|book/\\\\[id\\\\]|listing/\\\\[id\\\\]\")"
     ]
   }
 }

@@ -8,7 +8,7 @@ import { formatMonthYear } from '@/lib/format';
 import { LOCALE_LABELS, LOCALES, useI18n, type Locale } from '@/lib/i18n';
 import { useProfileStats, useUpdateProfile } from '@/lib/queries/profile';
 import { useLocationOptions } from '@/lib/queries/reference';
-import { useTheme } from '@/theme';
+import { THEME_MODES, useTheme, type ThemeMode } from '@/theme';
 
 export default function ProfileScreen() {
   const theme = useTheme();
@@ -21,6 +21,7 @@ export default function ProfileScreen() {
   const updateProfile = useUpdateProfile();
 
   const [languageOpen, setLanguageOpen] = useState(false);
+  const [appearanceOpen, setAppearanceOpen] = useState(false);
 
   const location = locations.describe(profile?.district_id ?? null, profile?.region_id ?? null);
 
@@ -97,6 +98,13 @@ export default function ProfileScreen() {
             value={LOCALE_LABELS[locale]}
             onPress={() => setLanguageOpen(true)}
           />
+          <Divider inset={theme.spacing.lg} />
+          <ListRow
+            icon={theme.scheme === 'dark' ? 'moon-outline' : 'sunny-outline'}
+            label={t('profile.appearance')}
+            value={t(`profile.appearance.${theme.mode}`)}
+            onPress={() => setAppearanceOpen(true)}
+          />
         </Card>
 
         <Button title={t('auth.signOut')} variant="secondary" fullWidth onPress={confirmSignOut} />
@@ -111,6 +119,28 @@ export default function ProfileScreen() {
               onPress={() => chooseLocale(option)}
               trailing={
                 option === locale ? (
+                  <Text variant="label" color="primary">
+                    ✓
+                  </Text>
+                ) : null
+              }
+            />
+          </View>
+        ))}
+      </Sheet>
+
+      <Sheet visible={appearanceOpen} onClose={() => setAppearanceOpen(false)} title={t('profile.appearance')}>
+        {THEME_MODES.map((option, index) => (
+          <View key={option}>
+            {index > 0 ? <Divider /> : null}
+            <ListRow
+              label={t(`profile.appearance.${option}`)}
+              onPress={() => {
+                theme.setMode(option);
+                setAppearanceOpen(false);
+              }}
+              trailing={
+                option === theme.mode ? (
                   <Text variant="label" color="primary">
                     ✓
                   </Text>
