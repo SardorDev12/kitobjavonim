@@ -11,11 +11,14 @@ set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
-# EDIT THIS — the domain's actual document root. Find it in Plesk under the
-# domain's "Hosting Settings", or via File Manager's path breadcrumb. It is
-# almost always /var/www/vhosts/<domain>/httpdocs, but confirm rather than
-# assume: syncing to the wrong path silently serves nothing.
-WEBROOT="/var/www/vhosts/kitobjavonim.uz/httpdocs"
+# The repository checkout ("repo") and the public webroot ("httpdocs") are
+# sibling folders under the same home directory in Plesk's setup for this
+# domain, so httpdocs is reachable as ../httpdocs relative to here — no need
+# to hardcode the absolute /var/www/vhosts/... path, which was the harder,
+# account-specific thing to pin down. Resolving it with cd+pwd rather than
+# using the relative path directly means a wrong assumption fails loudly here
+# (set -e) instead of rsync silently writing nowhere useful.
+WEBROOT="$(cd "$(pwd)/../httpdocs" && pwd)"
 
 echo "==> Installing dependencies"
 npm ci
