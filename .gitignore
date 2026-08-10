@@ -34,6 +34,11 @@ yarn-error.*
 .env
 .env*.local
 !.env.example
+# .env.production is committed on purpose — see the comment in that file.
+# It holds only EXPO_PUBLIC_* values, which are meant to be public: they are
+# inlined into the client bundle regardless of where they come from. This is
+# what the Plesk build server reads, since plain .env never reaches it.
+!.env.production
 
 # typescript
 *.tsbuildinfo

@@ -80,7 +80,16 @@
       "Bash(curl -s -o /dev/null -w \"status=%{http_code}\\\\n\" https://www.kitobjavonim.uz/listing/fake-test-id-67890)",
       "Bash(curl -s -o /dev/null -w \"status=%{http_code}\\\\n\" https://www.kitobjavonim.uz/this-path-does-not-exist-xyz)",
       "Bash(curl -s -o /dev/null -w \"status=%{http_code} location=%{redirect_url}\\\\n\" http://www.kitobjavonim.uz/)",
-      "Bash(grep -E \"htaccess$|book/\\\\[id\\\\]|listing/\\\\[id\\\\]\")"
+      "Bash(grep -E \"htaccess$|book/\\\\[id\\\\]|listing/\\\\[id\\\\]\")",
+      "Bash(mkdir -p public)",
+      "Bash(rm -rf dist)",
+      "Bash(mv .env .env.bak.local)",
+      "Bash(sed -i '' 's|https://zsrhzjujoahresqfhpks.supabase.co|https://TESTMARKER12345.supabase.co|' .env.production)",
+      "Bash(chmod +x \"/Users/macbook_uz/Projects/Home library/scripts/deploy.sh\")",
+      "Bash(npm ci *)",
+      "Bash(rm -rf dist .expo)",
+      "Bash(rm -f /tmp/deploy.sh.orig /tmp/deploy_test.sh)",
+      "Bash(rm -rf /private/tmp/claude-501/-Users-macbook-uz-Projects-Home-library/31021656-58a9-4ab8-8d8e-1e4208ee0b1b/scratchpad/fake_webroot)"
     ]
   }
 }

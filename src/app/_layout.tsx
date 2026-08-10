@@ -103,10 +103,18 @@ function RootNavigator() {
   useEffect(() => {
     if (initializing || !navigationReady) return;
 
-    // Widened to string: expo-router generates the segment union from the routes
-    // it has seen, so a freshly added route makes these comparisons look
-    // impossible to the compiler until the types are regenerated.
-    const group: string | undefined = segments[0];
+    // Widened to a plain string array up front, not just at the first access:
+    // expo-router infers useSegments()'s tuple shape from the routes it has
+    // discovered, and that inference lives in .expo/types/router.d.ts — a file
+    // `expo start` writes but `expo export` never does. A route added since the
+    // last dev-server run, or any build that skips `expo start` entirely (the
+    // production build does), can leave that file stale, missing, or narrower
+    // than the app's actual routes, which makes indexing past its inferred
+    // length a compile error. None of that bears on whether the segment is
+    // actually there at runtime, so the fix is to stop trusting the inferred
+    // length rather than to keep patching each new index as it comes up.
+    const path = segments as readonly string[];
+    const group = path[0];
     const inAuthGroup = group === '(auth)';
     const onOnboarding = group === 'onboarding';
 
@@ -114,7 +122,7 @@ function RootNavigator() {
     // policies already expose exactly those rows to `anon`, it lets someone see
     // what is on offer before committing to an account, and it is what makes
     // listing URLs worth sharing. Everything else needs a session.
-    const isPublicRoute = (group === '(tabs)' && segments[1] === 'discover') || group === 'listing';
+    const isPublicRoute = (group === '(tabs)' && path[1] === 'discover') || group === 'listing';
 
     // auth/callback and auth/telegram-login run before a session exists by
     // definition — bouncing them to sign-in would abort the token exchange

@@ -1,0 +1,49 @@
+# Home Library — static hosting rules for Apache (cPanel/Plesk).
+#
+# Lives in public/ rather than being written straight into dist/ by hand: Expo
+# Router's static web export copies everything under public/ into dist/
+# verbatim, so this becomes part of every build automatically — including
+# builds Plesk runs on its own after a git pull, which never had a copy of
+# this file until now.
+#
+# Expo Router prerenders one real HTML file per known route (discover.html,
+# sign-in.html, ...), so those work on a plain file host with no rewrite rules.
+# Two routes are dynamic, though — /book/<id> and /listing/<id> — and there is
+# no file for every possible id. Expo instead builds a single shell page per
+# pattern, literally named `[id].html`, meant to be served for ANY id and read
+# the actual value client-side from the URL. Without the rules below, a shared
+# link like /listing/<uuid> 404s on a direct load (it only works when reached
+# by clicking inside the app, since that never asks the server for a new page).
+
+RewriteEngine On
+
+# Force HTTPS. Safe regardless of Cloudflare's proxy setting: in "Full" or
+# "Full (strict)" mode this simply confirms what already happened at the
+# edge; only "Flexible" mode would turn this into a redirect loop, which is
+# why Flexible should not be used here (see the deployment notes).
+RewriteCond %{HTTPS} off
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Dynamic routes: any id under /book/ or /listing/ gets the shell page.
+RewriteRule ^book/[^/]+/?$ book/[id].html [L]
+RewriteRule ^listing/[^/]+/?$ listing/[id].html [L]
+
+# Clean URLs: serve foo.html for /foo when no literal file or directory
+# matches. Covers every static route (discover, sign-in, profile, ...).
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond %{DOCUMENT_ROOT}/$1.html -f
+RewriteRule ^(.*)$ $1.html [L]
+
+# Anything genuinely unmatched — a typo'd path, a removed listing.
+ErrorDocument 404 /+not-found.html
+
+# Static JS/CSS bundles are content-hashed (the filename changes when the
+# content does), so they can be cached hard; the HTML shells cannot, since
+# the same URL must always serve current content.
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType application/javascript "access plus 1 year"
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType text/html "access plus 0 seconds"
+</IfModule>
