@@ -9,32 +9,37 @@
 # previous manual workflow was zip/upload/extract for, now automatic on push.
 set -euo pipefail
 
-# Plesk's deploy-actions shell runs with a near-empty PATH — even `dirname`,
-# about as basic as coreutils gets, was missing without this on first run.
-export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
+# Plesk's deploy-actions shell turned out to be more restricted than a merely
+# short PATH: `dirname` — a basic coreutils binary — was not found even after
+# adding /usr/bin and /bin to PATH by hand, which points at a genuinely bare
+# jailed environment rather than a lookup problem. Worse, that failure did not
+# stop the script under `set -e` the way it looks like it should: bash does
+# not treat a failing command *inside* a `$(...)` substitution as fatal, only
+# the exit status of the substitution's own assignment — so `cd
+# "$(dirname ...)/.."` silently became `cd "/.."` and the script kept going
+# from the wrong directory instead of stopping. Fixed by never shelling out
+# for this at all: `${VAR%/*}` is bash's own built-in suffix-stripping, doing
+# what `dirname` does without depending on any external binary existing.
+here="${BASH_SOURCE[0]%/*}"
+cd "$here/.."
 
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
-
-# Same story for Plesk-managed Node.js: not on this shell's PATH by default,
-# and its install location is version- and account-specific, so it is found
-# rather than assumed. Checked in order: whatever's already on PATH (in case
-# a future Plesk update fixes this shell), then the layout Plesk's own Node.js
-# extension uses for a per-domain interpreter, then a couple of common
-# manual-install locations, roughly most- to least-likely for this host.
-NPM_BIN="$(command -v npm || true)"
-if [ -z "$NPM_BIN" ]; then
-  for candidate in \
-    "$HOME"/nodevenv/*/*/bin/npm \
-    /opt/plesk/node/*/bin/npm \
-    /usr/local/opt/node*/bin/npm \
-    /usr/local/node*/bin/npm
-  do
-    if [ -x "$candidate" ]; then
-      NPM_BIN="$candidate"
-      break
-    fi
-  done
-fi
+# Node.js is installed for this domain (confirmed via Plesk's own Node.js
+# panel: version 26, prefix /opt/plesk/node/26), just not on this shell's
+# PATH by default. Tried in order: the confirmed path first, then whatever's
+# already on PATH in case a future Plesk update fixes this shell, then a
+# couple of other layouts as a last resort for if the version number changes.
+NPM_BIN=""
+for candidate in \
+  /opt/plesk/node/26/bin/npm \
+  "$(command -v npm 2>/dev/null || true)" \
+  "$HOME"/nodevenv/*/*/bin/npm \
+  /opt/plesk/node/*/bin/npm
+do
+  if [ -n "$candidate" ] && [ -x "$candidate" ]; then
+    NPM_BIN="$candidate"
+    break
+  fi
+done
 
 if [ -z "$NPM_BIN" ]; then
   echo "Could not find npm anywhere expected." >&2
@@ -44,8 +49,9 @@ if [ -z "$NPM_BIN" ]; then
 fi
 
 # Puts npm AND npx on PATH — they live side by side in every Node.js install,
-# so finding one locates the other for free.
-export PATH="$(dirname "$NPM_BIN"):$PATH"
+# so finding one locates the other for free. Built-in suffix-stripping again,
+# same reason as above.
+export PATH="${NPM_BIN%/*}:$PATH"
 echo "==> Using npm at $NPM_BIN"
 
 # The repository checkout ("repo") and the public webroot ("httpdocs") are
