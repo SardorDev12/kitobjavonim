@@ -108,7 +108,7 @@ dashboard → Caching → Configuration → Purge Everything).
 
 **Actions log shows `::warning::` about polling timing out** — the build
 reached `deploy`, but `https://kitobjavonim.uz/.build-sha` never matched
-this build's commit SHA within 5 minutes, so Cloudflare was deliberately
+this build's commit SHA within 10 minutes, so Cloudflare was deliberately
 *not* purged (purging before the real files land would just re-cache the
 old ones again). Check Plesk's webhook is actually configured (step 6) and
 firing — Plesk's Git panel shows the latest commit it pulled, which should

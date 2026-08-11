@@ -58,7 +58,7 @@ jobs:
       - name: Wait for Plesk to deploy this build
         id: wait_for_deploy
         run: |
-          for i in $(seq 1 30); do
+          for i in $(seq 1 60); do
             live_sha="$(curl -fsS "https://kitobjavonim.uz/.build-sha?_=$RANDOM$RANDOM" || true)"
             if [ "$live_sha" = "${{ github.sha }}" ]; then
               echo "landed=true" >> "$GITHUB_OUTPUT"
@@ -79,4 +79,4 @@ jobs:
       - name: Warn if Plesk never picked up the build
         if: steps.wait_for_deploy.outputs.landed == 'false'
         run: |
-          echo "::warning::kitobjavonim.uz still shows an older build after 5 minutes of polling. Check Plesk's webhook (Git > Repository Settings) is configured and firing, or deploy manually — Cloudflare's cache was NOT purged, since purging before the real files land would just re-cache the old ones."
+          echo "::warning::kitobjavonim.uz still shows an older build after 10 minutes of polling. Check Plesk's webhook (Git > Repository Settings) is configured and firing, or deploy manually — Cloudflare's cache was NOT purged, since purging before the real files land would just re-cache the old ones."
