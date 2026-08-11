@@ -23,9 +23,9 @@ currently isn't wired into anything.
 
 ## One-time setup
 
-1. **GitHub Actions needs no extra secrets.** It pushes to the `deploy`
-   branch using the automatic `GITHUB_TOKEN` — the workflow already
-   declares `permissions: contents: write`.
+1. **Pushing to `deploy` needs no extra secrets** — it uses the automatic
+   `GITHUB_TOKEN` (workflow already declares `permissions: contents:
+   write`). Purging Cloudflare's cache (step 6) does need two repo secrets.
 
 2. **Create the `deploy` branch once** by running the workflow: GitHub →
    Actions tab → "Build and publish web export" → **Run workflow** (or just
@@ -45,12 +45,34 @@ currently isn't wired into anything.
 5. Confirm deploy mode is **Automatic** (same Repository Settings screen),
    then do a first manual pull: Git panel → **Получить сейчас**.
 
+6. **Wire up Plesk's webhook, so pushes deploy without a manual click**:
+   same Repository Settings screen shows a webhook URL. Copy it, then in
+   GitHub: repo → Settings → Webhooks → **Add webhook** → paste it into
+   Payload URL, content type `application/json`, trigger on "Just the push
+   event" → Add webhook. Every push to `deploy` (i.e. every successful
+   Actions run) now makes Plesk pull and sync into `httpdocs` on its own.
+
+7. **Cloudflare cache purge, so a deploy doesn't need a manual cache purge
+   too** (this domain sits behind Cloudflare — confirmed the hard way: a
+   favicon update was invisible until the Cloudflare cache was purged by
+   hand, even though the correct file was already live in `httpdocs`).
+   - Cloudflare dashboard → My Profile → API Tokens → **Create Token** →
+     Custom token → permission `Zone / Cache Purge / Purge`, scoped to the
+     `kitobjavonim.uz` zone only. Copy the token.
+   - Cloudflare dashboard → select the `kitobjavonim.uz` zone → the
+     **Zone ID** is in the right sidebar. Copy it too.
+   - GitHub → repo → Settings → Secrets and variables → Actions → **New
+     repository secret** → add both `CLOUDFLARE_API_TOKEN` and
+     `CLOUDFLARE_ZONE_ID`.
+
 ## Ongoing use
 
-`git push` to `main` → GitHub Actions builds and updates `deploy` →
-Plesk syncs `deploy` into `httpdocs`. Nothing needs to run inside Plesk. If
-auto-pull-on-push isn't configured (see the webhook URL in Repository
-Settings), pull manually with **Получить сейчас** after a push.
+`git push` to `main` → GitHub Actions builds, pushes to `deploy`, waits
+(polling `https://kitobjavonim.uz/.build-sha`, a marker file the build
+writes) for Plesk's webhook to actually sync it into `httpdocs`, then purges
+Cloudflare. Nothing manual, as long as steps 6 and 7 above are done — if
+either isn't, see "If something goes wrong" below for what breaks and how
+to tell.
 
 ## If something goes wrong
 
@@ -74,9 +96,25 @@ URL in Repository Settings.
 Actions build reads; check its values there and re-run the workflow
 (`workflow_dispatch` is enabled, so it can be triggered manually).
 
-**Favicon (or anything else) looks unchanged after a deploy** — check it's
-not just the browser caching the old one before assuming the pipeline is
-broken; a hard refresh or a private window rules that out fast.
+**Favicon (or anything else) looks unchanged after a deploy** — two caches
+sit between a deploy and your browser, check them in order: first, load the
+asset's own URL directly in a private window (e.g.
+`https://kitobjavonim.uz/favicon.ico`) — if it's already correct there, it
+was only ever your browser's favicon cache (notoriously sticky, ignores a
+normal hard refresh). If it's still wrong even loaded directly, Cloudflare's
+edge cache is serving something stale; the workflow purges it automatically
+once step 7 above is set up, or purge by hand meanwhile (Cloudflare
+dashboard → Caching → Configuration → Purge Everything).
+
+**Actions log shows `::warning::` about polling timing out** — the build
+reached `deploy`, but `https://kitobjavonim.uz/.build-sha` never matched
+this build's commit SHA within 5 minutes, so Cloudflare was deliberately
+*not* purged (purging before the real files land would just re-cache the
+old ones again). Check Plesk's webhook is actually configured (step 6) and
+firing — Plesk's Git panel shows the latest commit it pulled, which should
+match the workflow's commit. If the webhook isn't set up yet, pull and
+deploy manually in Plesk, then purge Cloudflare by hand for that one
+deploy.
 
 ## History: why the build doesn't happen on Plesk
 
