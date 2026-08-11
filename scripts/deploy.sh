@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
 #
-# Plesk deploy-actions script. Runs after every `git pull` Plesk performs on
-# this repository — set it as the "Additional deploy actions" command in
-# Plesk's Git extension. See docs/plesk-deploy.md for the one-time setup.
+# NOT CURRENTLY WIRED INTO ANYTHING. The web build now happens in GitHub
+# Actions (.github/workflows/deploy-web.yml) instead, because this script
+# can never succeed on this Plesk account as long as SSH access to the
+# server shell stays forbidden for the domain — see the "History" section
+# of docs/plesk-deploy.md for why. Kept in case that ever changes: if SSH
+# access is enabled, this can go back into Plesk's Git "additional deploy
+# actions" field (`bash scripts/deploy.sh`) as originally designed.
 #
 # What it does: installs dependencies, builds the static web export, and
-# syncs the result into the public webroot — the same three steps the
-# previous manual workflow was zip/upload/extract for, now automatic on push.
+# syncs the result into the public webroot.
 set -euo pipefail
 
 # Plesk's deploy-actions shell turned out to be more restricted than a merely
