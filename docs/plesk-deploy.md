@@ -93,14 +93,29 @@ overwrite it with just the built site.
 `package-lock.json` didn't make it into the repo (it should have; check
 `git ls-files package-lock.json`).
 
-**`Could not find npm anywhere expected`** — none of the paths
-`scripts/deploy.sh` guesses matched this account's actual Node.js install.
-The script prints a diagnostics block right after that error listing every
-`/opt/plesk/node/*/` and `$HOME/nodevenv/*/*/` directory it can see — no SSH
-needed, it's right there in the same deploy log Plesk already shows. Take the
-real npm path from that listing (e.g. `/opt/plesk/node/22/bin/npm`) and add
-it to the `for candidate in ...` list near the top of the script, ahead of
-the other guesses.
+**`Could not find npm anywhere expected`** — the Git deploy-actions shell is
+a separate, more restricted jail from whatever environment Plesk's own
+Node.js panel runs in; a path confirmed through that panel (e.g.
+`npm config get prefix`) can still be completely unreachable from
+`scripts/deploy.sh`, not just wrong. If this recurs (a Plesk update, a
+different account, a domain rename), the fastest way to find the real path
+is **Plesk → domain → Node.js → "Выполнить команды Node.js" (Execute Node.js
+commands)** — that panel runs in Plesk's actual managed environment, not the
+deploy-actions jail. Two commands to run there (dropdown stays on `npm`):
+
+- `config get prefix` — npm's install root as Plesk sees it.
+- `exec -c "which node && which npm"` — the real invocation path; on this
+  domain it resolved through nodenv shims at
+  `/var/www/vhosts/kitobjavonim.uz/.nodenv/shims/`, not the prefix path
+  above. `.nodenv/` sits as a sibling of `repo/` and `httpdocs/` under the
+  vhost root, so it's reachable from the deploy script the same relative way
+  `WEBROOT` already is — that's the `../.nodenv/shims/npm` candidate at the
+  top of the `for candidate in ...` list. If the `exec` output ever points
+  somewhere else, add that path to the same list.
+
+If both come up empty, the script also prints a diagnostics block after the
+error — `../.nodenv/shims/*`, `/opt/plesk/node/*/`, and
+`$HOME/nodevenv/*/*/` — no SSH needed, it's right there in the deploy log.
 
 **Build succeeds but the site doesn't change** — `scripts/deploy.sh` expects
 `repo` and `httpdocs` to be sibling folders under the same home directory. If

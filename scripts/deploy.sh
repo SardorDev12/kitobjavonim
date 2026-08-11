@@ -23,13 +23,22 @@ set -euo pipefail
 here="${BASH_SOURCE[0]%/*}"
 cd "$here/.."
 
-# Node.js is installed for this domain (confirmed via Plesk's own Node.js
-# panel: version 26, prefix /opt/plesk/node/26), just not on this shell's
-# PATH by default. Tried in order: the confirmed path first, then whatever's
-# already on PATH in case a future Plesk update fixes this shell, then a
-# couple of other layouts as a last resort for if the version number changes.
+# `npm config get prefix` (run through Plesk's Node.js panel, which has its
+# own working environment) says /opt/plesk/node/26 — but that path is not
+# reachable from *this* shell at all: the deploy-actions shell for Git is a
+# separate, more restricted jail that simply doesn't have /opt mounted,
+# which is also why the previous /opt/plesk/node/26/bin/npm guess and a
+# directory-listing diagnostic both came up completely empty here, not just
+# wrong. `npm exec -c "which node && which npm"` (same panel) resolved
+# through nodenv shims instead, at
+# /var/www/vhosts/kitobjavonim.uz/.nodenv/shims/{node,npm} — and .nodenv/
+# sits as a sibling of repo/ and httpdocs/ under the vhost root, so it's
+# reachable the same relative way WEBROOT below already is. Shims are
+# self-contained (they carry their own nodenv root internally), so putting
+# the shims directory on PATH is enough — no extra nodenv setup needed.
 NPM_BIN=""
 for candidate in \
+  ../.nodenv/shims/npm \
   /opt/plesk/node/26/bin/npm \
   "$(command -v npm 2>/dev/null || true)" \
   "$HOME"/nodevenv/*/*/bin/npm \
@@ -47,6 +56,8 @@ if [ -z "$NPM_BIN" ]; then
   echo "either add it to the search list above or hardcode it directly." >&2
   echo >&2
   echo "Diagnostics (uses only bash builtins, no external commands needed):" >&2
+  echo "-- ../.nodenv/shims/*/ --" >&2
+  for f in ../.nodenv/shims/*; do [ -e "$f" ] && echo "  $f" >&2; done
   echo "-- /opt/plesk/node/*/ --" >&2
   for d in /opt/plesk/node/*/; do [ -d "$d" ] && echo "  $d" >&2; done
   echo "-- \$HOME/nodevenv/*/*/ (site/version) --" >&2
