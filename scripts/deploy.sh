@@ -26,51 +26,57 @@ cd "$here/.."
 # `npm config get prefix` (run through Plesk's Node.js panel, which has its
 # own working environment) says /opt/plesk/node/26 — but that path is not
 # reachable from *this* shell at all: the deploy-actions shell for Git is a
-# separate, more restricted jail that simply doesn't have /opt mounted,
-# which is also why the previous /opt/plesk/node/26/bin/npm guess and a
-# directory-listing diagnostic both came up completely empty here, not just
-# wrong. `npm exec -c "which node && which npm"` (same panel) resolved
-# through nodenv shims instead, at
-# /var/www/vhosts/kitobjavonim.uz/.nodenv/shims/{node,npm} — and .nodenv/
-# sits as a sibling of repo/ and httpdocs/ under the vhost root, so it's
-# reachable the same relative way WEBROOT below already is. Shims are
-# self-contained (they carry their own nodenv root internally), so putting
-# the shims directory on PATH is enough — no extra nodenv setup needed.
-NPM_BIN=""
-for candidate in \
-  ../.nodenv/shims/npm \
-  /opt/plesk/node/26/bin/npm \
-  "$(command -v npm 2>/dev/null || true)" \
-  "$HOME"/nodevenv/*/*/bin/npm \
-  /opt/plesk/node/*/bin/npm
-do
-  if [ -n "$candidate" ] && [ -x "$candidate" ]; then
-    NPM_BIN="$candidate"
+# separate, more restricted jail that simply doesn't have /opt mounted.
+# `npm exec -c "which node && which npm"` (same panel) resolved through
+# nodenv shims instead, at
+# /var/www/vhosts/kitobjavonim.uz/.nodenv/shims/{node,npm} — reachable from
+# here as ../.nodenv/shims, a sibling of repo/ and httpdocs/ under the vhost
+# root, the same way WEBROOT below already is. BUT the shims themselves are
+# `#!/usr/bin/env bash` scripts, and this jail doesn't have /usr/bin/env
+# either — confirmed by trying to run the npm shim directly and getting
+# "bad interpreter: No such file or directory". Every Node CLI wrapper has
+# the same problem (npm's shim, npx, node_modules/.bin/expo — all shebang
+# scripts), so patching just the one call that happened to fail first would
+# only move the failure one step deeper.
+#
+# The fix that survives the whole chain: never let the OS exec a shebang
+# script at all. `node` itself is a real compiled binary — no interpreter
+# line to resolve — so calling it directly on the actual .js entry files
+# (npm's own bin/npm-cli.js, and later Expo's node_modules/expo/bin/cli)
+# needs nothing but that one binary, confirmed present via nodenv's
+# versions/ directory (a sibling of shims/ under the same .nodenv root).
+NODE_BIN=""
+NPM_CLI=""
+for d in ../.nodenv/versions/26.7.0/ ../.nodenv/versions/*/; do
+  if [ -x "${d}bin/node" ] && [ -f "${d}lib/node_modules/npm/bin/npm-cli.js" ]; then
+    NODE_BIN="${d}bin/node"
+    NPM_CLI="${d}lib/node_modules/npm/bin/npm-cli.js"
     break
   fi
 done
 
-if [ -z "$NPM_BIN" ]; then
-  echo "Could not find npm anywhere expected." >&2
-  echo "Check Plesk's Node.js panel for this domain for the exact path, then" >&2
-  echo "either add it to the search list above or hardcode it directly." >&2
+if [ -z "$NODE_BIN" ]; then
+  echo "Could not find a real node binary under ../.nodenv/versions/*/." >&2
+  echo "Check Plesk's Node.js panel (Execute Node.js commands tab, dropdown" >&2
+  echo "on npm) for the real layout: run \`config get prefix\` and" >&2
+  echo "\`exec -c \"which node\"\`, then update the search above." >&2
   echo >&2
   echo "Diagnostics (uses only bash builtins, no external commands needed):" >&2
+  echo "-- ../.nodenv/versions/*/ --" >&2
+  for d in ../.nodenv/versions/*/; do [ -d "$d" ] && echo "  $d" >&2; done
   echo "-- ../.nodenv/shims/*/ --" >&2
   for f in ../.nodenv/shims/*; do [ -e "$f" ] && echo "  $f" >&2; done
-  echo "-- /opt/plesk/node/*/ --" >&2
-  for d in /opt/plesk/node/*/; do [ -d "$d" ] && echo "  $d" >&2; done
-  echo "-- \$HOME/nodevenv/*/*/ (site/version) --" >&2
-  for d in "$HOME"/nodevenv/*/*/; do [ -d "$d" ] && echo "  $d" >&2; done
-  echo "-- PATH was: $PATH --" >&2
   exit 1
 fi
 
-# Puts npm AND npx on PATH — they live side by side in every Node.js install,
-# so finding one locates the other for free. Built-in suffix-stripping again,
-# same reason as above.
-export PATH="${NPM_BIN%/*}:$PATH"
-echo "==> Using npm at $NPM_BIN"
+echo "==> Using node at $NODE_BIN"
+
+# Belt and braces: our own calls below use $NODE_BIN by absolute path (no
+# shebang involved), but if npm spawns a shell internally for some
+# dependency's lifecycle script that calls bare `node`, that subshell needs
+# it resolvable via PATH too — and this is the real compiled binary's
+# directory, not a shebang shim, so it's safe to expose.
+export PATH="${NODE_BIN%/*}:$PATH"
 
 # The repository checkout ("repo") and the public webroot ("httpdocs") are
 # sibling folders under the same home directory in Plesk's setup for this
@@ -82,15 +88,21 @@ echo "==> Using npm at $NPM_BIN"
 WEBROOT="$(cd "$(pwd)/../httpdocs" && pwd)"
 
 echo "==> Installing dependencies"
-npm ci
+"$NODE_BIN" "$NPM_CLI" ci
 
 # --clear bypasses Metro's transform cache. Without it, a build in a checkout
 # directory that persists between deploys can serve values baked in by an
 # earlier build even after .env.production changes — confirmed while setting
 # this up: a stale cache reproduced the previous Supabase URL after the env
 # file had already been edited to something else.
+#
+# Invoking node_modules/expo/bin/cli directly (rather than `npx expo` or
+# node_modules/.bin/expo) for the same reason as npm above: both of those go
+# through a `#!/usr/bin/env node` shebang, which this jail can't resolve.
+# bin/cli is expo's actual entry file — confirmed via its package.json
+# "bin" field — so running it as an argument to node needs no shebang at all.
 echo "==> Building the static web export"
-npx expo export --platform web --clear
+"$NODE_BIN" node_modules/expo/bin/cli export --platform web --clear
 
 echo "==> Syncing dist/ into $WEBROOT"
 rsync -a --delete dist/ "$WEBROOT/"

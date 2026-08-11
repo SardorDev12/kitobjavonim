@@ -93,29 +93,37 @@ overwrite it with just the built site.
 `package-lock.json` didn't make it into the repo (it should have; check
 `git ls-files package-lock.json`).
 
-**`Could not find npm anywhere expected`** — the Git deploy-actions shell is
-a separate, more restricted jail from whatever environment Plesk's own
-Node.js panel runs in; a path confirmed through that panel (e.g.
-`npm config get prefix`) can still be completely unreachable from
-`scripts/deploy.sh`, not just wrong. If this recurs (a Plesk update, a
-different account, a domain rename), the fastest way to find the real path
-is **Plesk → domain → Node.js → "Выполнить команды Node.js" (Execute Node.js
-commands)** — that panel runs in Plesk's actual managed environment, not the
-deploy-actions jail. Two commands to run there (dropdown stays on `npm`):
+**`Could not find npm anywhere expected` / `Could not find a real node binary`**
+— the Git deploy-actions shell is a separate, more restricted jail from
+whatever environment Plesk's own Node.js panel runs in; a path confirmed
+through that panel (e.g. `npm config get prefix`) can still be completely
+unreachable from `scripts/deploy.sh`, not just wrong. If this recurs (a
+Plesk update, a different account, a domain rename), the fastest way to find
+the real layout is **Plesk → domain → Node.js → "Выполнить команды Node.js"
+(Execute Node.js commands)** — that panel runs in Plesk's actual managed
+environment, not the deploy-actions jail. Two commands to run there
+(dropdown stays on `npm`):
 
 - `config get prefix` — npm's install root as Plesk sees it.
 - `exec -c "which node && which npm"` — the real invocation path; on this
   domain it resolved through nodenv shims at
   `/var/www/vhosts/kitobjavonim.uz/.nodenv/shims/`, not the prefix path
   above. `.nodenv/` sits as a sibling of `repo/` and `httpdocs/` under the
-  vhost root, so it's reachable from the deploy script the same relative way
-  `WEBROOT` already is — that's the `../.nodenv/shims/npm` candidate at the
-  top of the `for candidate in ...` list. If the `exec` output ever points
-  somewhere else, add that path to the same list.
+  vhost root, reachable the same relative way `WEBROOT` already is.
 
-If both come up empty, the script also prints a diagnostics block after the
-error — `../.nodenv/shims/*`, `/opt/plesk/node/*/`, and
-`$HOME/nodevenv/*/*/` — no SSH needed, it's right there in the deploy log.
+If the script instead fails with `bad interpreter: No such file or
+directory` mentioning `/usr/bin/env`, that means the shims path was found
+but this jail also can't resolve `#!/usr/bin/env bash` — true on this
+account. `scripts/deploy.sh` doesn't rely on shims at all for exactly this
+reason: it walks `../.nodenv/versions/*/` for a real compiled `node` binary
+and invokes it directly on `npm`'s and Expo's actual `.js` entry files,
+skipping every shebang in the chain. If nodenv's version changes, update the
+`26.7.0` in the `for d in ../.nodenv/versions/26.7.0/ ...` line, or just
+trust the glob fallback next to it.
+
+If none of that resolves anything, the script also prints a diagnostics
+block after the error — `../.nodenv/versions/*/` and `../.nodenv/shims/*` —
+no SSH needed, it's right there in the deploy log.
 
 **Build succeeds but the site doesn't change** — `scripts/deploy.sh` expects
 `repo` and `httpdocs` to be sibling folders under the same home directory. If
