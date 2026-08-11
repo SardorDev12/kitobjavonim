@@ -108,13 +108,20 @@ dashboard → Caching → Configuration → Purge Everything).
 
 **Actions log shows `::warning::` about polling timing out** — the build
 reached `deploy`, but `https://kitobjavonim.uz/.build-sha` never matched
-this build's commit SHA within 10 minutes, so Cloudflare was deliberately
-*not* purged (purging before the real files land would just re-cache the
-old ones again). Check Plesk's webhook is actually configured (step 6) and
-firing — Plesk's Git panel shows the latest commit it pulled, which should
-match the workflow's commit. If the webhook isn't set up yet, pull and
-deploy manually in Plesk, then purge Cloudflare by hand for that one
-deploy.
+this build's commit SHA within the polling window, so Cloudflare was
+deliberately *not* purged (purging before the real files land would just
+re-cache the old ones again). First, check whether it actually landed a
+bit later anyway: open `https://kitobjavonim.uz/.build-sha` directly and
+compare it to the commit SHA in the Actions log's `Run echo "..."` step.
+On this host, Plesk's webhook consistently returns success within seconds
+but the real pull+deploy on Plesk's end has been observed taking 10+
+minutes regardless (confirmed twice, not a one-off) — the polling window is
+25 minutes for exactly this reason, but if it's *still* not landing well
+past that, then check Plesk's webhook is actually configured (step 6) —
+Plesk's Git panel shows the latest commit it pulled, which should
+eventually match the workflow's commit. If the webhook isn't set up at all,
+pull and deploy manually in Plesk, then purge Cloudflare by hand for that
+one deploy.
 
 ## History: why the build doesn't happen on Plesk
 

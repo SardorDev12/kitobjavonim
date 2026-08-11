@@ -55,10 +55,17 @@ jobs:
       # polls the live site's own build marker (bypassing Cloudflare's cache
       # with a random query string each time) until it matches this build,
       # then purges — never purging blind.
+      # Observed directly (twice): Plesk's webhook fires and returns success
+      # within seconds, but the actual pull+deploy on Plesk's side routinely
+      # takes 10+ minutes to complete regardless — not a one-off backlog from
+      # rapid testing, a real and repeatable latency on this host. 25 minutes
+      # gives solid margin above that; GitHub Actions jobs can run far longer
+      # than this with no issue, so there's no real cost to waiting it out
+      # rather than guessing at a shorter number again.
       - name: Wait for Plesk to deploy this build
         id: wait_for_deploy
         run: |
-          for i in $(seq 1 60); do
+          for i in $(seq 1 150); do
             live_sha="$(curl -fsS "https://kitobjavonim.uz/.build-sha?_=$RANDOM$RANDOM" || true)"
             if [ "$live_sha" = "${{ github.sha }}" ]; then
               echo "landed=true" >> "$GITHUB_OUTPUT"
@@ -79,4 +86,4 @@ jobs:
       - name: Warn if Plesk never picked up the build
         if: steps.wait_for_deploy.outputs.landed == 'false'
         run: |
-          echo "::warning::kitobjavonim.uz still shows an older build after 10 minutes of polling. Check Plesk's webhook (Git > Repository Settings) is configured and firing, or deploy manually — Cloudflare's cache was NOT purged, since purging before the real files land would just re-cache the old ones."
+          echo "::warning::kitobjavonim.uz still shows an older build after 25 minutes of polling. Check Plesk's webhook (Git > Repository Settings) is configured and firing, or deploy manually — Cloudflare's cache was NOT purged, since purging before the real files land would just re-cache the old ones."
