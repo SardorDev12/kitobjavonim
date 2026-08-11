@@ -57,15 +57,20 @@ done
 
 if [ -z "$NODE_BIN" ]; then
   echo "Could not find a real node binary under ../.nodenv/versions/*/." >&2
-  echo "Check Plesk's Node.js panel (Execute Node.js commands tab, dropdown" >&2
-  echo "on npm) for the real layout: run \`config get prefix\` and" >&2
-  echo "\`exec -c \"which node\"\`, then update the search above." >&2
+  echo "../.nodenv/shims/ exists on this account but versions/ apparently" >&2
+  echo "doesn't, meaning the shims aren't a self-contained nodenv install —" >&2
+  echo "they must point somewhere else. Reading (not executing) the npm" >&2
+  echo "shim's own source is the most direct way to find out where:" >&2
   echo >&2
-  echo "Diagnostics (uses only bash builtins, no external commands needed):" >&2
   echo "-- ../.nodenv/versions/*/ --" >&2
   for d in ../.nodenv/versions/*/; do [ -d "$d" ] && echo "  $d" >&2; done
   echo "-- ../.nodenv/shims/*/ --" >&2
   for f in ../.nodenv/shims/*; do [ -e "$f" ] && echo "  $f" >&2; done
+  echo "-- /usr/bin/env exists: $([ -e /usr/bin/env ] && echo yes || echo no) --" >&2
+  echo "-- contents of ../.nodenv/shims/npm (read as text, never executed) --" >&2
+  while IFS= read -r line || [ -n "$line" ]; do
+    echo "  $line" >&2
+  done < ../.nodenv/shims/npm
   exit 1
 fi
 
