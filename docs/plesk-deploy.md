@@ -93,6 +93,15 @@ overwrite it with just the built site.
 `package-lock.json` didn't make it into the repo (it should have; check
 `git ls-files package-lock.json`).
 
+**`Could not find npm anywhere expected`** — none of the paths
+`scripts/deploy.sh` guesses matched this account's actual Node.js install.
+The script prints a diagnostics block right after that error listing every
+`/opt/plesk/node/*/` and `$HOME/nodevenv/*/*/` directory it can see — no SSH
+needed, it's right there in the same deploy log Plesk already shows. Take the
+real npm path from that listing (e.g. `/opt/plesk/node/22/bin/npm`) and add
+it to the `for candidate in ...` list near the top of the script, ahead of
+the other guesses.
+
 **Build succeeds but the site doesn't change** — `scripts/deploy.sh` expects
 `repo` and `httpdocs` to be sibling folders under the same home directory. If
 Plesk's layout for this account differs, `WEBROOT="$(cd "$(pwd)/../httpdocs" && pwd)"`

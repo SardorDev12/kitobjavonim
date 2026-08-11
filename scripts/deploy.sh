@@ -45,6 +45,13 @@ if [ -z "$NPM_BIN" ]; then
   echo "Could not find npm anywhere expected." >&2
   echo "Check Plesk's Node.js panel for this domain for the exact path, then" >&2
   echo "either add it to the search list above or hardcode it directly." >&2
+  echo >&2
+  echo "Diagnostics (uses only bash builtins, no external commands needed):" >&2
+  echo "-- /opt/plesk/node/*/ --" >&2
+  for d in /opt/plesk/node/*/; do [ -d "$d" ] && echo "  $d" >&2; done
+  echo "-- \$HOME/nodevenv/*/*/ (site/version) --" >&2
+  for d in "$HOME"/nodevenv/*/*/; do [ -d "$d" ] && echo "  $d" >&2; done
+  echo "-- PATH was: $PATH --" >&2
   exit 1
 fi
 
