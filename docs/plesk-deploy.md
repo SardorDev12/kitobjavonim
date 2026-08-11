@@ -58,6 +58,16 @@ result into `../httpdocs` — resolved relative to wherever the checkout
 lands, since `repo` and `httpdocs` are sibling folders under the same home
 directory on this account. No absolute path needs to be found or hardcoded.
 
+**Prerequisite, easy to miss:** Plesk only runs these deploy actions in a
+full, unrestricted shell if **SSH access to the server shell is enabled**
+for this domain's subscription (Hosting Settings → "SSH access to the
+server shell" → a real shell like `/bin/bash`, not forbidden). If it's left
+forbidden, Plesk chroots the deploy-actions shell to the subscription's home
+directory by design — no Node.js install anywhere outside it (`/opt`,
+`/usr/bin/env`, everything) is reachable, and no path fixed in
+`scripts/deploy.sh` can work around that. See "If something goes wrong"
+below if this bites you.
+
 ## 4. Check the Node.js version
 
 Plesk's Node.js panel for this domain — pick a recent LTS (20 or later; this
@@ -93,37 +103,48 @@ overwrite it with just the built site.
 `package-lock.json` didn't make it into the repo (it should have; check
 `git ls-files package-lock.json`).
 
-**`Could not find npm anywhere expected` / `Could not find a real node binary`**
-— the Git deploy-actions shell is a separate, more restricted jail from
-whatever environment Plesk's own Node.js panel runs in; a path confirmed
-through that panel (e.g. `npm config get prefix`) can still be completely
-unreachable from `scripts/deploy.sh`, not just wrong. If this recurs (a
-Plesk update, a different account, a domain rename), the fastest way to find
-the real layout is **Plesk → domain → Node.js → "Выполнить команды Node.js"
-(Execute Node.js commands)** — that panel runs in Plesk's actual managed
-environment, not the deploy-actions jail. Two commands to run there
-(dropdown stays on `npm`):
+**`This shell is chrooted (no /opt visible)` / `Could not find npm anywhere
+expected`** — this is documented Plesk behavior, not a wrong-path problem.
+Per Plesk's docs (Website Management → Git Support → remote hosting →
+"Enable Additional Deployment Actions"):
 
-- `config get prefix` — npm's install root as Plesk sees it.
-- `exec -c "which node && which npm"` — the real invocation path; on this
-  domain it resolved through nodenv shims at
-  `/var/www/vhosts/kitobjavonim.uz/.nodenv/shims/`, not the prefix path
-  above. `.nodenv/` sits as a sibling of `repo/` and `httpdocs/` under the
-  vhost root, reachable the same relative way `WEBROOT` already is.
+> On Linux, if SSH access is forbidden for the domain's system user, all
+> specified commands will run in a chrooted environment. The home directory
+> of the subscription's system user is treated as the file system root for
+> that subscription, and no executable files outside the chroot jail can be
+> run.
 
-If the script instead fails with `bad interpreter: No such file or
-directory` mentioning `/usr/bin/env`, that means the shims path was found
-but this jail also can't resolve `#!/usr/bin/env bash` — true on this
-account. `scripts/deploy.sh` doesn't rely on shims at all for exactly this
-reason: it walks `../.nodenv/versions/*/` for a real compiled `node` binary
-and invokes it directly on `npm`'s and Expo's actual `.js` entry files,
-skipping every shebang in the chain. If nodenv's version changes, update the
-`26.7.0` in the `for d in ../.nodenv/versions/26.7.0/ ...` line, or just
-trust the glob fallback next to it.
+That's exactly what troubleshooting this by hand kept confirming:
+`/opt/plesk/node` (real — `npm config get prefix` in Plesk's Node.js panel
+returns it), `/usr/bin/env`, and `/usr/libexec/nodenv/nodenv` (nodenv's real
+dispatcher, found by reading a shim script's own source without executing
+it) were all unreachable from the deploy-actions shell, while everything
+under the vhost's own home directory (`repo/`, `httpdocs/`) was visible. No
+amount of path-hunting inside `scripts/deploy.sh` can get around a chroot —
+the fix has to happen in Plesk, not the script.
 
-If none of that resolves anything, the script also prints a diagnostics
-block after the error — `../.nodenv/versions/*/` and `../.nodenv/shims/*` —
-no SSH needed, it's right there in the deploy log.
+**The fix**: Plesk → Websites & Domains → this domain → Hosting Settings (or
+Subscriptions → this subscription) → **"SSH access to the server shell"** →
+set it to a real shell (e.g. `/bin/bash`) instead of forbidden. That lifts
+the chroot for deploy-actions too, and `/opt/plesk/node/26/bin/npm` — the
+very first path this script tries — resolves normally.
+
+**If enabling SSH access isn't an option**, deploy manually instead of via
+Git's additional deploy actions. Plesk's Node.js panel → **"Выполнить
+команды Node.js"** (Execute Node.js commands) runs in a completely
+different, unrestricted shell — confirmed by running commands there
+directly and getting real resolved paths back. Two-step process:
+
+1. Git panel → **Получить сейчас** (Pull now) — pulls the latest commits
+   into `repo/`.
+2. Node.js panel → **Выполнить команды Node.js** (dropdown on `npm`) → run:
+   ```
+   exec -c "cd ../repo && npm ci && npx expo export --platform web --clear && rsync -a --delete dist/ ../httpdocs/"
+   ```
+
+That one line installs dependencies, builds the static export, and syncs it
+into `httpdocs` — the same three steps `scripts/deploy.sh` does, just run
+from a shell that can actually reach Node.js.
 
 **Build succeeds but the site doesn't change** — `scripts/deploy.sh` expects
 `repo` and `httpdocs` to be sibling folders under the same home directory. If
