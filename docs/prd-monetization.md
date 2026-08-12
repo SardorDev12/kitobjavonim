@@ -90,8 +90,10 @@ proven.
   broken), the custom 404 page, the apex→www redirect, and **Google +
   Telegram OAuth — both confirmed working**, the two flows that couldn't be
   tested pre-cutover since they're locked to the real domain by design.
-  **Not started**: Cloudflare Email Routing (`support@kitobjavonim.uz`) —
-  the other half of Feature 5, separate from everything above.
+  **Cloudflare Email Routing set up and confirmed working**
+  (`support@kitobjavonim.uz` → forwarding correctly; first test landed in
+  spam, as is normal for a brand-new domain with no sending history yet —
+  marking it "not spam" once resolved that). **Feature 5 is fully done.**
 
 ---
 
@@ -328,13 +330,13 @@ detour.
   itself renews on its own schedule either way, and this migration doesn't
   touch it.
 
-**Status**: **live and fully verified — `kitobjavonim.uz` cut over from
-Plesk to Cloudflare, all auth flows (Google, Telegram) confirmed working on
-the real domain** (six bugs found and fixed along the way — see
-"Implementation status" above for the full detail). **Remaining**: set up
-Cloudflare Email Routing (not started — separate from everything above),
-and decide whether/when to cancel the Plesk plan (worth keeping a little
-longer as a safety net before fully committing to that).
+**Status: DONE.** `kitobjavonim.uz` fully cut over from Plesk to Cloudflare,
+all auth flows (Google, Telegram) and Cloudflare Email Routing confirmed
+working on the real domain (six bugs found and fixed along the way — see
+"Implementation status" above for the full detail). Only remaining item
+isn't a task, it's a judgment call: **when to cancel the Plesk plan** —
+worth keeping active a little longer as a safety net before fully
+committing.
 
 ---
 
