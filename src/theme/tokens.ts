@@ -9,7 +9,7 @@
 
 export const palette = {
   light: {
-    background: '#F7F3EA',
+    background: '#FFFFFF',
     surface: '#FFFDF8',
     surfaceSunken: '#F0E9DB',
     surfaceRaised: '#FFFFFF',
