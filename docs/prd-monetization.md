@@ -28,15 +28,18 @@ proven.
 - [ ] Feature 3 (environment separation) — the Cloudflare Pages half is
   done (see Feature 5); still needs the second Supabase project, branch
   protection on `main`, and `.env.staging`.
-- [x] **Feature 5 (hosting migration) — live on Cloudflare's `*.workers.dev`
-  URL, custom domain cutover to `kitobjavonim.uz` pending.** Went through
-  Cloudflare's newer Workers-based deploy (`wrangler deploy` /
-  `wrangler versions upload`), not the classic Pages-only flow the PRD
-  originally assumed — required `wrangler.jsonc` (static assets config) and
-  `public/_redirects` (Apache `.htaccess`'s dynamic-route and 404 rules
-  don't carry over automatically), neither of which existed at first. Three
-  real bugs found and fixed via live testing on the `workers.dev` URL, in
-  order:
+- [x] **Feature 5 (hosting migration) — DONE. Live on `kitobjavonim.uz`,
+  Plesk fully cut over.** Went through Cloudflare's newer Workers-based
+  deploy (`wrangler deploy` / `wrangler versions upload`), not the classic
+  Pages-only flow the PRD originally assumed — required `wrangler.jsonc`
+  (static assets config) and `public/_redirects` (Apache `.htaccess`'s
+  dynamic-route and 404 rules don't carry over automatically), neither of
+  which existed at first. Six real bugs found and fixed via live testing —
+  three in the build/routing (found on the `workers.dev` URL, before
+  touching the real domain) and three in the domain cutover itself (found
+  going from `workers.dev` to `kitobjavonim.uz`):
+
+  Build/routing:
   1. `_redirects` only accepts status 200/301/302/303/307/308, not 404 —
      custom 404 now goes through `wrangler.jsonc`'s
      `assets.not_found_handling: "404-page"` instead, which needs a literal
@@ -51,17 +54,45 @@ proven.
      (`_redirects`, `_headers`, `_worker.js`). Renamed to `book-shell.html`
      / `listing-shell.html` (no underscore), which resolved it.
 
+  Domain cutover:
+  4. The app is configured for `www.kitobjavonim.uz` specifically
+     (`EXPO_PUBLIC_WEB_ORIGIN`), not the bare apex — adding the Custom
+     Domain for the apex alone (the first attempt) would have left
+     Telegram/Google auth broken even once "working."
+  5. Cloudflare's Custom Domains UI didn't reliably auto-provision the DNS
+     record for a second hostname (`www`) in the same zone — the routing
+     entry got created but the DNS record didn't, causing
+     `ERR_EMPTY_RESPONSE`. A proxied CNAME to the apex seemed like the fix
+     but isn't valid here (the apex's Worker-bound record isn't a normal
+     resolvable CNAME target — Error 1016). What actually worked: a
+     placeholder proxied `A` record (`192.0.2.1`) for the hostname, plus a
+     separate Worker **Route** (`www.kitobjavonim.uz/*`) binding it to the
+     Worker directly — same pattern then repeated for the apex
+     (`kitobjavonim.uz/*` route, since `*.kitobjavonim.uz/*` — a wildcard
+     Route added along the way — does not cover the bare apex; wildcard
+     subdomain patterns never match zero subdomains).
+  6. The bare apex direct-serving that resulted from #5 was replaced with a
+     **redirect rule** (`kitobjavonim.uz` → `https://www.kitobjavonim.uz`,
+     301) instead — deliberately, not as a fallback. Serving identical
+     content at both hostnames independently would have left auth broken on
+     apex anyway (same root cause as #4) and created an SEO canonicalization
+     problem; one canonical hostname with the other redirecting is the
+     correct pattern regardless of whether direct-serving could be made to
+     work.
+
   Current Build command (Cloudflare Pages dashboard, not stored in the
   repo — worth knowing if this project's hosting is ever handed off):
   ```
   npm ci && npx expo export --platform web --clear && cp "dist/+not-found.html" dist/404.html && cp "dist/book/[id].html" dist/book-shell.html && cp "dist/listing/[id].html" dist/listing-shell.html
   ```
-  Verified on the `workers.dev` URL: homepage, a dynamic route by direct
-  URL (not client-side navigation, which would pass even if the rewrite
-  were broken), and the custom 404 page. Not yet verified: email/password
-  auth (should work, not domain-locked) and Google/Telegram OAuth (can't be
-  verified pre-cutover — both are locked to the real domain by design).
-  Email routing (`support@kitobjavonim.uz`) not yet confirmed set up.
+  Verified: homepage, a dynamic route by direct URL (not client-side
+  navigation, which would pass even if the rewrite were broken), the custom
+  404 page, and the apex→www redirect — all on the real domain.
+  **Still not verified**: Google/Telegram OAuth on the real domain (only
+  tested pre-cutover on `workers.dev`, where both are expected to fail by
+  design — worth a real re-test now), and email/password auth. **Not started**:
+  Cloudflare Email Routing (`support@kitobjavonim.uz`) — the other half of
+  Feature 5, separate from everything above.
 
 ---
 
@@ -298,13 +329,13 @@ detour.
   itself renews on its own schedule either way, and this migration doesn't
   touch it.
 
-**Status**: connected and deploying successfully on Cloudflare's
-`*.workers.dev` URL (three routing bugs found and fixed along the way — see
-"Implementation status" above for the detail). **Remaining**: confirm
-email/password auth on the `workers.dev` URL, add the `kitobjavonim.uz`
-custom domain (the actual cutover from Plesk), re-verify Google/Telegram
-OAuth on the real domain afterward, and set up Cloudflare Email Routing
-(not started yet).
+**Status**: **live — `kitobjavonim.uz` fully cut over from Plesk to
+Cloudflare** (six bugs found and fixed along the way — see "Implementation
+status" above for the full detail). **Remaining**: re-verify Google/Telegram
+OAuth and email/password auth on the real domain now that the cutover is
+done, decide whether/when to cancel the Plesk plan (worth keeping a little
+longer as a safety net before committing to that), and set up Cloudflare
+Email Routing (not started yet — separate from everything above).
 
 ---
 
