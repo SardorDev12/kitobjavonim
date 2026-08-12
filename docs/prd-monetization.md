@@ -76,11 +76,42 @@ Concretely: a **"Pro pass"** — one-time payment, grants Pro status for a
 fixed duration (e.g. 90 days), tracked via `profiles.plan_expires_at`.
 Renewal is just buying another pass; nothing auto-charges.
 
-### Scope for this phase
+### Where purchases happen: web only, on every platform
 
-- **Web only.** Mobile (iOS/Android) in-app purchases are a separate,
-  larger effort (Apple/Google require their own IAP for in-app digital
-  purchases) and are explicitly **out of scope** for this phase.
+**Finalized approach**: the web app is the *only* place a purchase is ever
+made. iOS and Android apps never sell anything — they only read whether the
+signed-in user is currently Pro (`profiles.plan` / `plan_expires_at`, the
+same row the web app reads) and display it. No native IAP integration, no
+RevenueCat, no receipt validation, on either mobile platform, for this
+baseline plan.
+
+This is the "reader app" pattern (how Netflix/Kindle operated on iOS for
+years) — informing a user their subscription exists and can be managed
+elsewhere is allowed; providing a purchase mechanism inside the app is what
+triggers Apple/Google's IAP requirement (and their 15-30% cut). Since
+nothing purchasable is ever offered in-app, that requirement never applies,
+and neither does the commission.
+
+**Real tradeoff, accepted deliberately**: since mobile is the primary
+product, this adds friction — a user has to leave the app and go to
+kitobjavonim.uz to actually pay. Mitigated with an in-app pointer worded
+informationally ("Upgrade on our website"), not as a tappable purchase
+button, plus out-of-app channels (Telegram bot/channel, push notifications
+that open a browser) to drive people there. This friction is the accepted
+cost of paying no platform commission and carrying no App Store rejection
+risk.
+
+**Not part of this plan, flagged for later, separately**: Google Play's
+*User Choice Billing* can let an eligible app offer a non-Google payment
+method in-app alongside Google's, at a reduced fee instead of the full cut
+— worth investigating for Android specifically once the web checkout is
+live, **if** Uzbekistan is in Google's current eligible-country list (needs
+checking against Google's live Play Console docs at that time — this
+program's eligibility expands over time and isn't something to assume).
+Apple's equivalent ("External Purchase Link" entitlement) is not being
+pursued — historically limited to specific regions (US/EU) under regulatory
+mandate and requires a formal application; not assumed available here.
+
 - **One provider to start: Click** — most mature public docs and the
   simplest checkout flow of the three considered (Payme, Uzum, Click).
   Payme/Uzum can be added later using the same pattern.
@@ -101,7 +132,11 @@ Renewal is just buying another pass; nothing auto-charges.
   already processed this transaction id" before extending a plan, or a retry
   double-extends it.
 - `profiles.plan` (`free`/`pro`) and `profiles.plan_expires_at` columns,
-  shared with Feature 1's enforcement logic.
+  shared with Feature 1's enforcement logic, read identically by web, iOS,
+  and Android — one entitlement source, three clients.
+- Mobile-side work is limited to: reading `profiles.plan`/`plan_expires_at`
+  (already fetchable the same way any other profile data is), and a
+  read-only "upgrade" UI pointer. No purchase code on mobile at all.
 
 **Open question**: exact Pro pass price and duration.
 
@@ -143,7 +178,13 @@ of change you don't want to test against production data.
 
 ## 4. Out of scope (this phase)
 
-- Mobile in-app purchases (Apple/Google IAP) for Pro.
+- **Native mobile purchase flows (Apple/Google IAP) — not a deferral, a
+  deliberate design choice.** The finalized plan in Feature 2 has mobile
+  apps never selling anything in-app at all, so there's no IAP integration
+  to build later for the baseline plan. The only mobile-payment door left
+  open is Google's User Choice Billing for Android, noted in Feature 2 as a
+  possible future addition once eligibility is confirmed — Apple's
+  equivalent is not being pursued.
 - Payme and Uzum integrations (Click only, first pass).
 - True auto-renewing subscriptions (revisit once one-time purchases prove
   people will pay at all).
