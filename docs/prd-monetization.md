@@ -25,11 +25,43 @@ proven.
   creates one — not directly against production.
 - [ ] Feature 2 (payment integration) — blocked on Click merchant
   registration/credentials, which only the account owner can obtain.
-- [ ] Feature 3 (environment separation) — blocked on creating a second
-  Supabase project and connecting Cloudflare Pages, both dashboard actions
-  only the account owner can do.
-- [ ] Feature 5 (hosting migration) — same blockers as Feature 3, they're
-  being done together.
+- [ ] Feature 3 (environment separation) — the Cloudflare Pages half is
+  done (see Feature 5); still needs the second Supabase project, branch
+  protection on `main`, and `.env.staging`.
+- [x] **Feature 5 (hosting migration) — live on Cloudflare's `*.workers.dev`
+  URL, custom domain cutover to `kitobjavonim.uz` pending.** Went through
+  Cloudflare's newer Workers-based deploy (`wrangler deploy` /
+  `wrangler versions upload`), not the classic Pages-only flow the PRD
+  originally assumed — required `wrangler.jsonc` (static assets config) and
+  `public/_redirects` (Apache `.htaccess`'s dynamic-route and 404 rules
+  don't carry over automatically), neither of which existed at first. Three
+  real bugs found and fixed via live testing on the `workers.dev` URL, in
+  order:
+  1. `_redirects` only accepts status 200/301/302/303/307/308, not 404 —
+     custom 404 now goes through `wrangler.jsonc`'s
+     `assets.not_found_handling: "404-page"` instead, which needs a literal
+     `dist/404.html` the build command copies into place.
+  2. Rewriting `/book/*` straight to the real `book/[id].html` looped
+     infinitely — that target itself matches its own source wildcard
+     pattern, self-rewriting forever if Cloudflare re-evaluates a rewritten
+     path against the same rules.
+  3. The first fix's replacement names (`_book-shell.html`,
+     `_listing-shell.html`) silently failed to serve at all — Cloudflare
+     reserves leading-underscore filenames for its own config
+     (`_redirects`, `_headers`, `_worker.js`). Renamed to `book-shell.html`
+     / `listing-shell.html` (no underscore), which resolved it.
+
+  Current Build command (Cloudflare Pages dashboard, not stored in the
+  repo — worth knowing if this project's hosting is ever handed off):
+  ```
+  npm ci && npx expo export --platform web --clear && cp "dist/+not-found.html" dist/404.html && cp "dist/book/[id].html" dist/book-shell.html && cp "dist/listing/[id].html" dist/listing-shell.html
+  ```
+  Verified on the `workers.dev` URL: homepage, a dynamic route by direct
+  URL (not client-side navigation, which would pass even if the rewrite
+  were broken), and the custom 404 page. Not yet verified: email/password
+  auth (should work, not domain-locked) and Google/Telegram OAuth (can't be
+  verified pre-cutover — both are locked to the real domain by design).
+  Email routing (`support@kitobjavonim.uz`) not yet confirmed set up.
 
 ---
 
@@ -266,9 +298,13 @@ detour.
   itself renews on its own schedule either way, and this migration doesn't
   touch it.
 
-**Blocked on**: creating the Cloudflare Pages project and connecting the
-repo (dashboard action, only the account owner can do it) — see "Confirmed
-decisions" for the exact steps needed.
+**Status**: connected and deploying successfully on Cloudflare's
+`*.workers.dev` URL (three routing bugs found and fixed along the way — see
+"Implementation status" above for the detail). **Remaining**: confirm
+email/password auth on the `workers.dev` URL, add the `kitobjavonim.uz`
+custom domain (the actual cutover from Plesk), re-verify Google/Telegram
+OAuth on the real domain afterward, and set up Cloudflare Email Routing
+(not started yet).
 
 ---
 
