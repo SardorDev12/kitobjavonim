@@ -14,17 +14,20 @@
 #
 # The rewrite TARGETS are deliberately not book/[id].html or listing/[id].html
 # (where Expo actually writes them) or anything else starting with /book/ or
-# /listing/ — the build command copies them here first. Pointing straight at
-# the real path caused an infinite redirect loop in testing: the target
-# /book/[id].html itself matches the /book/* source pattern, so if Cloudflare
-# re-evaluates a rewritten path against the same rules (rather than treating
-# a 200 rewrite as final), it rewrites to itself forever. Square brackets in
-# a URL also have their own percent-encoding ambiguity that could compound
-# it. Landing the shell content at a flat, bracket-free, prefix-free path
-# sidesteps both possible causes at once rather than relying on knowing
-# which one it actually was.
-/book/*      /_book-shell.html      200
-/listing/*   /_listing-shell.html   200
+# /listing/ — the build command copies them here first. Two things ruled
+# out getting there:
+#   1. Pointing straight at book/[id].html looped: that target itself
+#      matches the /book/* source pattern, so if Cloudflare re-evaluates a
+#      rewritten path against the same rules rather than treating a 200
+#      rewrite as final, it rewrites to itself forever.
+#   2. An underscore-prefixed flat name (_book-shell.html) *also* broke —
+#      Cloudflare reserves leading-underscore filenames for its own config
+#      (_redirects, _headers, _worker.js) and won't serve them as normal
+#      content, confirmed by the .html silently vanishing from the URL bar
+#      on request rather than the file loading.
+# A flat name with neither problem is what's left.
+/book/*      /book-shell.html      200
+/listing/*   /listing-shell.html   200
 
 # The custom 404 page is handled separately, via wrangler.jsonc's
 # assets.not_found_handling ("404-page") — Cloudflare's _redirects here only
