@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Pure static site — no Worker script needed, "assets" alone is enough
+  // for `wrangler deploy` / `wrangler versions upload` to know what to
+  // upload. dist/ is what `npm ci && npx expo export --platform web
+  // --clear` (the Cloudflare Pages build command) produces.
+  "name": "kitobjavonim",
+  "compatibility_date": "2026-01-01",
+  "assets": {
+    "directory": "./dist"
+  }
+}
