@@ -1,6 +1,17 @@
-# Deploying kitobjavonim.uz (Billur/Plesk)
+# Deploying kitobjavonim.uz (Billur/Plesk) — SUPERSEDED
 
-## How it works
+**No longer how this project deploys.** `kitobjavonim.uz` fully migrated to
+Cloudflare Pages (see `docs/prd-monetization.md`, Feature 5) — Plesk is kept
+around only as a paid-for safety net, not serving any live traffic.
+`.github/workflows/deploy-web.yml` (the workflow this document describes)
+has been removed; Cloudflare Pages builds and deploys directly from `main`
+via its own dashboard-configured build, no GitHub Actions step involved.
+This document is kept for historical context only — in case SSH access is
+ever enabled for this domain (see "History" below) and building directly on
+Plesk becomes worth revisiting, or Plesk needs to be un-retired for some
+other reason.
+
+## How it worked (historical)
 
 The static web build happens in **GitHub Actions**, not on Plesk. On every
 push to `main`, `.github/workflows/deploy-web.yml` runs `npm ci` and
