@@ -45,8 +45,20 @@ export type Profile = {
   show_phone: boolean;
   preferred_locale: 'uz' | 'ru' | 'en';
   onboarded_at: string | null;
+  plan: 'free' | 'pro';
+  plan_expires_at: string | null;
   created_at: string;
   updated_at: string;
+};
+
+/** Return shape of the `my_plan_status()` RPC (supabase/migrations/0008_plans_and_limits.sql). */
+export type PlanStatus = {
+  plan: 'free' | 'pro';
+  plan_expires_at: string | null;
+  active_listings: number;
+  active_listing_cap: number;
+  contacts_this_month: number;
+  monthly_contact_cap: number;
 };
 
 export type PublicProfile = {

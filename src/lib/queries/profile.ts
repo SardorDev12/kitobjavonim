@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
-import type { Profile, ProfileStats } from '@/types/database';
+import type { PlanStatus, Profile, ProfileStats } from '@/types/database';
 
 import { queryKeys } from './keys';
 
@@ -18,6 +18,19 @@ export function useProfileStats(userId: string | undefined) {
         .maybeSingle();
       if (error) throw error;
       return (data as ProfileStats) ?? null;
+    },
+  });
+}
+
+/** Free/Pro plan, its expiry, and live usage against the freemium caps. */
+export function useMyPlanStatus(userId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.plan.status(userId ?? ''),
+    enabled: Boolean(userId),
+    queryFn: async (): Promise<PlanStatus | null> => {
+      const { data, error } = await supabase.rpc('my_plan_status');
+      if (error) throw error;
+      return (data as PlanStatus[])?.[0] ?? null;
     },
   });
 }

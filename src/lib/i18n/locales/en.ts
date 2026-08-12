@@ -306,6 +306,16 @@ export const en = {
   'error.saveFailed': 'Could not save your changes.',
   'error.loadFailed': 'Could not load this.',
   'error.offline': 'You are offline — showing your saved library.',
+  'error.listingLimitReached': 'You have reached the Free plan limit for active listings. Remove one or upgrade to list more — see Your Plan in Settings.',
+  'error.contactLimitReached': 'You have reached the Free plan limit for owner contacts this month. It resets next month, or upgrade for unlimited contacts — see Your Plan in Settings.',
+
+  'plan.title': 'Your plan',
+  'plan.free': 'Free',
+  'plan.pro': 'Pro',
+  'plan.expiresOn': 'Renews/expires {{date}}',
+  'plan.activeListings': 'Active listings',
+  'plan.contactsThisMonth': 'Owner contacts this month',
+  'plan.unlimited': 'Unlimited',
 } as const;
 
 export type MessageKey = keyof typeof en;
