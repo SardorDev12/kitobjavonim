@@ -1,11 +1,16 @@
 # PRD: Monetization & Environment Separation
 
-Status: **draft — awaiting confirmation before implementation begins.**
+Status: **confirmed — ready for implementation.**
 
 This covers everything discussed in the deployment/product-strategy conversation
-that hasn't been built yet. It's split into four features. Sections marked
-**Open question** need a decision before implementation starts; everything else
-reflects what was actually agreed on.
+that hasn't been built yet. It's split into four features. All open questions
+are resolved below; implementation can proceed in the build order at the end.
+
+**Two tiers: Free and Pro.** A third tier (discussed as "Pro+", bundling the
+extras in 1c below) was considered and deliberately deferred, not rejected —
+see 1c for why. Revisit once there's real usage data on who upgrades to Pro
+and why, rather than guessing at a second price point before the first one is
+proven.
 
 ---
 
@@ -31,8 +36,13 @@ of plan.
   one until back under the cap. No cleanup job needed — this falls out of the
   trigger only firing on new transitions-to-listed.
 
-**Open question**: exact numbers. Discussed as an example: free = 5 concurrent
-active listings, Pro = effectively unlimited. Confirm or adjust.
+**Confirmed: free = 10 concurrent active listings, Pro = unlimited.** No
+direct market comp gave a clean number for this specific mechanic (Vinted
+and Depop monetize via transaction fees rather than listing caps; eBay's
+250/month casual-seller allowance is a much bigger general marketplace, not
+a useful scale comparison) — this is reasoned rather than researched: 10
+comfortably covers someone clearing a personal shelf, while a small reseller
+running it like a business will exceed it, which is the split that matters.
 
 ### 1b. Contact-request quota
 
@@ -47,18 +57,25 @@ active listings, Pro = effectively unlimited. Confirm or adjust.
 - Remaining quota should be visible in the UI (e.g. "3 of 5 contacts left this
   month") before the wall is hit, not sprung on the user mid-flow.
 
-**Open question**: exact number. Discussed as an example: free = 3-5/month.
-Confirm or adjust.
+**Confirmed: free = 3/month, Pro = unlimited.** Grounded in the closest real
+comp found: PaperbackSwap, an actual book-swapping service, requires listing
+10 books to unlock free credits, and even its **cheapest paid tier**
+(~$12/year) only grants **30 book requests per year — about 2.5/month.**
+If a real comparable product treats ~2.5 requests/month as worth paying for,
+a free tier at 3/month is generous rather than stingy, while Pro's
+"unlimited" is still a clear, meaningful step up.
 
-### 1c. Pro-only extras (lower priority, can ship later)
+### 1c. Pro-only extras — deferred, not part of this pass
 
-- Extra photos per listing (free: 1, Pro: up to 5) — cheap to build, directly
-  improves response rate on listings.
-- Featured/boosted listings in Discover — pure upside, no free-tier feature
-  removed.
+- Extra photos per listing (free: 1, Pro: up to 5).
+- Featured/boosted listings in Discover.
 
-**Open question**: include these in the first implementation pass, or defer
-to a later iteration once the core limits are live?
+**Confirmed: deferred**, and not because they're low-value — they're the
+natural shape of a future third tier ("Pro+"), but there's no usage data yet
+on what upgraders actually want, and building a second price point around a
+guess is premature before the first one (Free → Pro) is proven. Ship the
+two core limits, see who upgrades and why, then decide whether these extras
+justify a Pro+ tier or belong in Pro as-is.
 
 ---
 
@@ -73,8 +90,17 @@ App Store/Play Store IAP review than a one-time "unlock" product; and it's a
 smaller trust ask in a market before monetization is proven at all.
 
 Concretely: a **"Pro pass"** — one-time payment, grants Pro status for a
-fixed duration (e.g. 90 days), tracked via `profiles.plan_expires_at`.
-Renewal is just buying another pass; nothing auto-charges.
+fixed duration, tracked via `profiles.plan_expires_at`. Renewal is just
+buying another pass; nothing auto-charges.
+
+**Confirmed: 25,000 UZS for 90 days** (~8,300 UZS/month equivalent).
+Deliberately priced below the two local digital-subscription anchors found —
+Telegram Premium (34,000-56,000 UZS/month depending on term) and a regional
+streaming app observed at 13,000-15,000 UZS/month — because both of those
+are proven, high-frequency-use products, whereas this is an unproven,
+lower-frequency-use niche product competing for the same price-sensitive
+wallet. It should undercut established players until it's proven itself,
+not match them.
 
 ### Where purchases happen: web only, on every platform
 
@@ -138,8 +164,6 @@ mandate and requires a formal application; not assumed available here.
   (already fetchable the same way any other profile data is), and a
   read-only "upgrade" UI pointer. No purchase code on mobile at all.
 
-**Open question**: exact Pro pass price and duration.
-
 ---
 
 ## 3. Environment separation (dev / staging / prod)
@@ -169,10 +193,8 @@ UI bug.
   `development`/`preview`/`production` channels to the right env vars is
   the remaining piece, lower priority than the web-side split.
 
-**Open question**: none blocking — this is infrastructure work with fairly
-clear agreement already. Confirm priority: before or alongside Feature 2
-(payments)? Recommendation: **before**, since payments are exactly the kind
-of change you don't want to test against production data.
+**Confirmed: before Feature 2 (payments)** — this is exactly the kind of
+change you don't want to test against production data.
 
 ---
 
@@ -206,10 +228,15 @@ of change you don't want to test against production data.
 
 ---
 
-## Confirm before implementation starts
+## Confirmed decisions (summary)
 
-- [ ] Free-tier numbers: active listing cap, monthly contact-request cap.
-- [ ] Include Pro-only extras (extra photos, featured listings) in this pass
-      or defer.
-- [ ] Pro pass price and duration.
-- [ ] Build order above, or a different sequence.
+- Two tiers: Free and Pro. A "Pro+" tier was considered and deliberately
+  deferred until there's usage data to price it against.
+- Free tier: 10 concurrent active listings, 3 contact requests/month,
+  uncapped personal cataloging. Pro: unlimited on both.
+- Pro-only extras (extra photos, featured listings): deferred, likely Pro+
+  material later.
+- Pro pass: 25,000 UZS for 90 days, one-time purchase, web-only checkout via
+  Click.
+- Build order: environment separation → freemium enforcement → payment
+  integration.
