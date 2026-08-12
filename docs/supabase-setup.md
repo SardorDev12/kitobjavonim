@@ -36,6 +36,8 @@ wait for "Success", then move to the next:
 | 4 | `supabase/migrations/0004_storage.sql` | Avatar and listing-photo buckets |
 | 5 | `supabase/migrations/0005_seed_reference.sql` | 14 regions, 61 districts, 20 categories |
 | 6 | `supabase/migrations/0006_category_permissions.sql` | Narrows who may classify a book |
+| 7 | `supabase/migrations/0007_library_entries_book_owner.sql` | Exposes `book_created_by` for the "edit book details" flow |
+| 8 | `supabase/migrations/0008_plans_and_limits.sql` | `profiles.plan`, freemium limits (Free/Pro tiers) |
 
 **Order matters** — each file references objects the previous one created.
 
@@ -61,8 +63,10 @@ select
   (select count(*) from categories)                                               as categories;
 ```
 
-Expected: **10 tables, 4 views, 20+ policies, 14 regions, 61 districts, 20
-categories.** Anything short of that means a migration did not apply.
+Expected (after all 8 migrations, verified against a fresh throwaway
+Postgres instance): **16 tables, 4 views, 22 policies, 14 regions, 61
+districts, 20 categories.** Anything short of that means a migration did
+not apply.
 
 Then check the buckets exist — **Storage** in the sidebar should list `avatars`
 and `book-photos`.
