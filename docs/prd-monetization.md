@@ -1,16 +1,35 @@
 # PRD: Monetization & Environment Separation
 
-Status: **confirmed — ready for implementation.**
+Status: **confirmed — implementation in progress.**
 
 This covers everything discussed in the deployment/product-strategy conversation
-that hasn't been built yet. It's split into four features. All open questions
-are resolved below; implementation can proceed in the build order at the end.
+that hasn't been built yet. It's split into five features. All open questions
+are resolved below; implementation proceeds in the build order at the end.
 
 **Two tiers: Free and Pro.** A third tier (discussed as "Pro+", bundling the
 extras in 1c below) was considered and deliberately deferred, not rejected —
 see 1c for why. Revisit once there's real usage data on who upgrades to Pro
 and why, rather than guessing at a second price point before the first one is
 proven.
+
+## Implementation status
+
+- [x] **Feature 1 (freemium limits)** — `supabase/migrations/0008_plans_and_limits.sql`
+  written and verified against a throwaway Postgres instance (all 7 behaviors
+  checked: cap enforcement, quota enforcement with re-contact exemption, plan
+  expiry, no forced unlisting on downgrade, and — caught while writing it — a
+  real security gap where any signed-in user could have set their own
+  `plan`/`plan_expires_at` directly, now closed with a column-level grant).
+  **Not yet applied to any live database.** Per the build order below, this
+  should run against the staging Supabase project first, once Feature 3
+  creates one — not directly against production.
+- [ ] Feature 2 (payment integration) — blocked on Click merchant
+  registration/credentials, which only the account owner can obtain.
+- [ ] Feature 3 (environment separation) — blocked on creating a second
+  Supabase project and connecting Cloudflare Pages, both dashboard actions
+  only the account owner can do.
+- [ ] Feature 5 (hosting migration) — same blockers as Feature 3, they're
+  being done together.
 
 ---
 
@@ -183,12 +202,10 @@ UI bug.
   build is stateless and cheap to duplicate, the database is where real
   damage happens.
 - **`.env.staging`**, alongside the existing (intentionally committed)
-  `.env.production`. The GitHub Actions workflow picks the right file based
-  on which branch triggered the build before running `expo export`.
-- **Staging web hosting**: recommend Cloudflare Pages for staging
-  specifically rather than replicating the Plesk-webhook setup a second
-  time — Cloudflare Pages has built-in branch/PR preview deployments with
-  no extra plumbing needed.
+  `.env.production`.
+- **Staging web hosting**: Cloudflare Pages — see Feature 5, since the same
+  migration that solves the hosting-cost problem also gives staging its
+  preview deployments for free, in one move rather than two.
 - **Mobile**: `eas.json` already exists with build-profile support; wiring
   `development`/`preview`/`production` channels to the right env vars is
   the remaining piece, lower priority than the web-side split.
@@ -210,21 +227,65 @@ change you don't want to test against production data.
 - Payme and Uzum integrations (Click only, first pass).
 - True auto-renewing subscriptions (revisit once one-time purchases prove
   people will pay at all).
-- Production hosting migration off Plesk to Cloudflare Pages (separate
-  scaling discussion, not urgent at current traffic).
-- Supabase tier upgrade (same — not urgent yet).
+- Supabase tier upgrade (not urgent — current traffic doesn't need it, and
+  it's a separate lever from anything in this PRD).
+
+---
+
+## 5. Hosting migration: Plesk → Cloudflare Pages, plus email
+
+**Confirmed, cost-driven**: the Plesk plan runs ~35,000 UZS/month for hosting
+a site that's just static files behind Cloudflare already. This isn't a new
+idea — it's reverting to the README's original plan, from before the Plesk
+detour.
+
+- **Cloudflare Pages, free tier**, connected directly to the GitHub repo via
+  Cloudflare's own git integration — no GitHub Actions changes needed for
+  the build itself, since Pages runs its own build (`npm ci && npx expo
+  export --platform web --clear`, output directory `dist`) on every push.
+- **This subsumes the custom deploy pipeline built for Plesk.** The
+  `.build-sha` polling + Cloudflare cache-purge machinery in
+  `.github/workflows/deploy-web.yml` existed specifically to work around
+  Plesk's chrooted deploy shell and a separate origin/cache split — Cloudflare
+  Pages doesn't have either problem, since deploy and edge-serving are the
+  same system with automatic cache invalidation on every new deployment. That
+  workflow gets simplified or removed once Pages is confirmed live — not
+  before, so there's no gap with nothing serving the site if something in
+  the Pages setup needs troubleshooting first.
+- **Solves staging too**: Cloudflare Pages gives every non-production branch
+  its own automatic preview URL, which is exactly what Feature 3 needed for
+  a staging environment — one migration, two problems solved.
+- **Email**: Cloudflare Email Routing (free) for a forwarding address like
+  `support@kitobjavonim.uz` → an existing real inbox. Not a full mailbox
+  (no send-as, no webmail/IMAP) — sufficient for the near-term need (payment
+  support once Click checkout is live, a support contact for app store
+  listings). Zoho Mail's free tier is the upgrade path later if a real
+  mailbox (log in directly, send *from* the address) becomes worth it —
+  not needed now.
+- **What doesn't change regardless of host**: the `.uz` domain registration
+  itself renews on its own schedule either way, and this migration doesn't
+  touch it.
+
+**Blocked on**: creating the Cloudflare Pages project and connecting the
+repo (dashboard action, only the account owner can do it) — see "Confirmed
+decisions" for the exact steps needed.
 
 ---
 
 ## Suggested build order
 
-1. Environment separation (Feature 3) — do this first so nothing else is
-   built/tested against production data.
-2. Freemium enforcement (Feature 1) — schema changes (`profiles.plan`,
-   `plan_expires_at`) plus the two trigger/function changes. Can ship with
-   `plan` manually set for testing, before payments exist.
-3. Payment integration (Feature 2) — now `profiles.plan` already means
-   something, so this just becomes "the thing that sets it."
+1. **Hosting migration (Feature 5)** — do this early: it's cheap, low-risk
+   (Plesk keeps serving the live site until Pages is confirmed working, no
+   forced cutover), and its preview deployments are what Feature 3's staging
+   environment needs anyway.
+2. Environment separation (Feature 3) — the remaining piece once Pages
+   exists: the second Supabase project, branch protection on `main`,
+   `.env.staging`.
+3. Freemium enforcement (Feature 1) — **schema already written and verified**
+   (`supabase/migrations/0008_plans_and_limits.sql`); apply it to the staging
+   Supabase project once Feature 3 creates one, not directly to production.
+4. Payment integration (Feature 2) — now `profiles.plan` already means
+   something, so this becomes "the thing that sets it."
 
 ---
 
@@ -233,10 +294,36 @@ change you don't want to test against production data.
 - Two tiers: Free and Pro. A "Pro+" tier was considered and deliberately
   deferred until there's usage data to price it against.
 - Free tier: 10 concurrent active listings, 3 contact requests/month,
-  uncapped personal cataloging. Pro: unlimited on both.
+  uncapped personal cataloging. Pro: unlimited on both. **Implemented** in
+  `supabase/migrations/0008_plans_and_limits.sql`, not yet applied to any
+  live database.
 - Pro-only extras (extra photos, featured listings): deferred, likely Pro+
   material later.
 - Pro pass: 25,000 UZS for 90 days, one-time purchase, web-only checkout via
   Click.
-- Build order: environment separation → freemium enforcement → payment
-  integration.
+- Hosting: migrate from Plesk to Cloudflare Pages (free, solves staging too).
+  Email: Cloudflare Email Routing (free forwarding), Zoho Mail free tier if
+  a real mailbox is needed later.
+- Build order: hosting migration → environment separation → freemium
+  enforcement (done) → payment integration.
+
+### What's needed from you to unblock the rest
+
+1. **Cloudflare Pages**: dashboard → Workers & Pages → Create → Pages →
+   Connect to Git → pick this repo → build command
+   `npm ci && npx expo export --platform web --clear` → output directory
+   `dist` → add the `EXPO_PUBLIC_*` variables from `.env.production` as
+   Pages environment variables → Save and Deploy.
+2. **Cloudflare Email Routing**: dashboard → the `kitobjavonim.uz` zone →
+   Email → Email Routing → Enable → add a routing rule
+   (`support@kitobjavonim.uz` → your real inbox).
+3. **A second Supabase project** for staging (Feature 3) — new project,
+   same migrations applied via the SQL editor per `docs/supabase-setup.md`,
+   throwaway seed data.
+4. **Click merchant credentials** (Feature 2) — needed before the payment
+   Edge Function can be built and tested for real, not just written.
+
+I can proceed with everything else in the meantime — the freemium migration
+is already done, and I can prepare the Click Edge Function structurally
+ahead of having real credentials, though it won't be testable until they
+exist.
