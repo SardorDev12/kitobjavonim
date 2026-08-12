@@ -15,5 +15,9 @@
 /book/*      /book/[id].html      200
 /listing/*   /listing/[id].html   200
 
-# Anything genuinely unmatched — a typo'd path, a removed listing.
-/*  /+not-found.html  404
+# The custom 404 page is handled separately, via wrangler.jsonc's
+# assets.not_found_handling ("404-page") — Cloudflare's _redirects here only
+# accepts 200/301/302/303/307/308, not 404, so a rewrite line for it would
+# either fail validation (as a genuine 404) or silently return 200 for a
+# missing page (as a "rewrite"). not_found_handling preserves the real
+# status code, which .htaccess's ErrorDocument directive also did.

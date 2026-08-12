@@ -7,6 +7,12 @@
   "name": "kitobjavonim",
   "compatibility_date": "2026-01-01",
   "assets": {
-    "directory": "./dist"
+    "directory": "./dist",
+    // Cloudflare's static-asset serving looks for a literal 404.html at the
+    // asset root and serves it with a real 404 status when nothing else
+    // matches — the build command copies Expo Router's generated
+    // +not-found.html to dist/404.html so this finds real content instead
+    // of the platform's generic blank 404.
+    "not_found_handling": "404-page"
   }
 }
