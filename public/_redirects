@@ -9,11 +9,22 @@
 # own default static-asset serving, not listed here.
 #
 # Dynamic routes: Expo Router prerenders one literal shell file per dynamic
-# route pattern (book/[id].html, listing/[id].html), meant to be served for
-# ANY id — the 200 status here means "rewrite" (serve this content, keep the
-# original URL), not a redirect.
-/book/*      /book/[id].html      200
-/listing/*   /listing/[id].html   200
+# route pattern, meant to be served for ANY id — the 200 status here means
+# "rewrite" (serve this content, keep the original URL), not a redirect.
+#
+# The rewrite TARGETS are deliberately not book/[id].html or listing/[id].html
+# (where Expo actually writes them) or anything else starting with /book/ or
+# /listing/ — the build command copies them here first. Pointing straight at
+# the real path caused an infinite redirect loop in testing: the target
+# /book/[id].html itself matches the /book/* source pattern, so if Cloudflare
+# re-evaluates a rewritten path against the same rules (rather than treating
+# a 200 rewrite as final), it rewrites to itself forever. Square brackets in
+# a URL also have their own percent-encoding ambiguity that could compound
+# it. Landing the shell content at a flat, bracket-free, prefix-free path
+# sidesteps both possible causes at once rather than relying on knowing
+# which one it actually was.
+/book/*      /_book-shell.html      200
+/listing/*   /_listing-shell.html   200
 
 # The custom 404 page is handled separately, via wrangler.jsonc's
 # assets.not_found_handling ("404-page") — Cloudflare's _redirects here only
