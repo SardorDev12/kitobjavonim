@@ -85,14 +85,13 @@ proven.
   ```
   npm ci && npx expo export --platform web --clear && cp "dist/+not-found.html" dist/404.html && cp "dist/book/[id].html" dist/book-shell.html && cp "dist/listing/[id].html" dist/listing-shell.html
   ```
-  Verified: homepage, a dynamic route by direct URL (not client-side
-  navigation, which would pass even if the rewrite were broken), the custom
-  404 page, and the apex→www redirect — all on the real domain.
-  **Still not verified**: Google/Telegram OAuth on the real domain (only
-  tested pre-cutover on `workers.dev`, where both are expected to fail by
-  design — worth a real re-test now), and email/password auth. **Not started**:
-  Cloudflare Email Routing (`support@kitobjavonim.uz`) — the other half of
-  Feature 5, separate from everything above.
+  Verified on the real domain: homepage, a dynamic route by direct URL (not
+  client-side navigation, which would pass even if the rewrite were
+  broken), the custom 404 page, the apex→www redirect, and **Google +
+  Telegram OAuth — both confirmed working**, the two flows that couldn't be
+  tested pre-cutover since they're locked to the real domain by design.
+  **Not started**: Cloudflare Email Routing (`support@kitobjavonim.uz`) —
+  the other half of Feature 5, separate from everything above.
 
 ---
 
@@ -329,13 +328,13 @@ detour.
   itself renews on its own schedule either way, and this migration doesn't
   touch it.
 
-**Status**: **live — `kitobjavonim.uz` fully cut over from Plesk to
-Cloudflare** (six bugs found and fixed along the way — see "Implementation
-status" above for the full detail). **Remaining**: re-verify Google/Telegram
-OAuth and email/password auth on the real domain now that the cutover is
-done, decide whether/when to cancel the Plesk plan (worth keeping a little
-longer as a safety net before committing to that), and set up Cloudflare
-Email Routing (not started yet — separate from everything above).
+**Status**: **live and fully verified — `kitobjavonim.uz` cut over from
+Plesk to Cloudflare, all auth flows (Google, Telegram) confirmed working on
+the real domain** (six bugs found and fixed along the way — see
+"Implementation status" above for the full detail). **Remaining**: set up
+Cloudflare Email Routing (not started — separate from everything above),
+and decide whether/when to cancel the Plesk plan (worth keeping a little
+longer as a safety net before fully committing to that).
 
 ---
 
