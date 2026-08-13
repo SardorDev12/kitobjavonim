@@ -48,6 +48,27 @@ export default function RootLayout() {
     return () => subscription.remove();
   }, []);
 
+  // Every drop zone in the app only guards its own bounds. Without a
+  // page-wide backstop, a file dropped a few pixels outside one — easy to do,
+  // since the zones are small — falls through to the browser's default
+  // action: navigating the whole tab away to display the raw image. That
+  // reads as "drag-and-drop is broken" even when the zone the user meant to
+  // hit works fine, so this suppresses the default everywhere, once.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    const swallow = (event: DragEvent) => {
+      if (event.dataTransfer?.types?.includes('Files')) event.preventDefault();
+    };
+
+    window.addEventListener('dragover', swallow);
+    window.addEventListener('drop', swallow);
+    return () => {
+      window.removeEventListener('dragover', swallow);
+      window.removeEventListener('drop', swallow);
+    };
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>

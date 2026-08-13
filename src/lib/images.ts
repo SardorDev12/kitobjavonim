@@ -186,6 +186,17 @@ export async function pickAndUploadAvatar(userId: string): Promise<string | null
   return supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
 }
 
+/** Same as pickAndUploadAvatar, but for a file dropped onto the page (web). */
+export async function uploadDroppedAvatar(userId: string, file: File): Promise<string | null> {
+  const image = await fileToPickedImage(file, AVATAR_EDGE);
+  if (!image) return null;
+
+  const path = `${userId}/avatar-${Date.now()}.${image.extension}`;
+  await upload('avatars', path, image);
+
+  return supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+}
+
 export function publicUrlFor(bucket: string, path: string): string {
   return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;
 }

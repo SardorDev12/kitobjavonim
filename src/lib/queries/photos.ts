@@ -6,6 +6,7 @@ import {
   pickAndUploadListingPhoto,
   publicUrlFor,
   storagePathFromPublicUrl,
+  uploadDroppedAvatar,
   uploadDroppedListingPhoto,
 } from '@/lib/images';
 import { supabase } from '@/lib/supabase';
@@ -104,10 +105,11 @@ export function useUploadAvatar() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
+    /** `file` is set for a file dropped onto the page (web); omitted for the OS picker. */
+    mutationFn: async (file?: File) => {
       if (!user) throw new Error('Not signed in');
 
-      const url = await pickAndUploadAvatar(user.id);
+      const url = file ? await uploadDroppedAvatar(user.id, file) : await pickAndUploadAvatar(user.id);
       if (!url) return null;
 
       const { error } = await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id);

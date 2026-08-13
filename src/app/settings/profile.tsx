@@ -5,6 +5,7 @@ import { Alert, Platform, StyleSheet, View } from 'react-native';
 import { Avatar, Button, Card, Screen, Select, Text, TextField, Toggle } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useI18n } from '@/lib/i18n';
+import { useImageDropZone } from '@/lib/useImageDropZone';
 import { useRemoveAvatar, useUploadAvatar } from '@/lib/queries/photos';
 import { hasContactMethod, useUpdateProfile } from '@/lib/queries/profile';
 import { useLocationOptions } from '@/lib/queries/reference';
@@ -32,6 +33,11 @@ export default function EditProfileScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const districts = locations.districtsFor(regionId);
+
+  const { ref: avatarDropRef, isDragOver: avatarDragOver } = useImageDropZone(
+    (file) => uploadAvatar.mutate(file),
+    !uploadAvatar.isPending
+  );
 
   const draftHasContact = hasContactMethod({
     ...(profile ?? ({} as never)),
@@ -79,7 +85,20 @@ export default function EditProfileScreen() {
         {/* Uploaded and saved immediately rather than on Save — the picker is
             already a deliberate, multi-step confirmation of intent. Removal
             asks first, since unlike a replace it has no undo. */}
-        <View style={[styles.avatarRow, { gap: theme.spacing.lg }]}>
+        <View
+          ref={avatarDropRef}
+          style={[
+            styles.avatarRow,
+            { gap: theme.spacing.lg },
+            Platform.OS === 'web' && {
+              borderRadius: theme.radius.md,
+              borderWidth: 1,
+              borderStyle: 'dashed',
+              borderColor: avatarDragOver ? theme.colors.primary : theme.colors.borderStrong,
+              padding: theme.spacing.sm,
+            },
+          ]}
+        >
           <Avatar uri={profile?.avatar_url} name={profile?.display_name} size={72} />
           <View style={{ gap: theme.spacing.sm }}>
             <Button
@@ -88,7 +107,7 @@ export default function EditProfileScreen() {
               size="sm"
               icon="image-outline"
               loading={uploadAvatar.isPending}
-              onPress={() => uploadAvatar.mutate()}
+              onPress={() => uploadAvatar.mutate(undefined)}
             />
             {profile?.avatar_url ? (
               <Button
