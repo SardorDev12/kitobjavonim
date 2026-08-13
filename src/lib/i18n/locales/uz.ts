@@ -317,6 +317,17 @@ export const uz: LocaleCatalogue = {
   'profile.memberSince': '{{date}} dan beri kitobxon',
   'profile.noListings': 'Siz hali hech qanday kitob eʼlon qilmagansiz.',
 
+  'security.title': 'Email va parol orqali kirish',
+  'security.subtitle':
+    'Google yoki Telegram ishlamay qolsa ham hisobingiz ishlashi uchun parol qoʻshing.',
+  'security.emailHint': 'Parol orqali kirish uchun manzil kerak.',
+  'security.confirmEmailNotice': 'Bu manzil kuchga kirishidan oldin unga tasdiqlash havolasi yuboriladi.',
+  'security.newPassword': 'Yangi parol',
+  'security.confirmPassword': 'Parolni tasdiqlang',
+  'security.passwordMismatch': 'Parollar mos kelmadi',
+  'security.passwordSaved': 'Parol yangilandi.',
+  'security.emailAndPasswordSaved': 'Saqlandi — yangi manzilni tasdiqlash uchun elektron pochtangizni tekshiring.',
+
   'report.not_available': 'Endi mavjud emas',
   'report.wrong_condition': 'Holati tavsifga mos emas',
   'report.spam': 'Spam yoki reklama',

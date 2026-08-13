@@ -234,6 +234,13 @@ from the dashboard; nothing is lost.
 ## Before launch
 
 - Turn **Confirm email** back on, and configure real SMTP.
+- In **Authentication → Providers → Email**, turn **Secure email change**
+  off, or leave it on only if you are certain no one needs it — a Telegram
+  sign-in's address is a synthetic `tg_<id>@telegram.local` that cannot
+  receive mail, so if this stays on, a Telegram user adding a real email
+  from Settings → Email & password sign-in (src/app/settings/security.tsx)
+  gets asked to confirm from an inbox that does not exist, and the change
+  can never complete.
 - Set up a weekly `pg_dump` — the free tier has no automatic backups:
   ```bash
   pg_dump "postgresql://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres" > backup.sql

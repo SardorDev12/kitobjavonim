@@ -311,6 +311,17 @@ export const en = {
   'profile.memberSince': 'Reader since {{date}}',
   'profile.noListings': 'You have not listed any books yet.',
 
+  'security.title': 'Email & password sign-in',
+  'security.subtitle':
+    'Add a password so this account still works if Google or Telegram is ever unreachable.',
+  'security.emailHint': 'Needed so a password sign-in has somewhere to go.',
+  'security.confirmEmailNotice': 'A confirmation link will be sent to that address before it takes effect.',
+  'security.newPassword': 'New password',
+  'security.confirmPassword': 'Confirm password',
+  'security.passwordMismatch': 'Passwords do not match',
+  'security.passwordSaved': 'Password updated.',
+  'security.emailAndPasswordSaved': 'Saved — check your email to confirm the new address.',
+
   'report.not_available': 'No longer available',
   'report.wrong_condition': 'Condition is not as described',
   'report.spam': 'Spam or advertising',

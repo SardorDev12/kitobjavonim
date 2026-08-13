@@ -316,6 +316,17 @@ export const ru: LocaleCatalogue = {
   'profile.memberSince': 'Читатель с {{date}}',
   'profile.noListings': 'Вы ещё не выставили ни одной книги.',
 
+  'security.title': 'Вход по email и паролю',
+  'security.subtitle':
+    'Добавьте пароль, чтобы аккаунт работал, даже если Google или Telegram станут недоступны.',
+  'security.emailHint': 'Нужен, чтобы было куда отправить вход по паролю.',
+  'security.confirmEmailNotice': 'На этот адрес придёт письмо для подтверждения, прежде чем он вступит в силу.',
+  'security.newPassword': 'Новый пароль',
+  'security.confirmPassword': 'Подтвердите пароль',
+  'security.passwordMismatch': 'Пароли не совпадают',
+  'security.passwordSaved': 'Пароль обновлён.',
+  'security.emailAndPasswordSaved': 'Сохранено — проверьте почту, чтобы подтвердить новый адрес.',
+
   'report.not_available': 'Больше не доступна',
   'report.wrong_condition': 'Состояние не соответствует описанию',
   'report.spam': 'Спам или реклама',

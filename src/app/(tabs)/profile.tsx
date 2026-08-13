@@ -87,6 +87,12 @@ export default function ProfileScreen() {
           />
           <Divider inset={theme.spacing.lg} />
           <ListRow
+            icon="lock-closed-outline"
+            label={t('security.title')}
+            onPress={() => router.push('/settings/security')}
+          />
+          <Divider inset={theme.spacing.lg} />
+          <ListRow
             icon="albums-outline"
             label={t('shelves.manage')}
             onPress={() => router.push('/bookshelves')}
