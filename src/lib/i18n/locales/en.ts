@@ -206,6 +206,11 @@ export const en = {
   'add.addAnyway': 'Add another copy',
   'add.added': 'Added to your library',
   'add.addToLibrary': 'Add to library',
+  'add.editDetails': 'Edit details',
+  'add.similarTitles': 'Similar titles already exist',
+  'add.similarTitlesBody': "Someone else may have already catalogued this one — pick it instead of adding a copy that doesn't link up.",
+  'add.useThis': 'Use this',
+  'add.usingExisting': 'Using existing catalogue entry',
 
   'manual.title': 'Book details',
   'manual.bookTitle': 'Title',

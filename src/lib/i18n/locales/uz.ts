@@ -209,6 +209,11 @@ export const uz: LocaleCatalogue = {
   'add.addAnyway': 'Yana bir nusxa qoʻshish',
   'add.added': 'Kutubxonangizga qoʻshildi',
   'add.addToLibrary': 'Kutubxonaga qoʻshish',
+  'add.editDetails': 'Maʼlumotlarni tahrirlash',
+  'add.similarTitles': 'Katalogda oʻxshash kitoblar bor',
+  'add.similarTitlesBody': 'Bu kitobni allaqachon boshqa foydalanuvchi qoʻshgan boʻlishi mumkin — bogʻlanmaydigan nusxa qoʻshish oʻrniga shuni tanlang.',
+  'add.useThis': 'Shuni tanlash',
+  'add.usingExisting': 'Katalogdagi mavjud yozuv ishlatilmoqda',
 
   'manual.title': 'Kitob maʼlumotlari',
   'manual.bookTitle': 'Nomi',

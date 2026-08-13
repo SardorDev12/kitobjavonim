@@ -207,6 +207,11 @@ export const ru: LocaleCatalogue = {
   'add.addAnyway': 'Добавить ещё экземпляр',
   'add.added': 'Добавлено в библиотеку',
   'add.addToLibrary': 'Добавить в библиотеку',
+  'add.editDetails': 'Изменить сведения',
+  'add.similarTitles': 'Похожие книги уже есть в каталоге',
+  'add.similarTitlesBody': 'Возможно, эту книгу уже добавил кто-то другой — выберите её, а не создавайте несвязанную копию.',
+  'add.useThis': 'Выбрать',
+  'add.usingExisting': 'Используется запись из каталога',
 
   'manual.title': 'Данные книги',
   'manual.bookTitle': 'Название',

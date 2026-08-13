@@ -1,18 +1,31 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { BookCover } from '@/components/BookCover';
 import { CategoryPicker } from '@/components/CategoryPicker';
-import { Button, Card, Chip, EmptyState, Screen, Select, Text } from '@/components/ui';
-import { usePendingBook } from '@/features/add/pendingBook';
-import { formatAuthors } from '@/lib/format';
+import { Button, Card, Chip, EmptyState, Screen, Select, Sheet, Text, TextField } from '@/components/ui';
+import { useAuth } from '@/features/auth/AuthProvider';
+import { setPendingBook, usePendingBook } from '@/features/add/pendingBook';
+import type { BookCandidate } from '@/lib/books/metadata';
+import { formatAuthors, normalizeIsbn } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
+import { pickAndUploadBookCover } from '@/lib/images';
 import { usePositionOptions } from '@/lib/queries/bookshelves';
 import { useSetBookCategories } from '@/lib/queries/categories';
-import { useAddBook, useLibrary } from '@/lib/queries/library';
+import { useAddBook, useLibrary, useSimilarBooks } from '@/lib/queries/library';
 import { useTheme } from '@/theme';
-import { BOOK_CONDITIONS, READING_STATUSES, type BookCondition, type ReadingStatus } from '@/types/database';
+import { BOOK_CONDITIONS, READING_STATUSES, type Book, type BookCondition, type ReadingStatus } from '@/types/database';
+
+const LANGUAGE_OPTIONS = [
+  { value: 'uz', label: 'Oʻzbekcha' },
+  { value: 'ru', label: 'Русский' },
+  { value: 'en', label: 'English' },
+  { value: 'kaa', label: 'Qaraqalpaqsha' },
+  { value: 'tr', label: 'Türkçe' },
+  { value: 'ar', label: 'العربية' },
+];
 
 /**
  * The last step of adding a book: reading status, condition, and where it lives.
@@ -29,6 +42,7 @@ export default function ConfigureScreen() {
   const candidate = usePendingBook();
   const positions = usePositionOptions();
   const { data: library } = useLibrary();
+  const similar = useSimilarBooks(candidate?.title ?? '');
   const addBook = useAddBook();
   const setCategories = useSetBookCategories();
 
@@ -38,6 +52,8 @@ export default function ConfigureScreen() {
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [existingBook, setExistingBook] = useState<Book | null>(null);
 
   // A hard refresh on web clears the in-memory selection; send the user back
   // rather than showing an empty form.
@@ -49,6 +65,17 @@ export default function ConfigureScreen() {
     if (!candidate?.isbn13 || !library) return null;
     return library.find((entry) => entry.isbn13 === candidate.isbn13) ?? null;
   }, [candidate, library]);
+
+  // ensureBook only dedupes on an exact ISBN match, which misses every book
+  // with no ISBN at all — routine for older or Uzbek/Russian-language
+  // editions — so a loose title match against the shared catalogue catches
+  // those before they become a second, near-identical `books` row.
+  const similarBooks = useMemo(() => {
+    if (duplicate || existingBook) return [];
+    return (similar.data ?? []).filter(
+      (book) => !candidate?.isbn13 || book.isbn13 !== candidate.isbn13
+    );
+  }, [similar.data, duplicate, existingBook, candidate?.isbn13]);
 
   if (!candidate) {
     return (
@@ -65,6 +92,7 @@ export default function ConfigureScreen() {
     try {
       const { userBookId, bookId } = await addBook.mutateAsync({
         candidate,
+        existingBookId: existingBook?.id,
         bookshelfPositionId: positionId,
         readingStatus: status,
         condition,
@@ -116,6 +144,15 @@ export default function ConfigureScreen() {
                 {[candidate.publisher, candidate.publication_year].filter(Boolean).join(' · ')}
               </Text>
             ) : null}
+
+            {/* External metadata (Google Books/OpenLibrary) is often wrong for
+                regional or translated editions — this is the chance to fix it
+                before it becomes the shared catalogue entry. */}
+            <Pressable onPress={() => setEditOpen(true)} hitSlop={8} style={{ marginTop: 4 }}>
+              <Text variant="label" color="primary">
+                {t('add.editDetails')}
+              </Text>
+            </Pressable>
           </View>
         </View>
 
@@ -125,6 +162,56 @@ export default function ConfigureScreen() {
             <Text variant="caption" color="textMuted" style={{ marginTop: 4 }}>
               {t('add.duplicateBody', { title: duplicate.title })}
             </Text>
+          </Card>
+        ) : existingBook ? (
+          <Card style={{ backgroundColor: theme.colors.primarySoft, borderColor: 'transparent' }}>
+            <View style={[styles.similarRow, { gap: theme.spacing.md }]}>
+              <BookCover uri={existingBook.cover_url} title={existingBook.title} width={44} radius={theme.radius.sm} />
+              <View style={styles.bookText}>
+                <Text variant="label" color="primaryOnSoft">
+                  {t('add.usingExisting')}
+                </Text>
+                <Text variant="bodyStrong" numberOfLines={1}>
+                  {existingBook.title}
+                </Text>
+              </View>
+              <Pressable onPress={() => setExistingBook(null)} hitSlop={8}>
+                <Text variant="label" color="primary">
+                  {t('common.cancel')}
+                </Text>
+              </Pressable>
+            </View>
+          </Card>
+        ) : similarBooks.length > 0 ? (
+          <Card>
+            <Text variant="bodyStrong">{t('add.similarTitles')}</Text>
+            <Text variant="caption" color="textMuted" style={{ marginTop: 4, marginBottom: theme.spacing.sm }}>
+              {t('add.similarTitlesBody')}
+            </Text>
+            <View style={{ gap: theme.spacing.sm }}>
+              {similarBooks.map((book) => (
+                <Pressable
+                  key={book.id}
+                  onPress={() => setExistingBook(book)}
+                  style={({ pressed }) => [styles.similarRow, { gap: theme.spacing.md, opacity: pressed ? 0.7 : 1 }]}
+                >
+                  <BookCover uri={book.cover_url} title={book.title} width={40} radius={theme.radius.sm} />
+                  <View style={styles.bookText}>
+                    <Text variant="body" numberOfLines={1}>
+                      {book.title}
+                    </Text>
+                    {book.authors.length > 0 ? (
+                      <Text variant="caption" color="textMuted" numberOfLines={1}>
+                        {formatAuthors(book.authors)}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <Text variant="label" color="primary">
+                    {t('add.useThis')}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
           </Card>
         ) : null}
 
@@ -193,12 +280,174 @@ export default function ConfigureScreen() {
           </Text>
         ) : null}
       </View>
+
+      <CandidateEditSheet
+        key={candidate.key}
+        visible={editOpen}
+        onClose={() => setEditOpen(false)}
+        candidate={candidate}
+        onSave={(patch) => setPendingBook({ ...candidate, ...patch })}
+      />
     </Screen>
+  );
+}
+
+function CandidateEditSheet({
+  visible,
+  onClose,
+  candidate,
+  onSave,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  candidate: BookCandidate;
+  onSave: (patch: Partial<BookCandidate>) => void;
+}) {
+  const theme = useTheme();
+  const { t } = useI18n();
+  const { user } = useAuth();
+
+  const [title, setTitle] = useState(candidate.title);
+  const [authors, setAuthors] = useState(candidate.authors.join(', '));
+  const [isbn, setIsbn] = useState(candidate.isbn13 ?? candidate.isbn10 ?? '');
+  const [publisher, setPublisher] = useState(candidate.publisher ?? '');
+  const [year, setYear] = useState(candidate.publication_year?.toString() ?? '');
+  const [language, setLanguage] = useState<string | null>(candidate.language);
+  const [pages, setPages] = useState(candidate.page_count?.toString() ?? '');
+  const [coverUrl, setCoverUrl] = useState(candidate.cover_url);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [titleError, setTitleError] = useState<string | null>(null);
+
+  async function pickCover() {
+    if (!user || coverUploading) return;
+    setCoverUploading(true);
+    try {
+      const url = await pickAndUploadBookCover(user.id);
+      if (url) setCoverUrl(url);
+    } finally {
+      setCoverUploading(false);
+    }
+  }
+
+  function save() {
+    if (!title.trim()) {
+      setTitleError(t('manual.titleRequired'));
+      return;
+    }
+
+    const normalizedIsbn = normalizeIsbn(isbn);
+    const parsedYear = Number(year);
+    const parsedPages = Number(pages);
+
+    onSave({
+      title: title.trim(),
+      authors: authors
+        .split(',')
+        .map((author) => author.trim())
+        .filter(Boolean),
+      isbn13: normalizedIsbn.length === 13 ? normalizedIsbn : null,
+      isbn10: normalizedIsbn.length === 10 ? normalizedIsbn : null,
+      publisher: publisher.trim() || null,
+      publication_year:
+        Number.isFinite(parsedYear) && parsedYear >= 1400 && parsedYear <= 2200 ? parsedYear : null,
+      language,
+      page_count: Number.isFinite(parsedPages) && parsedPages > 0 ? parsedPages : null,
+      cover_url: coverUrl,
+    });
+
+    onClose();
+  }
+
+  return (
+    <Sheet visible={visible} onClose={onClose} title={t('add.editDetails')}>
+      <View style={{ gap: theme.spacing.lg }}>
+        <Pressable
+          onPress={pickCover}
+          disabled={coverUploading}
+          accessibilityRole="button"
+          accessibilityLabel={t('manual.cover')}
+          style={({ pressed }) => [styles.editCoverRow, { opacity: pressed || coverUploading ? 0.7 : 1 }]}
+        >
+          <BookCover uri={coverUrl} title={title || candidate.title} width={80} radius={theme.radius.sm} />
+          <View style={styles.editCoverAction}>
+            <Ionicons
+              name={coverUploading ? 'cloud-upload-outline' : 'camera-outline'}
+              size={16}
+              color={theme.colors.primary}
+            />
+            <Text variant="label" color="primary">
+              {coverUploading ? t('common.saving') : coverUrl ? t('manual.changeCover') : t('manual.addCover')}
+            </Text>
+          </View>
+        </Pressable>
+
+        <TextField
+          label={t('manual.bookTitle')}
+          value={title}
+          onChangeText={(value) => {
+            setTitle(value);
+            if (titleError) setTitleError(null);
+          }}
+          error={titleError}
+        />
+
+        <TextField label={t('manual.authors')} hint={t('manual.authorsHint')} value={authors} onChangeText={setAuthors} />
+
+        <TextField
+          label={t('manual.isbn')}
+          value={isbn}
+          onChangeText={setIsbn}
+          keyboardType="numbers-and-punctuation"
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        <TextField label={t('manual.publisher')} value={publisher} onChangeText={setPublisher} />
+
+        <View style={[styles.pair, { gap: theme.spacing.md }]}>
+          <TextField
+            label={t('manual.year')}
+            value={year}
+            onChangeText={setYear}
+            keyboardType="number-pad"
+            inputMode="numeric"
+            maxLength={4}
+            containerStyle={styles.pairItem}
+          />
+          <TextField
+            label={t('manual.pages')}
+            value={pages}
+            onChangeText={setPages}
+            keyboardType="number-pad"
+            inputMode="numeric"
+            maxLength={5}
+            containerStyle={styles.pairItem}
+          />
+        </View>
+
+        <Select
+          label={t('manual.language')}
+          placeholder={t('common.none')}
+          value={language}
+          options={LANGUAGE_OPTIONS}
+          onChange={setLanguage}
+          clearable
+          clearLabel={t('common.none')}
+        />
+
+        <Button title={t('common.save')} fullWidth onPress={save} />
+      </View>
+    </Sheet>
   );
 }
 
 const styles = StyleSheet.create({
   book: { flexDirection: 'row', alignItems: 'flex-start' },
   bookText: { flex: 1, gap: 4 },
+  similarRow: { flexDirection: 'row', alignItems: 'center' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  editCoverRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  editCoverAction: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  pair: { flexDirection: 'row' },
+  pairItem: { flex: 1 },
 });

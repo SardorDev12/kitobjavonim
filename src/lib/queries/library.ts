@@ -50,6 +50,33 @@ export function useLibraryEntry(id: string | undefined) {
 }
 
 /**
+ * Titles already in the shared catalogue that look like the one being added.
+ *
+ * `ensureBook` only dedupes on an exact ISBN match, which misses every book
+ * that has no ISBN at all (routine for older or Uzbek/Russian-language
+ * editions) or where the search result's ISBN just doesn't match what is
+ * already catalogued. A loose title match catches those before they become a
+ * second, near-identical `books` row.
+ */
+export function useSimilarBooks(title: string) {
+  const trimmed = title.trim();
+
+  return useQuery({
+    queryKey: queryKeys.catalog.similarTitles(trimmed),
+    enabled: trimmed.length >= 3,
+    queryFn: async (): Promise<Book[]> => {
+      const { data, error } = await supabase
+        .from('books')
+        .select('*')
+        .ilike('title', `%${trimmed}%`)
+        .limit(5);
+      if (error) throw error;
+      return data as Book[];
+    },
+  });
+}
+
+/**
  * Finds the canonical book row for a candidate, creating it if this is the first
  * time anyone has catalogued it.
  *
@@ -104,6 +131,12 @@ async function ensureBook(candidate: BookCandidate, userId: string): Promise<str
 
 export type AddBookInput = {
   candidate: BookCandidate;
+  /**
+   * Set when the user picked a suggested existing catalogue title (see
+   * useSimilarBooks) instead of the searched candidate — skips ensureBook
+   * entirely so no second `books` row is created for the same title.
+   */
+  existingBookId?: string;
   bookshelfPositionId?: string | null;
   readingStatus?: UserBook['reading_status'];
   condition?: UserBook['condition'];
@@ -114,10 +147,10 @@ export function useAddBook() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ candidate, bookshelfPositionId, readingStatus, condition }: AddBookInput) => {
+    mutationFn: async ({ candidate, existingBookId, bookshelfPositionId, readingStatus, condition }: AddBookInput) => {
       if (!user) throw new Error('Not signed in');
 
-      const bookId = await ensureBook(candidate, user.id);
+      const bookId = existingBookId ?? (await ensureBook(candidate, user.id));
 
       const { data, error } = await supabase
         .from('user_books')
