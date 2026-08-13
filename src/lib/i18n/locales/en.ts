@@ -306,6 +306,16 @@ export const en = {
   'error.saveFailed': 'Could not save your changes.',
   'error.loadFailed': 'Could not load this.',
   'error.offline': 'You are offline — showing your saved library.',
+  'error.listingLimitReached': 'You have reached your active listings limit. Remove one to list another.',
+  'error.contactLimitReached': 'You have reached your owner-contacts limit for this month. It resets next month.',
+
+  'plan.title': 'Your plan',
+  'plan.free': 'Free',
+  'plan.pro': 'Pro',
+  'plan.expiresOn': 'Renews/expires {{date}}',
+  'plan.activeListings': 'Active listings',
+  'plan.contactsThisMonth': 'Owner contacts this month',
+  'plan.unlimited': 'Unlimited',
 } as const;
 
 export type MessageKey = keyof typeof en;

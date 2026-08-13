@@ -312,4 +312,14 @@ export const uz: LocaleCatalogue = {
   'error.saveFailed': 'Oʻzgarishlarni saqlab boʻlmadi.',
   'error.loadFailed': 'Buni yuklab boʻlmadi.',
   'error.offline': 'Siz oflaynsiz — saqlangan kutubxonangiz koʻrsatilmoqda.',
+  'error.listingLimitReached': 'Faol eʼlonlar chegarasiga yetdingiz. Yangisini qoʻshish uchun birini oʻchiring.',
+  'error.contactLimitReached': 'Shu oydagi egasi bilan aloqalar chegarasiga yetdingiz. Chegara keyingi oyda yangilanadi.',
+
+  'plan.title': 'Sizning tarifingiz',
+  'plan.free': 'Bepul',
+  'plan.pro': 'Pro',
+  'plan.expiresOn': 'Yangilanish/tugash sanasi {{date}}',
+  'plan.activeListings': 'Faol eʼlonlar',
+  'plan.contactsThisMonth': 'Shu oydagi egasi bilan aloqalar',
+  'plan.unlimited': 'Cheksiz',
 };

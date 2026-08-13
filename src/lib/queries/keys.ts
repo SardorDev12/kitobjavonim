@@ -22,6 +22,9 @@ export const queryKeys = {
   profile: {
     stats: (userId: string) => ['profile', 'stats', userId] as const,
   },
+  plan: {
+    status: (userId: string) => ['plan', 'status', userId] as const,
+  },
   search: {
     books: (query: string) => ['search', 'books', query] as const,
   },

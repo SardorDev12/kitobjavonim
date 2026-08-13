@@ -7,6 +7,7 @@ import { Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { BookCover } from '@/components/BookCover';
 import { Avatar, Button, Card, Chip, EmptyState, LoadingState, Screen, Sheet, Text, TextField } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { describeError } from '@/lib/errors';
 import { formatAuthors, formatDate, formatPrice } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { useListing, useListingPhotos, useReportListing, useRequestContact } from '@/lib/queries/listings';
@@ -238,7 +239,7 @@ function ContactSheet({
         await Linking.openURL(`tel:${result.phone}`);
       }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t('error.generic'));
+      setError(describeError(cause, t));
     }
   }
 

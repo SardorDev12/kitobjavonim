@@ -311,4 +311,14 @@ export const ru: LocaleCatalogue = {
   'error.saveFailed': 'Не удалось сохранить изменения.',
   'error.loadFailed': 'Не удалось загрузить.',
   'error.offline': 'Вы офлайн — показана сохранённая библиотека.',
+  'error.listingLimitReached': 'Вы достигли лимита активных объявлений. Уберите одно, чтобы добавить новое.',
+  'error.contactLimitReached': 'Вы достигли лимита контактов с владельцами в этом месяце. Лимит обновится в следующем месяце.',
+
+  'plan.title': 'Ваш план',
+  'plan.free': 'Бесплатный',
+  'plan.pro': 'Pro',
+  'plan.expiresOn': 'Продление/истекает {{date}}',
+  'plan.activeListings': 'Активные объявления',
+  'plan.contactsThisMonth': 'Контакты с владельцами в этом месяце',
+  'plan.unlimited': 'Без ограничений',
 };

@@ -38,6 +38,7 @@ wait for "Success", then move to the next:
 | 6 | `supabase/migrations/0006_category_permissions.sql` | Narrows who may classify a book |
 | 7 | `supabase/migrations/0007_library_entries_book_owner.sql` | Exposes `book_created_by` for the "edit book details" flow |
 | 8 | `supabase/migrations/0008_plans_and_limits.sql` | `profiles.plan`, freemium limits (Free/Pro tiers) |
+| 9 | `supabase/migrations/0009_raise_plan_caps.sql` | Raises both plans to 100 listings / 100 contacts for the pre-launch phase |
 
 **Order matters** — each file references objects the previous one created.
 

@@ -178,7 +178,10 @@ export function useUpdateUserBook() {
       queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.library.entry(variables.id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
-      if (user) queryClient.invalidateQueries({ queryKey: queryKeys.profile.stats(user.id) });
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.profile.stats(user.id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.plan.status(user.id) });
+      }
     },
   });
 }

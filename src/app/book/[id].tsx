@@ -23,6 +23,7 @@ import {
   Toggle,
 } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { describeError } from '@/lib/errors';
 import { formatAuthors, formatDate, formatPosition, formatPrice, normalizeIsbn, parsePriceInput } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover } from '@/lib/images';
@@ -80,6 +81,10 @@ export default function BookDetailScreen() {
 
   function patch(changes: Parameters<typeof updateBook.mutate>[0]['patch']) {
     updateBook.mutate({ id: entry!.id, patch: changes });
+  }
+
+  function patchAsync(changes: Parameters<typeof updateBook.mutate>[0]['patch']) {
+    return updateBook.mutateAsync({ id: entry!.id, patch: changes });
   }
 
   function changeStatus(status: ReadingStatus) {
@@ -374,7 +379,7 @@ export default function BookDetailScreen() {
           setListingOpen(false);
           router.push('/settings/profile');
         }}
-        onSave={patch}
+        onSave={patchAsync}
       />
 
       <EditBookSheet
@@ -655,7 +660,7 @@ function ListingSheet({
   entry: { availability_type: AvailabilityType; sale_price: number | null; price_negotiable: boolean; exchange_preferences: string | null; sale_description: string | null; condition: string | null };
   canList: boolean;
   onOpenProfile: () => void;
-  onSave: (patch: Parameters<ReturnType<typeof useUpdateUserBook>['mutate']>[0]['patch']) => void;
+  onSave: (patch: Parameters<ReturnType<typeof useUpdateUserBook>['mutate']>[0]['patch']) => Promise<unknown>;
 }) {
   const theme = useTheme();
   const { t } = useI18n();
@@ -672,7 +677,9 @@ function ListingSheet({
   const [description, setDescription] = useState(entry.sale_description ?? '');
   const [error, setError] = useState<string | null>(null);
 
-  function save() {
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
     const parsedPrice = parsePriceInput(price);
 
     if (forSale && parsedPrice === null) {
@@ -691,15 +698,23 @@ function ListingSheet({
             ? 'exchange'
             : 'private';
 
-    onSave({
-      availability_type: availability,
-      sale_price: forSale ? parsedPrice : null,
-      price_negotiable: forSale ? negotiable : false,
-      exchange_preferences: forExchange ? preferences.trim() || null : null,
-      sale_description: forSale ? description.trim() || null : null,
-    });
+    setError(null);
+    setSaving(true);
 
-    onClose();
+    try {
+      await onSave({
+        availability_type: availability,
+        sale_price: forSale ? parsedPrice : null,
+        price_negotiable: forSale ? negotiable : false,
+        exchange_preferences: forExchange ? preferences.trim() || null : null,
+        sale_description: forSale ? description.trim() || null : null,
+      });
+      onClose();
+    } catch (cause) {
+      setError(describeError(cause, t));
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -764,7 +779,13 @@ function ListingSheet({
           </>
         ) : null}
 
-        <Button title={t('common.save')} fullWidth onPress={save} disabled={!canList} />
+        {error ? (
+          <Text variant="caption" color="danger">
+            {error}
+          </Text>
+        ) : null}
+
+        <Button title={t('common.save')} fullWidth onPress={save} disabled={!canList} loading={saving} />
       </View>
     </Sheet>
   );
