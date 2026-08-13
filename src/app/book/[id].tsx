@@ -7,7 +7,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BookCover } from '@/components/BookCover';
 import { CategoryPicker } from '@/components/CategoryPicker';
 import { ListingSheet } from '@/components/ListingSheet';
-import { PhotoManager } from '@/components/PhotoManager';
 import {
   Button,
   Card,
@@ -323,10 +322,6 @@ export default function BookDetailScreen() {
                   {t('discover.wants')}: {entry.exchange_preferences}
                 </Text>
               ) : null}
-
-              <View style={{ marginTop: theme.spacing.sm }}>
-                <PhotoManager userBookId={entry.id} />
-              </View>
 
               <Button
                 title={t('book.removeListing')}

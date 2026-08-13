@@ -8,6 +8,7 @@ import type { UpdateUserBookInput } from '@/lib/queries/library';
 import { useTheme } from '@/theme';
 import type { AvailabilityType } from '@/types/database';
 
+import { PhotoManager } from './PhotoManager';
 import { Button, Card, Divider, Sheet, Text, TextField, Toggle } from './ui';
 
 /**
@@ -16,6 +17,11 @@ import { Button, Card, Divider, Sheet, Text, TextField, Toggle } from './ui';
  * looking at their own listing). Exchange and sale are two flags over one
  * `availability_type` enum, which is what lets a book be offered both ways
  * without a second listing record.
+ *
+ * Condition photos live here too, not in a separate always-visible section —
+ * this is the one place a listing gets edited, so it is the one place that
+ * should need opening. It also means photos can be attached before a book
+ * is listed for the first time, instead of only after saving once.
  */
 export function ListingSheet({
   visible,
@@ -28,6 +34,7 @@ export function ListingSheet({
   visible: boolean;
   onClose: () => void;
   entry: {
+    id: string;
     availability_type: AvailabilityType;
     sale_price: number | null;
     price_negotiable: boolean;
@@ -153,6 +160,10 @@ export function ListingSheet({
             />
           </>
         ) : null}
+
+        <Divider />
+
+        <PhotoManager userBookId={entry.id} />
 
         {error ? (
           <Text variant="caption" color="danger">
