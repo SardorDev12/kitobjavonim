@@ -105,8 +105,10 @@ export function useUploadAvatar() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    /** `file` is set for a file dropped onto the page (web); omitted for the OS picker. */
-    mutationFn: async (file?: File) => {
+    // The current avatar_url is passed in rather than read from cache, same
+    // reasoning as useRemoveAvatar below — it's what lets the old file get
+    // cleaned up once the new one is live, instead of orphaning it.
+    mutationFn: async ({ file, currentAvatarUrl }: { file?: File; currentAvatarUrl: string | null }) => {
       if (!user) throw new Error('Not signed in');
 
       const url = file ? await uploadDroppedAvatar(user.id, file) : await pickAndUploadAvatar(user.id);
@@ -114,6 +116,9 @@ export function useUploadAvatar() {
 
       const { error } = await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id);
       if (error) throw error;
+
+      const oldPath = currentAvatarUrl ? storagePathFromPublicUrl('avatars', currentAvatarUrl) : null;
+      if (oldPath) await supabase.storage.from('avatars').remove([oldPath]);
 
       return url;
     },

@@ -36,7 +36,7 @@ export default function EditProfileScreen() {
   const districts = locations.districtsFor(regionId);
 
   const { ref: avatarDropRef, isDragOver: avatarDragOver } = useImageDropZone(
-    (file) => uploadAvatar.mutate(file),
+    (file) => uploadAvatar.mutate({ file, currentAvatarUrl: profile?.avatar_url ?? null }),
     !uploadAvatar.isPending,
     'avatar'
   );
@@ -109,7 +109,7 @@ export default function EditProfileScreen() {
               size="sm"
               icon="image-outline"
               loading={uploadAvatar.isPending}
-              onPress={() => uploadAvatar.mutate(undefined)}
+              onPress={() => uploadAvatar.mutate({ currentAvatarUrl: profile?.avatar_url ?? null })}
             />
             {profile?.avatar_url ? (
               <Button
