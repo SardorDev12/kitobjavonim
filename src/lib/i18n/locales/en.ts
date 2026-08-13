@@ -55,6 +55,7 @@ export const en = {
   'auth.orUseEmail': 'or use email',
   'auth.noAccount': 'No account yet?',
   'auth.haveAccount': 'Already have an account?',
+  'auth.agreeToTerms': 'By creating an account, you agree to our {terms} and {privacy}.',
   'auth.invalidEmail': 'Enter a valid email address',
   'auth.passwordTooShort': 'Password must be at least 8 characters',
   'auth.nameRequired': 'Please enter your name',
@@ -318,6 +319,9 @@ export const en = {
   'profile.signOutConfirm': 'Sign out of this account?',
   'profile.memberSince': 'Reader since {{date}}',
   'profile.noListings': 'You have not listed any books yet.',
+
+  'legal.privacyPolicy': 'Privacy Policy',
+  'legal.termsOfService': 'Terms of Service',
 
   'security.title': 'Email & password sign-in',
   'security.subtitle':

@@ -58,6 +58,7 @@ export const uz: LocaleCatalogue = {
   'auth.orUseEmail': 'yoki email bilan',
   'auth.noAccount': 'Hisobingiz yoʻqmi?',
   'auth.haveAccount': 'Hisobingiz bormi?',
+  'auth.agreeToTerms': 'Hisob yaratish orqali siz bizning {terms} va {privacy} bilan rozilik bildirasiz.',
   'auth.invalidEmail': 'Toʻgʻri email manzilini kiriting',
   'auth.passwordTooShort': 'Parol kamida 8 ta belgidan iborat boʻlishi kerak',
   'auth.nameRequired': 'Ismingizni kiriting',
@@ -324,6 +325,9 @@ export const uz: LocaleCatalogue = {
   'profile.signOutConfirm': 'Hisobdan chiqasizmi?',
   'profile.memberSince': '{{date}} dan beri kitobxon',
   'profile.noListings': 'Siz hali hech qanday kitob eʼlon qilmagansiz.',
+
+  'legal.privacyPolicy': 'Maxfiylik siyosati',
+  'legal.termsOfService': 'Foydalanish shartlari',
 
   'security.title': 'Email va parol orqali kirish',
   'security.subtitle':

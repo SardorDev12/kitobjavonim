@@ -162,8 +162,12 @@ function RootNavigator() {
     // Discovery and listing pages stay open to signed-out visitors: the RLS
     // policies already expose exactly those rows to `anon`, it lets someone see
     // what is on offer before committing to an account, and it is what makes
-    // listing URLs worth sharing. Everything else needs a session.
-    const isPublicRoute = (group === '(tabs)' && path[1] === 'discover') || group === 'listing';
+    // listing URLs worth sharing. legal/* (privacy, terms) is public too — the
+    // sign-up screen links to it before there's a session, and an app store
+    // reviewer needs to reach it without one either. Everything else needs a
+    // session.
+    const isPublicRoute =
+      (group === '(tabs)' && path[1] === 'discover') || group === 'listing' || group === 'legal';
 
     // auth/callback and auth/telegram-login run before a session exists by
     // definition — bouncing them to sign-in would abort the token exchange
@@ -234,6 +238,8 @@ function RootNavigator() {
             or a browser refresh never has. */}
         <Stack.Screen name="book/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="listing/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="legal/privacy" options={{ headerShown: false }} />
+        <Stack.Screen name="legal/terms" options={{ headerShown: false }} />
         <Stack.Screen name="add/scan" options={{ presentation: 'modal', title: '' }} />
         <Stack.Screen name="add/manual" options={{ title: '' }} />
         <Stack.Screen name="add/configure" options={{ title: '' }} />

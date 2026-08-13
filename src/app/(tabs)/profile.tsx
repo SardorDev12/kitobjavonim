@@ -111,6 +111,18 @@ export default function ProfileScreen() {
             value={t(`profile.appearance.${theme.mode}`)}
             onPress={() => setAppearanceOpen(true)}
           />
+          <Divider inset={theme.spacing.lg} />
+          <ListRow
+            icon="document-text-outline"
+            label={t('legal.termsOfService')}
+            onPress={() => router.push('/legal/terms')}
+          />
+          <Divider inset={theme.spacing.lg} />
+          <ListRow
+            icon="shield-checkmark-outline"
+            label={t('legal.privacyPolicy')}
+            onPress={() => router.push('/legal/privacy')}
+          />
         </Card>
 
         <Button title={t('auth.signOut')} variant="secondary" fullWidth onPress={confirmSignOut} />

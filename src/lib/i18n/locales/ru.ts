@@ -54,6 +54,7 @@ export const ru: LocaleCatalogue = {
   'auth.orUseEmail': 'или по эл. почте',
   'auth.noAccount': 'Ещё нет аккаунта?',
   'auth.haveAccount': 'Уже есть аккаунт?',
+  'auth.agreeToTerms': 'Создавая аккаунт, вы соглашаетесь с нашими {terms} и {privacy}.',
   'auth.invalidEmail': 'Введите корректный адрес эл. почты',
   'auth.passwordTooShort': 'Пароль должен быть не короче 8 символов',
   'auth.nameRequired': 'Введите ваше имя',
@@ -323,6 +324,9 @@ export const ru: LocaleCatalogue = {
   'profile.signOutConfirm': 'Выйти из аккаунта?',
   'profile.memberSince': 'Читатель с {{date}}',
   'profile.noListings': 'Вы ещё не выставили ни одной книги.',
+
+  'legal.privacyPolicy': 'Политика конфиденциальности',
+  'legal.termsOfService': 'Условия использования',
 
   'security.title': 'Вход по email и паролю',
   'security.subtitle':
