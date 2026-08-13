@@ -383,15 +383,13 @@ function CandidateEditSheet({
   return (
     <Sheet visible={visible} onClose={onClose} title={t('add.editDetails')}>
       <View style={{ gap: theme.spacing.lg }}>
-        <Pressable
+        {/* The drop target is this outer View, not the Pressable inside it —
+            react-native-web's Pressable wires its own pointer/hover handling
+            onto the same node, and that combination doesn't reliably deliver
+            native HTML5 drag events. A plain View ref does. */}
+        <View
           ref={coverDropRef}
-          onPress={pickCover}
-          disabled={coverUploading}
-          accessibilityRole="button"
-          accessibilityLabel={t('manual.cover')}
-          style={({ pressed }) => [
-            styles.editCoverRow,
-            { opacity: pressed || coverUploading ? 0.7 : 1 },
+          style={[
             // Always-visible on web, not just on drag-over — a hover-only
             // highlight has nothing to hover over until the user already
             // knows dropping is possible here.
@@ -403,6 +401,13 @@ function CandidateEditSheet({
               padding: theme.spacing.sm,
             },
           ]}
+        >
+        <Pressable
+          onPress={pickCover}
+          disabled={coverUploading}
+          accessibilityRole="button"
+          accessibilityLabel={t('manual.cover')}
+          style={({ pressed }) => [styles.editCoverRow, { opacity: pressed || coverUploading ? 0.7 : 1 }]}
         >
           <BookCover uri={coverUrl} title={title || candidate.title} width={80} radius={theme.radius.sm} />
           <View style={styles.editCoverAction}>
@@ -422,6 +427,7 @@ function CandidateEditSheet({
             </Text>
           </View>
         </Pressable>
+        </View>
 
         {coverError ? (
           <Text variant="caption" color="danger">

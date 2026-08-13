@@ -151,15 +151,13 @@ export default function ManualEntryScreen() {
       <View style={[styles.container, { gap: theme.spacing.lg, paddingTop: theme.spacing.md }]}>
         <Text variant="display">{t('manual.title')}</Text>
 
-        <Pressable
+        {/* The drop target is this outer View, not the Pressable inside it —
+            react-native-web's Pressable wires its own pointer/hover handling
+            onto the same node, and that combination doesn't reliably deliver
+            native HTML5 drag events. A plain View ref does. */}
+        <View
           ref={coverDropRef}
-          onPress={pickCover}
-          disabled={coverUploading}
-          accessibilityRole="button"
-          accessibilityLabel={t('manual.cover')}
-          style={({ pressed }) => [
-            styles.coverRow,
-            { opacity: pressed || coverUploading ? 0.7 : 1 },
+          style={[
             // A dashed border that's always visible on web (not just while
             // actively dragging) is what makes this read as a drop target in
             // the first place — a hover-only highlight has nothing to hover
@@ -172,6 +170,13 @@ export default function ManualEntryScreen() {
               padding: theme.spacing.sm,
             },
           ]}
+        >
+        <Pressable
+          onPress={pickCover}
+          disabled={coverUploading}
+          accessibilityRole="button"
+          accessibilityLabel={t('manual.cover')}
+          style={({ pressed }) => [styles.coverRow, { opacity: pressed || coverUploading ? 0.7 : 1 }]}
         >
           <BookCover uri={coverUrl} title={title || t('manual.bookTitle')} width={80} radius={theme.radius.sm} />
           <View style={styles.coverAction}>
@@ -191,6 +196,7 @@ export default function ManualEntryScreen() {
             </Text>
           </View>
         </Pressable>
+        </View>
 
         {coverError ? (
           <Text variant="caption" color="danger">
