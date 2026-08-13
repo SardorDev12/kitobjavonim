@@ -10,6 +10,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { ErrorBoundary, installGlobalErrorReporting } from '@/components/ErrorBoundary';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { EmptyState, Screen } from '@/components/ui';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { I18nProvider, useI18n } from '@/lib/i18n';
@@ -219,6 +220,7 @@ function RootNavigator() {
   return (
     <>
       <StatusBar style={theme.scheme === 'dark' ? 'light' : 'dark'} />
+      <OfflineBanner />
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: theme.colors.background },

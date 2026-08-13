@@ -12,7 +12,20 @@ describe('describeError', () => {
   });
 
   it('falls back to the raw message for an unrecognized Error', () => {
-    expect(describeError(new Error('Failed to fetch'), t)).toBe('Failed to fetch');
+    expect(describeError(new Error('column "foo" does not exist'), t)).toBe('column "foo" does not exist');
+  });
+
+  it('maps common fetch-layer network failures to error.network, across browsers/RN', () => {
+    // Chrome, Firefox, Safari, and React Native's fetch polyfill each word
+    // "the request never reached anywhere" differently — none of it is a
+    // token this app raises itself, so none of it should reach the user
+    // as a raw, cryptic string.
+    expect(describeError(new Error('Failed to fetch'), t)).toBe('translated:error.network');
+    expect(describeError(new Error('NetworkError when attempting to fetch resource.'), t)).toBe(
+      'translated:error.network'
+    );
+    expect(describeError(new Error('Load failed'), t)).toBe('translated:error.network');
+    expect(describeError(new Error('Network request failed'), t)).toBe('translated:error.network');
   });
 
   it('falls back to error.generic for a non-Error thrown value', () => {
