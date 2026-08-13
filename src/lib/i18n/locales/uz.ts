@@ -346,6 +346,13 @@ export const uz: LocaleCatalogue = {
   'report.offensive': 'Nomaqbul mazmun',
   'report.other': 'Boshqa sabab',
 
+  'admin.reports': 'Shikoyatlar',
+  'admin.noReports': 'Shikoyatlar yoʻq.',
+  'admin.reportedBy': 'Shikoyatchi: {{name}}',
+  'admin.listingOwner': 'Eʼlon egasi: {{name}}',
+  'admin.markResolved': 'Koʻrib chiqildi deb belgilash',
+  'admin.resolved': 'Koʻrib chiqildi',
+
   'error.generic': 'Xatolik yuz berdi. Qayta urinib koʻring.',
   'error.network': 'Aloqa yoʻq. Internetni tekshirib, qayta urinib koʻring.',
   'error.notFound': 'Topilmadi',

@@ -48,6 +48,8 @@ export type Profile = {
   onboarded_at: string | null;
   plan: 'free' | 'pro';
   plan_expires_at: string | null;
+  /** Set directly in the database, never client-writable — gates /admin/reports. */
+  is_admin: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -229,6 +231,22 @@ export type UserBookPhoto = {
   storage_path: string;
   sort_order: number;
   created_at: string;
+};
+
+/** Return shape of the admin_list_reports() RPC — empty for a non-admin caller. */
+export type AdminReport = {
+  report_id: string;
+  user_book_id: string;
+  reason: string;
+  details: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  reporter_id: string;
+  reporter_name: string;
+  book_title: string;
+  owner_id: string;
+  owner_name: string;
+  availability_type: AvailabilityType;
 };
 
 /** Return shape of the request_contact() RPC. */

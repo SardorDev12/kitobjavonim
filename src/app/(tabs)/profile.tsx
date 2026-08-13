@@ -123,6 +123,16 @@ export default function ProfileScreen() {
             label={t('legal.privacyPolicy')}
             onPress={() => router.push('/legal/privacy')}
           />
+          {profile?.is_admin ? (
+            <>
+              <Divider inset={theme.spacing.lg} />
+              <ListRow
+                icon="flag-outline"
+                label={t('admin.reports')}
+                onPress={() => router.push('/admin/reports')}
+              />
+            </>
+          ) : null}
         </Card>
 
         <Button title={t('auth.signOut')} variant="secondary" fullWidth onPress={confirmSignOut} />
