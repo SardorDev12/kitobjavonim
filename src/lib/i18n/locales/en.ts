@@ -159,6 +159,7 @@ export const en = {
   'book.deleteConfirm': 'Remove “{{title}}” from your library?',
   'book.shareCopied': 'Link copied to clipboard.',
   'book.listing': 'Listing',
+  'book.addListing': 'List for exchange or sale',
   'book.notListed': 'This copy is private.',
   'book.listForExchange': 'List for exchange',
   'book.listForSale': 'List for sale',

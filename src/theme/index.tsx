@@ -111,8 +111,6 @@ export function useLayout() {
       /** Anything past a phone — grids can gain columns here. */
       isCompact: width < breakpoints.md,
       maxContentWidth,
-      /** Columns for a cover grid at this width. */
-      gridColumns: width >= breakpoints.xl ? 8 : width >= breakpoints.lg ? 7 : width >= breakpoints.md ? 5 : 4,
     };
   }, [width, height]);
 }

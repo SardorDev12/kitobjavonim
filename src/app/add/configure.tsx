@@ -384,11 +384,15 @@ function CandidateEditSheet({
           style={({ pressed }) => [
             styles.editCoverRow,
             { opacity: pressed || coverUploading ? 0.7 : 1 },
-            coverDragOver && {
+            // Always-visible on web, not just on drag-over — a hover-only
+            // highlight has nothing to hover over until the user already
+            // knows dropping is possible here.
+            Platform.OS === 'web' && {
               borderRadius: theme.radius.md,
-              outlineStyle: 'dashed',
-              outlineWidth: 2,
-              outlineColor: theme.colors.primary,
+              borderWidth: 1,
+              borderStyle: 'dashed',
+              borderColor: coverDragOver ? theme.colors.primary : theme.colors.borderStrong,
+              padding: theme.spacing.sm,
             },
           ]}
         >

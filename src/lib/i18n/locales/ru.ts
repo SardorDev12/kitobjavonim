@@ -159,6 +159,7 @@ export const ru: LocaleCatalogue = {
   'book.deleteConfirm': 'Убрать «{{title}}» из вашей библиотеки?',
   'book.shareCopied': 'Ссылка скопирована.',
   'book.listing': 'Объявление',
+  'book.addListing': 'Выставить на обмен или продажу',
   'book.notListed': 'Этот экземпляр личный.',
   'book.listForExchange': 'Выставить на обмен',
   'book.listForSale': 'Выставить на продажу',

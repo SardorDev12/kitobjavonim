@@ -161,6 +161,7 @@ export const uz: LocaleCatalogue = {
   'book.deleteConfirm': '«{{title}}» kutubxonangizdan olib tashlansinmi?',
   'book.shareCopied': 'Havola nusxalandi.',
   'book.listing': 'Eʼlon',
+  'book.addListing': 'Almashuv yoki sotuvga qoʻyish',
   'book.notListed': 'Bu nusxa shaxsiy.',
   'book.listForExchange': 'Almashuvga qoʻyish',
   'book.listForSale': 'Sotuvga qoʻyish',

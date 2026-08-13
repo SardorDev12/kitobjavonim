@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { GALLERY_TILE_WIDTH } from '@/components/BookCover';
 import { ListingCard } from '@/components/ListingCard';
 import { ListingRow } from '@/components/ListingRow';
 import { Button, Chip, ChipRow, EmptyState, LoadingState, Screen, Select, Sheet, Text, TextField } from '@/components/ui';
@@ -11,7 +12,7 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { useI18n } from '@/lib/i18n';
 import { emptyListingFilters, useListings, type ListingFilters } from '@/lib/queries/listings';
 import { useCategoryOptions, useLocationOptions } from '@/lib/queries/reference';
-import { useLayout, useTheme } from '@/theme';
+import { useTheme } from '@/theme';
 import { BOOK_CONDITIONS, type BookCondition } from '@/types/database';
 
 const LANGUAGE_OPTIONS = [
@@ -26,7 +27,6 @@ export default function DiscoverScreen() {
   const { t } = useI18n();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { gridColumns } = useLayout();
   const { session } = useAuth();
 
   // Listing links are public, so a signed-out visitor who followed one here
@@ -60,13 +60,15 @@ export default function DiscoverScreen() {
     [filters]
   );
 
-  // A fixed gutter divided across however many columns the width allows.
+  // Tiles stay a fixed, small size on every screen — a wider window just
+  // fits more columns of it, rather than a fixed column count rendering
+  // visibly larger tiles.
   const gutter = theme.spacing.md;
   const horizontalPadding = theme.spacing.lg;
   const [listWidth, setListWidth] = useState(0);
-  const tileWidth =
+  const galleryColumns =
     listWidth > 0
-      ? (listWidth - horizontalPadding * 2 - gutter * (gridColumns - 1)) / gridColumns
+      ? Math.max(2, Math.floor((listWidth - horizontalPadding * 2 + gutter) / (GALLERY_TILE_WIDTH + gutter)))
       : 0;
 
   return (
@@ -189,11 +191,11 @@ export default function DiscoverScreen() {
           />
         ) : (
           <FlatList
-            key={viewMode === 'gallery' ? `gallery-${gridColumns}` : 'list'}
+            key={viewMode === 'gallery' ? `gallery-${galleryColumns}` : 'list'}
             data={listings}
-            numColumns={viewMode === 'gallery' ? gridColumns : 1}
+            numColumns={viewMode === 'gallery' ? Math.max(galleryColumns, 1) : 1}
             keyExtractor={(item) => item.id}
-            columnWrapperStyle={viewMode === 'gallery' && gridColumns > 1 ? { gap: gutter } : undefined}
+            columnWrapperStyle={viewMode === 'gallery' && galleryColumns > 1 ? { gap: gutter } : undefined}
             contentContainerStyle={[
               listings.length === 0 && styles.fill,
               viewMode === 'gallery' && { paddingHorizontal: horizontalPadding },
@@ -204,10 +206,10 @@ export default function DiscoverScreen() {
             }
             renderItem={({ item }) =>
               viewMode === 'gallery' ? (
-                tileWidth > 0 ? (
+                galleryColumns > 0 ? (
                   <ListingCard
                     listing={item}
-                    width={tileWidth}
+                    width={GALLERY_TILE_WIDTH}
                     locationLabel={locations.describe(item.owner_district_id, item.owner_region_id)}
                     onPress={() => router.push(`/listing/${item.id}`)}
                   />

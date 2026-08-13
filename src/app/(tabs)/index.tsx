@@ -6,10 +6,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCard } from '@/components/BookCard';
 import { BookGridCard } from '@/components/BookGridCard';
+import { GALLERY_TILE_WIDTH } from '@/components/BookCover';
 import { Chip, ChipRow, EmptyState, LoadingState, Sheet, Text, TextField } from '@/components/ui';
 import { useI18n } from '@/lib/i18n';
 import { selectLibrary, useLibrary, type LibraryFilter, type LibrarySort } from '@/lib/queries/library';
-import { useLayout, useTheme } from '@/theme';
+import { useTheme } from '@/theme';
 
 const FILTERS: LibraryFilter[] = ['all', 'want_to_read', 'reading', 'finished', 'exchange', 'sale'];
 const SORTS: LibrarySort[] = ['recent', 'title', 'author', 'finished', 'shelf'];
@@ -20,7 +21,6 @@ export default function LibraryScreen() {
   const { t } = useI18n();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { gridColumns } = useLayout();
 
   const { data, isPending, isError, refetch, isRefetching } = useLibrary();
 
@@ -30,14 +30,15 @@ export default function LibraryScreen() {
   const [sortOpen, setSortOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
 
-  // A fixed gutter divided across however many columns the width allows —
-  // same approach as the Discover grid.
+  // Tiles stay a fixed, small size on every screen — a wider window just
+  // fits more columns of it, rather than a fixed column count rendering
+  // visibly larger tiles.
   const gutter = theme.spacing.md;
   const horizontalPadding = theme.spacing.lg;
   const [listWidth, setListWidth] = useState(0);
-  const tileWidth =
+  const galleryColumns =
     listWidth > 0
-      ? (listWidth - horizontalPadding * 2 - gutter * (gridColumns - 1)) / gridColumns
+      ? Math.max(2, Math.floor((listWidth - horizontalPadding * 2 + gutter) / (GALLERY_TILE_WIDTH + gutter)))
       : 0;
 
   const entries = useMemo(
@@ -161,15 +162,15 @@ export default function LibraryScreen() {
 
       <View style={styles.fill} onLayout={(event) => setListWidth(event.nativeEvent.layout.width)}>
       <FlatList
-        key={viewMode === 'gallery' ? `gallery-${gridColumns}` : 'list'}
+        key={viewMode === 'gallery' ? `gallery-${galleryColumns}` : 'list'}
         data={entries}
         keyExtractor={(entry) => entry.id}
-        numColumns={viewMode === 'gallery' ? gridColumns : 1}
-        columnWrapperStyle={viewMode === 'gallery' && gridColumns > 1 ? { gap: gutter } : undefined}
+        numColumns={viewMode === 'gallery' ? Math.max(galleryColumns, 1) : 1}
+        columnWrapperStyle={viewMode === 'gallery' && galleryColumns > 1 ? { gap: gutter } : undefined}
         renderItem={({ item }) =>
           viewMode === 'gallery' ? (
-            tileWidth > 0 ? (
-              <BookGridCard entry={item} width={tileWidth} onPress={() => router.push(`/book/${item.id}`)} />
+            galleryColumns > 0 ? (
+              <BookGridCard entry={item} width={GALLERY_TILE_WIDTH} onPress={() => router.push(`/book/${item.id}`)} />
             ) : null
           ) : (
             <BookCard entry={item} onPress={() => router.push(`/book/${item.id}`)} />

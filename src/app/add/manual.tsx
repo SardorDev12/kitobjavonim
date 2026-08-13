@@ -152,11 +152,16 @@ export default function ManualEntryScreen() {
           style={({ pressed }) => [
             styles.coverRow,
             { opacity: pressed || coverUploading ? 0.7 : 1 },
-            coverDragOver && {
+            // A dashed border that's always visible on web (not just while
+            // actively dragging) is what makes this read as a drop target in
+            // the first place — a hover-only highlight has nothing to hover
+            // over until the user already knows dropping is possible here.
+            Platform.OS === 'web' && {
               borderRadius: theme.radius.md,
-              outlineStyle: 'dashed',
-              outlineWidth: 2,
-              outlineColor: theme.colors.primary,
+              borderWidth: 1,
+              borderStyle: 'dashed',
+              borderColor: coverDragOver ? theme.colors.primary : theme.colors.borderStrong,
+              padding: theme.spacing.sm,
             },
           ]}
         >

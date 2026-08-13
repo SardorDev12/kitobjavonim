@@ -9,6 +9,15 @@ import { Text } from './ui';
  *  makes a shelf of mixed-source thumbnails read as a tidy grid. */
 export const COVER_ASPECT = 2 / 3;
 
+/**
+ * Fixed tile width for gallery/grid views (Library, Discover) — deliberately
+ * a constant rather than dividing the container by a breakpoint-based column
+ * count. A fixed size keeps every tile the same small size on every screen;
+ * a wider screen just fits more columns of it, rather than the same column
+ * count rendering visibly larger tiles.
+ */
+export const GALLERY_TILE_WIDTH = 100;
+
 export function BookCover({
   uri,
   title,

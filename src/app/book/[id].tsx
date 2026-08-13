@@ -329,16 +329,7 @@ export default function BookDetailScreen() {
 
         {/* Listing ---------------------------------------------------------- */}
         <Card>
-          <SectionHeader
-            title={t('book.listing')}
-            action={
-              <Pressable onPress={() => setListingOpen(true)} hitSlop={8}>
-                <Text variant="label" color="primary">
-                  {isListed ? t('common.edit') : t('common.add')}
-                </Text>
-              </Pressable>
-            }
-          />
+          <SectionHeader title={t('book.listing')} />
 
           {isListed ? (
             <View style={{ gap: theme.spacing.sm }}>
@@ -471,6 +462,15 @@ export default function BookDetailScreen() {
             <Divider inset={theme.spacing.lg} />
           </>
         ) : null}
+        <ListRow
+          icon="pricetag-outline"
+          label={isListed ? t('book.editListing') : t('book.addListing')}
+          onPress={() => {
+            setMenuOpen(false);
+            setListingOpen(true);
+          }}
+        />
+        <Divider inset={theme.spacing.lg} />
         {isListed ? (
           <>
             <ListRow
@@ -610,11 +610,15 @@ function EditBookSheet({
           style={({ pressed }) => [
             styles.editCoverRow,
             { opacity: pressed || coverUploading ? 0.7 : 1 },
-            coverDragOver && {
+            // Always-visible on web, not just on drag-over — a hover-only
+            // highlight has nothing to hover over until the user already
+            // knows dropping is possible here.
+            Platform.OS === 'web' && {
               borderRadius: theme.radius.md,
-              outlineStyle: 'dashed',
-              outlineWidth: 2,
-              outlineColor: theme.colors.primary,
+              borderWidth: 1,
+              borderStyle: 'dashed',
+              borderColor: coverDragOver ? theme.colors.primary : theme.colors.borderStrong,
+              padding: theme.spacing.sm,
             },
           ]}
         >
