@@ -114,9 +114,9 @@ export default function LibraryScreen() {
               onPress={() => setSortOpen(true)}
               hitSlop={8}
               accessibilityRole="button"
-              accessibilityLabel={t('common.sort')}
+              accessibilityLabel={`${t('common.sort')}: ${t(`library.sort.${sort}`)}`}
               style={({ pressed }) => [
-                styles.sortButton,
+                styles.iconButton,
                 {
                   backgroundColor: theme.colors.surface,
                   borderColor: theme.colors.border,
@@ -125,10 +125,7 @@ export default function LibraryScreen() {
                 },
               ]}
             >
-              <Ionicons name="swap-vertical" size={16} color={theme.colors.textMuted} />
-              <Text variant="caption" color="textMuted">
-                {t(`library.sort.${sort}`)}
-              </Text>
+              <Ionicons name="swap-vertical" size={18} color={theme.colors.textMuted} />
             </Pressable>
           </View>
         </View>
@@ -265,14 +262,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-  },
-  sortButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
   },
   sortOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 });

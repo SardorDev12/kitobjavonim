@@ -13,7 +13,7 @@ import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
 import { scanCoverText } from '@/lib/ocr';
 import { useImageDropZone } from '@/lib/useImageDropZone';
-import { useTheme } from '@/theme';
+import { useLayout, useTheme } from '@/theme';
 
 /**
  * Manual entry.
@@ -35,6 +35,7 @@ const LANGUAGE_OPTIONS = [
 
 export default function ManualEntryScreen() {
   const theme = useTheme();
+  const { isWide } = useLayout();
   const { t } = useI18n();
   const router = useRouter();
   const params = useLocalSearchParams<{ isbn?: string; title?: string }>();
@@ -194,7 +195,7 @@ export default function ManualEntryScreen() {
                 ? t('common.saving')
                 : coverUrl
                   ? t('manual.changeCover')
-                  : Platform.OS === 'web'
+                  : Platform.OS === 'web' && isWide
                     ? t('manual.addCoverWeb')
                     : t('manual.addCover')}
             </Text>

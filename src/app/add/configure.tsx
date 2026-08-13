@@ -16,7 +16,7 @@ import { useImageDropZone } from '@/lib/useImageDropZone';
 import { usePositionOptions } from '@/lib/queries/bookshelves';
 import { useSetBookCategories } from '@/lib/queries/categories';
 import { useAddBook, useLibrary, useSimilarBooks } from '@/lib/queries/library';
-import { useTheme } from '@/theme';
+import { useLayout, useTheme } from '@/theme';
 import { BOOK_CONDITIONS, READING_STATUSES, type Book, type BookCondition, type ReadingStatus } from '@/types/database';
 
 const LANGUAGE_OPTIONS = [
@@ -305,6 +305,7 @@ function CandidateEditSheet({
   onSave: (patch: Partial<BookCandidate>) => void;
 }) {
   const theme = useTheme();
+  const { isWide } = useLayout();
   const { t } = useI18n();
   const { user } = useAuth();
 
@@ -425,7 +426,7 @@ function CandidateEditSheet({
                 ? t('common.saving')
                 : coverUrl
                   ? t('manual.changeCover')
-                  : Platform.OS === 'web'
+                  : Platform.OS === 'web' && isWide
                     ? t('manual.addCoverWeb')
                     : t('manual.addCover')}
             </Text>

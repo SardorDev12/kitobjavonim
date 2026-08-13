@@ -104,8 +104,8 @@ export default function AddScreen() {
         renderItem={({ item }) => <CandidateRow candidate={item} onPress={() => choose(item)} />}
         ListFooterComponent={
           results.length > 0 ? (
-            <View style={{ padding: theme.spacing.lg }}>
-              <Button title={t('add.manual')} variant="ghost" fullWidth onPress={enterManually} />
+            <View style={{ padding: theme.spacing.lg, alignItems: 'center' }}>
+              <Button title={t('add.manual')} variant="ghost" onPress={enterManually} />
             </View>
           ) : null
         }

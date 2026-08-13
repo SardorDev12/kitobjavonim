@@ -38,7 +38,7 @@ import {
   useUpdateUserBook,
   type UpdateBookInput,
 } from '@/lib/queries/library';
-import { useTheme } from '@/theme';
+import { useLayout, useTheme } from '@/theme';
 import { BOOK_CONDITIONS, READING_STATUSES, type ReadingStatus } from '@/types/database';
 
 export default function BookDetailScreen() {
@@ -477,6 +477,7 @@ function EditBookSheet({
   onSave: (patch: UpdateBookInput['patch']) => void;
 }) {
   const theme = useTheme();
+  const { isWide } = useLayout();
   const { t } = useI18n();
   const { user } = useAuth();
 
@@ -598,7 +599,7 @@ function EditBookSheet({
                 ? t('common.saving')
                 : coverUrl
                   ? t('manual.changeCover')
-                  : Platform.OS === 'web'
+                  : Platform.OS === 'web' && isWide
                     ? t('manual.addCoverWeb')
                     : t('manual.addCover')}
             </Text>
