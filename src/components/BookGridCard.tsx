@@ -1,3 +1,4 @@
+import { memo, useCallback } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { formatAuthors } from '@/lib/format';
@@ -14,14 +15,27 @@ const STATUS_TONE = {
   finished: 'success',
 } as const;
 
-/** A cover-first tile for the Library gallery view — same data as BookCard, denser layout. */
-export function BookGridCard({ entry, width, onPress }: { entry: LibraryEntry; width: number; onPress: () => void }) {
+/**
+ * A cover-first tile for the Library gallery view — same data as BookCard,
+ * denser layout. See BookCard's comment for why onPress takes an id and
+ * this is memoized.
+ */
+export const BookGridCard = memo(function BookGridCard({
+  entry,
+  width,
+  onPress,
+}: {
+  entry: LibraryEntry;
+  width: number;
+  onPress: (id: string) => void;
+}) {
   const theme = useTheme();
   const { t } = useI18n();
+  const handlePress = useCallback(() => onPress(entry.id), [onPress, entry.id]);
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={handlePress}
       accessibilityRole="button"
       style={({ pressed }) => [{ width, gap: theme.spacing.sm, opacity: pressed ? 0.85 : 1 }]}
     >
@@ -42,7 +56,7 @@ export function BookGridCard({ entry, width, onPress }: { entry: LibraryEntry; w
       </View>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   body: { gap: 3, alignItems: 'flex-start' },

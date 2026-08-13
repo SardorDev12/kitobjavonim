@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { memo, useCallback } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { formatAuthors, formatPosition } from '@/lib/format';
@@ -20,17 +21,29 @@ const STATUS_TONE = {
  *
  * Shows everything the PRD asks a card to carry — cover, title, author, reading
  * status, shelf location, and an exchange/sale indicator — without a tap.
+ *
+ * onPress takes the entry id and the component is memoized — same reasoning
+ * as ListingCard/ListingRow: a virtualized list with a pre-bound
+ * `() => router.push(...)` recreated per row per render gives memo nothing
+ * stable to compare, so it does nothing.
  */
-export function BookCard({ entry, onPress }: { entry: LibraryEntry; onPress: () => void }) {
+export const BookCard = memo(function BookCard({
+  entry,
+  onPress,
+}: {
+  entry: LibraryEntry;
+  onPress: (id: string) => void;
+}) {
   const theme = useTheme();
   const { t } = useI18n();
 
   const position = formatPosition(entry, t, { includeBookshelf: true });
   const isListed = entry.availability_type !== 'private';
+  const handlePress = useCallback(() => onPress(entry.id), [onPress, entry.id]);
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={handlePress}
       accessibilityRole="button"
       style={({ pressed }) => [
         styles.row,
@@ -88,7 +101,7 @@ export function BookCard({ entry, onPress }: { entry: LibraryEntry; onPress: () 
       ) : null}
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-start' },

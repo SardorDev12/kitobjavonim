@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -23,6 +23,11 @@ export default function LibraryScreen() {
   const insets = useSafeAreaInsets();
 
   const { data, isPending, isError, refetch, isRefetching } = useLibrary();
+
+  // Stable across renders so memo on BookCard/BookGridCard has something to
+  // compare — see their own comments for why that matters in a virtualized
+  // list.
+  const openBook = useCallback((id: string) => router.push(`/book/${id}`), [router]);
 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<LibraryFilter>('all');
@@ -170,10 +175,10 @@ export default function LibraryScreen() {
         renderItem={({ item }) =>
           viewMode === 'gallery' ? (
             galleryColumns > 0 ? (
-              <BookGridCard entry={item} width={GALLERY_TILE_WIDTH} onPress={() => router.push(`/book/${item.id}`)} />
+              <BookGridCard entry={item} width={GALLERY_TILE_WIDTH} onPress={openBook} />
             ) : null
           ) : (
-            <BookCard entry={item} onPress={() => router.push(`/book/${item.id}`)} />
+            <BookCard entry={item} onPress={openBook} />
           )
         }
         contentContainerStyle={[

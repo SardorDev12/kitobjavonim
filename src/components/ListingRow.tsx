@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { memo, useCallback } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { formatAuthors, formatPrice } from '@/lib/format';
@@ -9,15 +10,18 @@ import type { Listing } from '@/types/database';
 import { BookCover } from './BookCover';
 import { Chip, Text } from './ui';
 
-/** A row in the Discover list view — same data as ListingCard, denser layout. */
-export function ListingRow({
+/**
+ * A row in the Discover list view — same data as ListingCard, denser layout.
+ * See ListingCard's comment for why onPress takes an id and this is memoized.
+ */
+export const ListingRow = memo(function ListingRow({
   listing,
   locationLabel,
   onPress,
 }: {
   listing: Listing;
   locationLabel?: string;
-  onPress: () => void;
+  onPress: (id: string) => void;
 }) {
   const theme = useTheme();
   const { t, locale } = useI18n();
@@ -26,9 +30,11 @@ export function ListingRow({
   const isExchange =
     listing.availability_type === 'exchange' || listing.availability_type === 'exchange_or_sale';
 
+  const handlePress = useCallback(() => onPress(listing.id), [onPress, listing.id]);
+
   return (
     <Pressable
-      onPress={onPress}
+      onPress={handlePress}
       accessibilityRole="button"
       style={({ pressed }) => [
         styles.row,
@@ -77,7 +83,7 @@ export function ListingRow({
       </View>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-start' },

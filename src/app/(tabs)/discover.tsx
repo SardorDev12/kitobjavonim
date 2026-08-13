@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -36,6 +36,12 @@ export default function DiscoverScreen() {
   function goToAdd() {
     router.push(session ? '/(tabs)/add' : '/(auth)/sign-in');
   }
+
+  // Stable across renders (router itself doesn't change identity) so that
+  // memo on ListingCard/ListingRow actually has something to compare —
+  // an inline `() => router.push(...)` recreated per row per render would
+  // give it nothing stable and defeat it entirely.
+  const openListing = useCallback((id: string) => router.push(`/listing/${id}`), [router]);
 
   const [filters, setFilters] = useState<ListingFilters>(emptyListingFilters);
   const [searchInput, setSearchInput] = useState('');
@@ -211,14 +217,14 @@ export default function DiscoverScreen() {
                     listing={item}
                     width={GALLERY_TILE_WIDTH}
                     locationLabel={locations.describe(item.owner_district_id, item.owner_region_id)}
-                    onPress={() => router.push(`/listing/${item.id}`)}
+                    onPress={openListing}
                   />
                 ) : null
               ) : (
                 <ListingRow
                   listing={item}
                   locationLabel={locations.describe(item.owner_district_id, item.owner_region_id)}
-                  onPress={() => router.push(`/listing/${item.id}`)}
+                  onPress={openListing}
                 />
               )
             }
