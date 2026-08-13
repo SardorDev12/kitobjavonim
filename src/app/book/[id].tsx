@@ -293,7 +293,16 @@ export default function BookDetailScreen() {
 
         {/* Listing ---------------------------------------------------------- */}
         <Card>
-          <SectionHeader title={t('book.listing')} />
+          <SectionHeader
+            title={t('book.listing')}
+            action={
+              <Pressable onPress={() => setListingOpen(true)} hitSlop={8}>
+                <Text variant="label" color="primary">
+                  {isListed ? t('common.edit') : t('common.add')}
+                </Text>
+              </Pressable>
+            }
+          />
 
           {isListed ? (
             <View style={{ gap: theme.spacing.sm }}>
@@ -426,15 +435,6 @@ export default function BookDetailScreen() {
             <Divider inset={theme.spacing.lg} />
           </>
         ) : null}
-        <ListRow
-          icon="pricetag-outline"
-          label={isListed ? t('book.editListing') : t('book.addListing')}
-          onPress={() => {
-            setMenuOpen(false);
-            setListingOpen(true);
-          }}
-        />
-        <Divider inset={theme.spacing.lg} />
         <ListRow
           icon="trash-outline"
           label={t('book.deleteBook')}
