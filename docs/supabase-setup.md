@@ -205,6 +205,25 @@ If you would rather launch without it, delete the Telegram button from
 
 ---
 
+## 9. Cover OCR (optional)
+
+Lets a user photograph a book cover and have the title/author fields
+pre-filled automatically. Setup is in
+`supabase/functions/scan-cover/README.md` — short version: get a free
+[Gemini API key](https://aistudio.google.com/apikey), then
+
+```bash
+supabase secrets set GEMINI_API_KEY=<your key>
+supabase functions deploy scan-cover
+```
+
+This is genuinely optional. If it's never deployed, `scanCoverText()`
+(`src/lib/ocr.ts`) fails closed — the "Scan cover" button still appears and
+can be tapped, it just always reports no text found. Nothing else in the
+app depends on it.
+
+---
+
 ## Troubleshooting
 
 **`404 (Not Found)` on a REST call** — PostgREST cannot see the table. Almost

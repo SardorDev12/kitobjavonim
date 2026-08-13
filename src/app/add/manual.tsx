@@ -179,9 +179,7 @@ export default function ManualEntryScreen() {
           </View>
         </Pressable>
 
-        {/* OCR only runs in the browser (see lib/ocr.ts) — Tesseract.js needs
-            Web Workers and WASM the way a browser provides them. */}
-        {Platform.OS === 'web' && coverUrl ? (
+        {coverUrl ? (
           <View style={{ gap: 4 }}>
             <Button
               title={scanning ? t('manual.scanning') : t('manual.scanCover')}
