@@ -105,7 +105,15 @@ export default function AddScreen() {
         ListFooterComponent={
           results.length > 0 ? (
             <View style={{ padding: theme.spacing.lg, alignItems: 'center' }}>
-              <Button title={t('add.manual')} variant="ghost" onPress={enterManually} />
+              <Button
+                title={t('add.manual')}
+                variant="ghost"
+                onPress={enterManually}
+                // alignItems: 'center' above has no effect on its own — Button
+                // sets alignSelf: 'flex-start' internally, which wins over a
+                // parent's alignItems for that child.
+                style={{ alignSelf: 'center' }}
+              />
             </View>
           ) : null
         }
