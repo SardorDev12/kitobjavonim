@@ -136,9 +136,15 @@ function RootNavigator() {
   // brand name reads better as a fixed constant than as a page-by-page label,
   // so this re-asserts it after every navigation rather than fighting the
   // per-screen `title` options that also drive the tab bar labels.
+  //
+  // Read from the actual hostname the page loaded from, not an env var —
+  // that way it's right regardless of which .env the build happened to be
+  // made with, and it's what actually lets a staging and a production tab
+  // sit side by side without looking identical.
   useEffect(() => {
     if (Platform.OS === 'web') {
-      document.title = 'Kitob Javonim';
+      const isStaging = window.location.hostname.includes('staging');
+      document.title = isStaging ? 'Kitob Javonim (Staging)' : 'Kitob Javonim';
     }
   }, [pathname]);
 
