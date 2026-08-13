@@ -344,6 +344,7 @@ export const en = {
   'error.offline': 'You are offline — showing your saved library.',
   'error.listingLimitReached': 'You have reached your active listings limit. Remove one to list another.',
   'error.contactLimitReached': 'You have reached your owner-contacts limit for this month. It resets next month.',
+  'error.reportLimitReached': 'You have sent a lot of reports today — please try again tomorrow.',
   'error.crashTitle': 'Something broke',
   'error.crashBody': 'The app hit an unexpected error. Try again, or reload if that keeps happening.',
   'error.reload': 'Reload',

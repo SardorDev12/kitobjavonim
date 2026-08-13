@@ -9,6 +9,7 @@ import type { MessageKey } from '@/lib/i18n';
 const KNOWN_ERRORS: Record<string, MessageKey> = {
   listing_limit_reached: 'error.listingLimitReached',
   contact_limit_reached: 'error.contactLimitReached',
+  report_limit_reached: 'error.reportLimitReached',
 };
 
 export function describeError(cause: unknown, t: (key: MessageKey) => string): string {
