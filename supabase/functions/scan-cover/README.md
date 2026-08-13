@@ -25,10 +25,14 @@ Gemini; the client only ever sends an image URL and gets back
    [aistudio.google.com/apikey](https://aistudio.google.com/apikey), sign in
    with a Google account, and click **Create API key**. Gemini's free tier
    (as of writing) comfortably covers casual use of this feature; if you
-   outgrow it, enable billing on the same Google Cloud project and the paid
-   rate for `gemini-2.0-flash` is a small fraction of a cent per image.
+   outgrow it, enable billing on the same Google Cloud project — the paid
+   rate for a Flash-tier model is a small fraction of a cent per image.
 
-2. **The Supabase CLI**, if you don't already have it:
+2. **The Supabase CLI** — optional. Everything below also works entirely
+   from the dashboard (**Edge Functions → Deploy a new function**, paste
+   `index.ts`'s contents into the editor, deploy; secrets go under
+   **Project Settings → Edge Functions → Secrets**), no local install
+   needed. Skip to "Deploying" below if you're doing it that way.
    ```bash
    npm install -g supabase
    ```
@@ -43,9 +47,17 @@ supabase secrets set GEMINI_API_KEY=<your key>
 supabase functions deploy scan-cover
 ```
 
-That's it — no extra config beyond the secret. `GEMINI_MODEL` is also
-settable as a secret if you ever want to point this at a different Gemini
-model without redeploying code; it defaults to `gemini-2.0-flash`.
+That's it — no extra config beyond the secret.
+
+**`GEMINI_MODEL`** is also settable as a secret, and it's worth setting
+explicitly rather than trusting the code's hardcoded default — Google
+retires Gemini model versions on a timeline of months, not years (the
+default here has already been bumped once, from `gemini-2.0-flash` after
+Google retired it). When a model stops working, the fix is one secret
+edit and no redeploy, but only if `GEMINI_MODEL` is already set to
+something you're intentionally tracking. Check
+[the current model list](https://ai.google.dev/gemini-api/docs/models) for
+whatever the current stable Flash-tier vision model is.
 
 ## Verifying it worked
 

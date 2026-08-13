@@ -23,7 +23,12 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { encodeBase64 } from 'jsr:@std/encoding@1/base64';
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') ?? '';
-const GEMINI_MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-2.0-flash';
+// gemini-2.0-flash was retired (June 2026); gemini-2.5-flash is its
+// replacement. Google's model lineup moves fast enough that whatever is
+// hardcoded here will eventually go the same way — GEMINI_MODEL exists as
+// a secret specifically so the fix, next time, is one dashboard edit
+// instead of a redeploy.
+const GEMINI_MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-2.5-flash';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 
