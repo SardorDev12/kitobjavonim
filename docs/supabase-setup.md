@@ -1,7 +1,9 @@
 # Setting up Supabase
 
 Start to finish, roughly 20 minutes. Steps 1–5 get the app fully working with
-email sign-in. Steps 6–8 are the social logins, and you can add them later.
+email sign-in in development. Step 5a is production SMTP — skip it while
+developing, come back to it before real users sign up. Steps 6–8 are the
+social logins, and you can add them later.
 
 ---
 
@@ -145,9 +147,90 @@ npm run web
 Create an account, get through onboarding, add a book by title. If that works
 end to end, the backend is correct and everything below is optional.
 
-Supabase's built-in mailer is limited to a few messages per hour and is not for
-production. Before launch, set up SMTP under **Project Settings → Auth → SMTP**
-— Resend and Brevo both have usable free tiers.
+---
+
+## 5a. Production SMTP (Resend) — do this before turning Confirm email back on
+
+Supabase's built-in mailer is limited to a few messages per hour and stamps
+every email as coming through Supabase, not you — fine for the "Try it" step
+above, not for real signups. Below sends confirmation and reset-password mail
+from `@kitobjavonim.uz` through [Resend](https://resend.com)'s free tier
+(3,000 emails/month).
+
+### Add and verify the domain
+
+1. Sign up at [resend.com](https://resend.com) and open **Domains → Add
+   Domain**.
+2. Enter `kitobjavonim.uz`. Resend generates a handful of DNS records — an
+   MX record, a TXT record for SPF, and a TXT/CNAME pair for DKIM (Resend's
+   dashboard shows you the exact current set; it changes rarely but not
+   never, so copy what it actually shows rather than a value written down
+   somewhere else).
+3. Add each record in Cloudflare (**DNS → Records** for the `kitobjavonim.uz`
+   zone). Match the type, name, and value exactly as Resend lists them.
+   Leave proxy status **DNS only** (grey cloud) on these — Cloudflare's
+   orange-cloud proxying only makes sense for records serving web traffic,
+   and would just break mail delivery here.
+4. Back in Resend, click **Verify DNS Records**. Propagation is usually a
+   few minutes; DNS caching elsewhere can occasionally stretch that to a few
+   hours. Don't move on until Resend shows the domain as **Verified** —
+   Supabase will otherwise reject the sender address at send time, not at
+   save time, so a failure here shows up as silently undelivered mail later
+   rather than an error now.
+
+### Get SMTP credentials
+
+Resend's SMTP relay authenticates with an API key as the password, not a
+separate SMTP-specific credential:
+
+1. **API Keys → Create API Key**. Name it something identifiable
+   (`supabase-smtp`), permission **Sending access** is enough — it doesn't
+   need to read anything.
+2. Copy the key now; Resend shows it exactly once.
+
+### Configure Supabase
+
+**Project Settings → Auth → SMTP Settings** (some dashboards nest this under
+**Authentication → Emails → SMTP Settings** instead):
+
+1. Toggle **Enable Custom SMTP** on.
+2. Fill in:
+   | Field | Value |
+   |---|---|
+   | Sender email | `noreply@kitobjavonim.uz` (any address on the verified domain works — this is just the convention for transactional mail) |
+   | Sender name | `Kitob Javonim` |
+   | Host | `smtp.resend.com` |
+   | Port | `465` |
+   | Username | `resend` (literally the word "resend", not your account name) |
+   | Password | the API key from above |
+3. Save. If the dashboard offers a **Send test email** button, use it before
+   moving on — that confirms the credentials and domain verification are
+   both actually correct, not just accepted.
+
+### Add the production redirect URL
+
+Still in **Authentication → URL Configuration**, add your deployed domain the
+same way step 5 added `localhost` — a confirmation link that redirects
+somewhere not on this list fails silently for the user:
+
+```
+https://www.kitobjavonim.uz/**
+```
+
+Add the staging Worker's URL too if you want confirmation emails to work
+there for testing (`https://kitobjavonim-staging.sardorfarhodogli.workers.dev/**`
+at the time of writing — staging Workers can get redeployed under a new URL,
+so confirm this is still current before pasting it in).
+
+### Turn Confirm email on
+
+**Authentication → Providers → Email → Confirm email**. With this on,
+`supabase.auth.signUp()` returns a user with no session until the link is
+clicked — the app already handles that state (the sign-up screen's "check
+your email" message, `src/app/(auth)/sign-up.tsx`) and the confirmation
+link's landing page (`src/app/auth/callback.tsx`), so no app-side change is
+needed. Sign up with a real inbox you can check and confirm the whole loop —
+signup → email arrives → click → lands signed in — actually closes.
 
 ---
 
@@ -252,7 +335,7 @@ from the dashboard; nothing is lost.
 
 ## Before launch
 
-- Turn **Confirm email** back on, and configure real SMTP.
+- Set up SMTP and turn **Confirm email** back on — see step 5a above.
 - In **Authentication → Providers → Email**, turn **Secure email change**
   off, or leave it on only if you are certain no one needs it — a Telegram
   sign-in's address is a synthetic `tg_<id>@telegram.local` that cannot
