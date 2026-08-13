@@ -182,7 +182,7 @@ export const en = {
   'book.categories': 'Categories',
   'book.categoryLimit': 'Up to {{count}} categories.',
   'book.photosHint': 'Photos of your actual copy help buyers trust the condition.',
-  'book.photosHintWeb': 'Photos are easiest to add from the mobile app.',
+  'book.photosHintWeb': 'Drag photos in, or click to browse.',
   'profile.removePhoto': 'Remove photo',
   'profile.removePhotoConfirm': 'Remove your profile photo?',
   'profile.changePhoto': 'Change photo',

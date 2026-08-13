@@ -183,7 +183,7 @@ export const ru: LocaleCatalogue = {
   'book.categories': 'Категории',
   'book.categoryLimit': 'Не более {{count}} категорий.',
   'book.photosHint': 'Фото вашего экземпляра помогают покупателю доверять описанию.',
-  'book.photosHintWeb': 'Фотографии удобнее добавлять из мобильного приложения.',
+  'book.photosHintWeb': 'Перетащите фото сюда или нажмите, чтобы выбрать файл.',
   'profile.removePhoto': 'Удалить фото',
   'profile.removePhotoConfirm': 'Удалить фото профиля?',
   'profile.changePhoto': 'Изменить фото',

@@ -6,6 +6,7 @@ import {
   pickAndUploadListingPhoto,
   publicUrlFor,
   storagePathFromPublicUrl,
+  uploadDroppedListingPhoto,
 } from '@/lib/images';
 import { supabase } from '@/lib/supabase';
 import type { UserBookPhoto } from '@/types/database';
@@ -40,12 +41,24 @@ export function useAddListingPhoto() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ userBookId, sortOrder }: { userBookId: string; sortOrder: number }) => {
+    mutationFn: async ({
+      userBookId,
+      sortOrder,
+      file,
+    }: {
+      userBookId: string;
+      sortOrder: number;
+      /** Set for a file dropped onto the page (web); omitted for the OS picker. */
+      file?: File;
+    }) => {
       if (!user) throw new Error('Not signed in');
 
-      const path = await pickAndUploadListingPhoto(user.id, userBookId);
-      // Null means the user backed out of the picker or declined the permission
-      // prompt, which is not an error worth surfacing.
+      const path = file
+        ? await uploadDroppedListingPhoto(user.id, userBookId, file)
+        : await pickAndUploadListingPhoto(user.id, userBookId);
+      // Null means the user backed out of the picker, declined the permission
+      // prompt, or dropped a non-image file — none of it worth surfacing as
+      // an error.
       if (!path) return null;
 
       const { error } = await supabase.from('user_book_photos').insert({

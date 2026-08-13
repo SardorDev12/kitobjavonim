@@ -185,7 +185,7 @@ export const uz: LocaleCatalogue = {
   'book.categories': 'Kategoriyalar',
   'book.categoryLimit': 'Koʻpi bilan {{count}} ta kategoriya.',
   'book.photosHint': 'Oʻz nusxangiz surati xaridorlarda ishonch uygʻotadi.',
-  'book.photosHintWeb': 'Suratlarni mobil ilovadan qoʻshish qulayroq.',
+  'book.photosHintWeb': 'Suratlarni shu yerga tortib tashlang yoki tanlash uchun bosing.',
   'profile.removePhoto': 'Suratni oʻchirish',
   'profile.removePhotoConfirm': 'Profil suratingizni oʻchirasizmi?',
   'profile.changePhoto': 'Suratni oʻzgartirish',
