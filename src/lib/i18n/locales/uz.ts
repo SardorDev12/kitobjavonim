@@ -229,6 +229,11 @@ export const uz: LocaleCatalogue = {
   'manual.cover': 'Muqova surati',
   'manual.addCover': 'Muqova qoʻshish',
   'manual.changeCover': 'Muqovani almashtirish',
+  'manual.scanCover': 'Muqovadan nom va muallifni aniqlash',
+  'manual.scanning': 'Muqova oʻqilmoqda…',
+  'manual.scanFilled': 'Muqovadan toʻldirildi — tekshirib chiqing.',
+  'manual.scanEmpty': 'Aniq matn topilmadi — qoʻlda toʻldiring.',
+  'manual.scanFailed': 'Aniqlab boʻlmadi — qoʻlda toʻldiring.',
 
   'manual.titleRequired': 'Kitob nomi kerak',
 

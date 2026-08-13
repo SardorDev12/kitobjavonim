@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { BookCover } from '@/components/BookCover';
 import { Button, Screen, Select, Text, TextField } from '@/components/ui';
@@ -11,6 +11,7 @@ import { emptyCandidate } from '@/lib/books/metadata';
 import { normalizeIsbn } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover } from '@/lib/images';
+import { scanCoverText } from '@/lib/ocr';
 import { useTheme } from '@/theme';
 
 /**
@@ -48,16 +49,43 @@ export default function ManualEntryScreen() {
   const [titleError, setTitleError] = useState<string | null>(null);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [coverUploading, setCoverUploading] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [scanMessage, setScanMessage] = useState<string | null>(null);
 
   async function pickCover() {
     if (!user || coverUploading) return;
 
     setCoverUploading(true);
+    setScanMessage(null);
     try {
       const url = await pickAndUploadBookCover(user.id);
       if (url) setCoverUrl(url);
     } finally {
       setCoverUploading(false);
+    }
+  }
+
+  // Pre-fills only — free OCR on a photographed cover is a good guess, not a
+  // fact, so this never overwrites text the user already typed and every
+  // field it fills stays exactly as editable as if they had typed it in.
+  async function scanCover() {
+    if (!coverUrl || scanning) return;
+
+    setScanning(true);
+    setScanMessage(null);
+    try {
+      const result = await scanCoverText(coverUrl);
+      const filledTitle = !title.trim() && result?.title;
+      const filledAuthors = !authors.trim() && (result?.authors.length ?? 0) > 0;
+
+      if (filledTitle) setTitle(result!.title!);
+      if (filledAuthors) setAuthors(result!.authors.join(', '));
+
+      setScanMessage(filledTitle || filledAuthors ? t('manual.scanFilled') : t('manual.scanEmpty'));
+    } catch {
+      setScanMessage(t('manual.scanFailed'));
+    } finally {
+      setScanning(false);
     }
   }
 
@@ -118,6 +146,26 @@ export default function ManualEntryScreen() {
             </Text>
           </View>
         </Pressable>
+
+        {/* OCR only runs in the browser (see lib/ocr.ts) — Tesseract.js needs
+            Web Workers and WASM the way a browser provides them. */}
+        {Platform.OS === 'web' && coverUrl ? (
+          <View style={{ gap: 4 }}>
+            <Button
+              title={scanning ? t('manual.scanning') : t('manual.scanCover')}
+              variant="secondary"
+              size="sm"
+              icon="text-outline"
+              loading={scanning}
+              onPress={scanCover}
+            />
+            {scanMessage ? (
+              <Text variant="caption" color="textSubtle">
+                {scanMessage}
+              </Text>
+            ) : null}
+          </View>
+        ) : null}
 
         <TextField
           label={t('manual.bookTitle')}

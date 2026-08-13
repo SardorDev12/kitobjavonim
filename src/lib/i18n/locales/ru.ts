@@ -227,6 +227,11 @@ export const ru: LocaleCatalogue = {
   'manual.cover': 'Обложка',
   'manual.addCover': 'Добавить обложку',
   'manual.changeCover': 'Изменить обложку',
+  'manual.scanCover': 'Распознать название и автора с обложки',
+  'manual.scanning': 'Читаем обложку…',
+  'manual.scanFilled': 'Заполнено по обложке — проверьте.',
+  'manual.scanEmpty': 'Не удалось разобрать текст — заполните вручную.',
+  'manual.scanFailed': 'Не удалось распознать — заполните вручную.',
 
   'manual.titleRequired': 'Укажите название',
 
