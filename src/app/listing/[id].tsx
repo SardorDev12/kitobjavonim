@@ -236,9 +236,19 @@ export default function ListingDetailScreen() {
           </View>
 
           {isOwn ? (
-            <Text variant="caption" color="textMuted" align="center" style={{ marginTop: theme.spacing.md }}>
-              {t('discover.ownListing')}
-            </Text>
+            <>
+              <Text variant="caption" color="textMuted" align="center" style={{ marginTop: theme.spacing.md }}>
+                {t('discover.ownListing')}
+              </Text>
+              <Button
+                title={t('book.editListing')}
+                icon="pricetag-outline"
+                variant="secondary"
+                fullWidth
+                style={{ marginTop: theme.spacing.sm }}
+                onPress={() => setListingOpen(true)}
+              />
+            </>
           ) : (
             <Button
               title={t('discover.contactOwner')}
@@ -301,19 +311,6 @@ export default function ListingDetailScreen() {
       </Screen>
 
       <Sheet visible={menuOpen} onClose={() => setMenuOpen(false)}>
-        {isOwn ? (
-          <>
-            <ListRow
-              icon="pricetag-outline"
-              label={t('book.editListing')}
-              onPress={() => {
-                setMenuOpen(false);
-                setListingOpen(true);
-              }}
-            />
-            <Divider inset={theme.spacing.lg} />
-          </>
-        ) : null}
         <ListRow
           icon="share-outline"
           label={t('common.share')}
