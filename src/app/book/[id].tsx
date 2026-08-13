@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/BookCover';
 import { CategoryPicker } from '@/components/CategoryPicker';
+import { ListingSheet } from '@/components/ListingSheet';
 import { PhotoManager } from '@/components/PhotoManager';
 import {
   Button,
@@ -22,11 +23,9 @@ import {
   Sheet,
   Text,
   TextField,
-  Toggle,
 } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { describeError } from '@/lib/errors';
-import { formatAuthors, formatDate, formatPosition, formatPrice, normalizeIsbn, parsePriceInput } from '@/lib/format';
+import { formatAuthors, formatDate, formatPosition, formatPrice, normalizeIsbn } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
 import { useImageDropZone } from '@/lib/useImageDropZone';
@@ -41,7 +40,7 @@ import {
 } from '@/lib/queries/library';
 import { hasContactMethod } from '@/lib/queries/profile';
 import { useTheme } from '@/theme';
-import { BOOK_CONDITIONS, READING_STATUSES, type AvailabilityType, type ReadingStatus } from '@/types/database';
+import { BOOK_CONDITIONS, READING_STATUSES, type ReadingStatus } from '@/types/database';
 
 export default function BookDetailScreen() {
   const theme = useTheme();
@@ -742,152 +741,6 @@ function ReviewSheet({
             onClose();
           }}
         />
-      </View>
-    </Sheet>
-  );
-}
-
-// -----------------------------------------------------------------------------
-
-function ListingSheet({
-  visible,
-  onClose,
-  entry,
-  canList,
-  onOpenProfile,
-  onSave,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  entry: { availability_type: AvailabilityType; sale_price: number | null; price_negotiable: boolean; exchange_preferences: string | null; sale_description: string | null; condition: string | null };
-  canList: boolean;
-  onOpenProfile: () => void;
-  onSave: (patch: Parameters<ReturnType<typeof useUpdateUserBook>['mutate']>[0]['patch']) => Promise<unknown>;
-}) {
-  const theme = useTheme();
-  const { t } = useI18n();
-
-  const [forExchange, setForExchange] = useState(
-    entry.availability_type === 'exchange' || entry.availability_type === 'exchange_or_sale'
-  );
-  const [forSale, setForSale] = useState(
-    entry.availability_type === 'sale' || entry.availability_type === 'exchange_or_sale'
-  );
-  const [price, setPrice] = useState(entry.sale_price ? String(entry.sale_price) : '');
-  const [negotiable, setNegotiable] = useState(entry.price_negotiable);
-  const [preferences, setPreferences] = useState(entry.exchange_preferences ?? '');
-  const [description, setDescription] = useState(entry.sale_description ?? '');
-  const [error, setError] = useState<string | null>(null);
-
-  const [saving, setSaving] = useState(false);
-
-  async function save() {
-    const parsedPrice = parsePriceInput(price);
-
-    if (forSale && parsedPrice === null) {
-      setError(t('book.priceRequired'));
-      return;
-    }
-
-    // Exchange and sale are two flags over one enum, which is what lets a book be
-    // offered both ways without a second listing record.
-    const availability: AvailabilityType =
-      forExchange && forSale
-        ? 'exchange_or_sale'
-        : forSale
-          ? 'sale'
-          : forExchange
-            ? 'exchange'
-            : 'private';
-
-    setError(null);
-    setSaving(true);
-
-    try {
-      await onSave({
-        availability_type: availability,
-        sale_price: forSale ? parsedPrice : null,
-        price_negotiable: forSale ? negotiable : false,
-        exchange_preferences: forExchange ? preferences.trim() || null : null,
-        sale_description: forSale ? description.trim() || null : null,
-      });
-      onClose();
-    } catch (cause) {
-      setError(describeError(cause, t));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <Sheet visible={visible} onClose={onClose} title={t('book.listing')}>
-      <View style={{ gap: theme.spacing.lg }}>
-        {!canList ? (
-          <Card style={{ backgroundColor: theme.colors.warningSoft, borderColor: 'transparent' }}>
-            <Text variant="body">{t('book.contactRequired')}</Text>
-            <Button
-              title={t('profile.contactDetails')}
-              variant="secondary"
-              size="sm"
-              style={{ marginTop: theme.spacing.md }}
-              onPress={onOpenProfile}
-            />
-          </Card>
-        ) : null}
-
-        <Toggle
-          label={t('availability.exchange')}
-          value={forExchange}
-          onChange={setForExchange}
-          disabled={!canList}
-        />
-
-        {forExchange ? (
-          <TextField
-            label={t('book.exchangePreferences')}
-            placeholder={t('book.exchangePreferencesPlaceholder')}
-            value={preferences}
-            onChangeText={setPreferences}
-            multiline
-          />
-        ) : null}
-
-        <Divider />
-
-        <Toggle label={t('availability.sale')} value={forSale} onChange={setForSale} disabled={!canList} />
-
-        {forSale ? (
-          <>
-            <TextField
-              label={t('book.price')}
-              placeholder={t('book.pricePlaceholder')}
-              value={price}
-              onChangeText={(value) => {
-                setPrice(value);
-                if (error) setError(null);
-              }}
-              keyboardType="number-pad"
-              inputMode="numeric"
-              error={error}
-            />
-            <Toggle label={t('book.negotiable')} value={negotiable} onChange={setNegotiable} />
-            <TextField
-              label={t('book.saleDescription')}
-              placeholder={t('book.saleDescriptionPlaceholder')}
-              value={description}
-              onChangeText={setDescription}
-              multiline
-            />
-          </>
-        ) : null}
-
-        {error ? (
-          <Text variant="caption" color="danger">
-            {error}
-          </Text>
-        ) : null}
-
-        <Button title={t('common.save')} fullWidth onPress={save} disabled={!canList} loading={saving} />
       </View>
     </Sheet>
   );

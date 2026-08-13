@@ -6,6 +6,7 @@ import { Linking, Platform, Pressable, ScrollView, Share, StyleSheet, View } fro
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/BookCover';
+import { ListingSheet } from '@/components/ListingSheet';
 import {
   Avatar,
   Button,
@@ -24,7 +25,9 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { describeError } from '@/lib/errors';
 import { formatAuthors, formatDate, formatPrice } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
+import { useUpdateUserBook } from '@/lib/queries/library';
 import { useListing, useListingPhotos, useReportListing, useRequestContact } from '@/lib/queries/listings';
+import { hasContactMethod } from '@/lib/queries/profile';
 import { useLocationOptions } from '@/lib/queries/reference';
 import { useTheme } from '@/theme';
 import type { ContactChannel, ContactDetails } from '@/types/database';
@@ -35,14 +38,16 @@ export default function ListingDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
   const { data: listing, isPending, isError } = useListing(id);
   const { data: photos } = useListingPhotos(id);
   const locations = useLocationOptions();
+  const updateListing = useUpdateUserBook();
 
   const [contactOpen, setContactOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [listingOpen, setListingOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Same fix as book/[id].tsx: a page loaded directly (deep link, browser
@@ -269,9 +274,46 @@ export default function ListingDetailScreen() {
       />
 
       <ReportSheet visible={reportOpen} onClose={() => setReportOpen(false)} userBookId={listing.id} />
+
+      {isOwn ? (
+        <ListingSheet
+          // Listing (unlike LibraryEntry) carries no updated_at to key on —
+          // this reconstructs the same "reset the form after a save" effect
+          // from the fields the sheet actually seeds its state from.
+          key={[
+            listing.availability_type,
+            listing.sale_price,
+            listing.price_negotiable,
+            listing.exchange_preferences,
+            listing.sale_description,
+          ].join('|')}
+          visible={listingOpen}
+          onClose={() => setListingOpen(false)}
+          entry={listing}
+          canList={hasContactMethod(profile)}
+          onOpenProfile={() => {
+            setListingOpen(false);
+            router.push('/settings/profile');
+          }}
+          onSave={(patch) => updateListing.mutateAsync({ id: listing.id, patch })}
+        />
+      ) : null}
       </Screen>
 
       <Sheet visible={menuOpen} onClose={() => setMenuOpen(false)}>
+        {isOwn ? (
+          <>
+            <ListRow
+              icon="pricetag-outline"
+              label={t('book.editListing')}
+              onPress={() => {
+                setMenuOpen(false);
+                setListingOpen(true);
+              }}
+            />
+            <Divider inset={theme.spacing.lg} />
+          </>
+        ) : null}
         <ListRow
           icon="share-outline"
           label={t('common.share')}
