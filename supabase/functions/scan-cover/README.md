@@ -51,11 +51,14 @@ That's it — no extra config beyond the secret.
 
 **`GEMINI_MODEL`** is also settable as a secret, and it's worth setting
 explicitly rather than trusting the code's hardcoded default — Google
-retires Gemini model versions on a timeline of months, not years (the
-default here has already been bumped once, from `gemini-2.0-flash` after
-Google retired it). When a model stops working, the fix is one secret
-edit and no redeploy, but only if `GEMINI_MODEL` is already set to
-something you're intentionally tracking. Check
+retires Gemini model versions on a timeline of months, not years, and has
+started cutting off *new* API keys' access to an old model ahead of that
+model's own official shutdown date (the hardcoded default here has
+already been bumped twice for exactly this: 2.0-flash → 2.5-flash, then
+2.5-flash turned out to already be blocked for new keys → 3.5-flash).
+When a model stops working, the fix is one secret edit and no redeploy,
+but only if `GEMINI_MODEL` is already set to something you're
+intentionally tracking. Check
 [the current model list](https://ai.google.dev/gemini-api/docs/models) for
 whatever the current stable Flash-tier vision model is.
 
