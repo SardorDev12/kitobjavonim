@@ -24,6 +24,7 @@ import {
   TextField,
 } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { hasContactMethod } from '@/lib/contactMethod';
 import { formatAuthors, formatDate, formatPosition, formatPrice, normalizeIsbn } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
@@ -37,7 +38,6 @@ import {
   useUpdateUserBook,
   type UpdateBookInput,
 } from '@/lib/queries/library';
-import { hasContactMethod } from '@/lib/queries/profile';
 import { useTheme } from '@/theme';
 import { BOOK_CONDITIONS, READING_STATUSES, type ReadingStatus } from '@/types/database';
 

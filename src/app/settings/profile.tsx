@@ -4,10 +4,11 @@ import { Alert, Platform, StyleSheet, View } from 'react-native';
 
 import { Avatar, Button, Card, Screen, Select, Text, TextField, Toggle } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { hasContactMethod } from '@/lib/contactMethod';
 import { useI18n } from '@/lib/i18n';
 import { useImageDropZone } from '@/lib/useImageDropZone';
 import { useRemoveAvatar, useUploadAvatar } from '@/lib/queries/photos';
-import { hasContactMethod, useUpdateProfile } from '@/lib/queries/profile';
+import { useUpdateProfile } from '@/lib/queries/profile';
 import { useLocationOptions } from '@/lib/queries/reference';
 import { useTheme } from '@/theme';
 

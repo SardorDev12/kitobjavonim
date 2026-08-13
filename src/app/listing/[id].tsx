@@ -22,12 +22,12 @@ import {
   TextField,
 } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { hasContactMethod } from '@/lib/contactMethod';
 import { describeError } from '@/lib/errors';
 import { formatAuthors, formatDate, formatPrice } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { useUpdateUserBook } from '@/lib/queries/library';
 import { useListing, useListingPhotos, useReportListing, useRequestContact } from '@/lib/queries/listings';
-import { hasContactMethod } from '@/lib/queries/profile';
 import { useLocationOptions } from '@/lib/queries/reference';
 import { useTheme } from '@/theme';
 import type { ContactChannel, ContactDetails } from '@/types/database';

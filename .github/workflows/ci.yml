@@ -20,6 +20,8 @@ jobs:
 
       - run: npx tsc --noEmit
 
+      - run: npm test
+
       # Placeholder values, not real secrets — this only verifies the web
       # bundle compiles and every route exports cleanly, it never talks to
       # a real Supabase project. supabase.ts throws at import time if these
