@@ -247,6 +247,7 @@ export const ru: LocaleCatalogue = {
 
   'discover.title': 'Обмен',
   'discover.subtitle': 'Книги, которые другие читатели отдают.',
+  'discover.addBook': 'Добавить книгу',
   'discover.searchPlaceholder': 'Поиск по названию или автору',
   'discover.empty': 'Пока нет объявлений',
   'discover.emptyBody': 'Будьте первым — выставьте книгу, которая вам больше не нужна.',

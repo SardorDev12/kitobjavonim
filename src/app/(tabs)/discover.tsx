@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ListingCard } from '@/components/ListingCard';
 import { Button, Chip, ChipRow, EmptyState, LoadingState, Screen, Select, Sheet, Text, TextField } from '@/components/ui';
+import { useAuth } from '@/features/auth/AuthProvider';
 import { useI18n } from '@/lib/i18n';
 import { emptyListingFilters, useListings, type ListingFilters } from '@/lib/queries/listings';
 import { useCategoryOptions, useLocationOptions } from '@/lib/queries/reference';
@@ -24,6 +25,15 @@ export default function DiscoverScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { gridColumns } = useLayout();
+  const { session } = useAuth();
+
+  // Listing links are public, so a signed-out visitor who followed one here
+  // can land on this screen with no account at all. Sending them to add a
+  // book of their own goes through sign-in first, same as the root layout's
+  // route guard already does for the Add tab itself.
+  function goToAdd() {
+    router.push(session ? '/(tabs)/add' : '/(auth)/sign-in');
+  }
 
   const [filters, setFilters] = useState<ListingFilters>(emptyListingFilters);
   const [searchInput, setSearchInput] = useState('');
@@ -59,10 +69,22 @@ export default function DiscoverScreen() {
   return (
     <View style={[styles.fill, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
       <View style={[styles.header, { paddingHorizontal: horizontalPadding, paddingTop: theme.spacing.md }]}>
-        <Text variant="display">{t('discover.title')}</Text>
-        <Text variant="body" color="textMuted">
-          {t('discover.subtitle')}
-        </Text>
+        <View style={styles.titleRow}>
+          <View style={styles.titleText}>
+            <Text variant="display">{t('discover.title')}</Text>
+            <Text variant="body" color="textMuted">
+              {t('discover.subtitle')}
+            </Text>
+          </View>
+
+          <Button
+            title={t('discover.addBook')}
+            icon="add"
+            variant="secondary"
+            size="sm"
+            onPress={goToAdd}
+          />
+        </View>
 
         <View style={[styles.searchRow, { gap: theme.spacing.sm }]}>
           <TextField
@@ -307,6 +329,8 @@ function FiltersSheet({
 const styles = StyleSheet.create({
   fill: { flex: 1, flexGrow: 1 },
   header: { gap: 8 },
+  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  titleText: { flex: 1 },
   searchRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 4 },
   filterButton: {
     width: 46,

@@ -249,6 +249,7 @@ export const uz: LocaleCatalogue = {
 
   'discover.title': 'Almashuv',
   'discover.subtitle': 'Boshqa kitobxonlar bermoqchi boʻlgan kitoblar.',
+  'discover.addBook': 'Kitob qoʻshish',
   'discover.searchPlaceholder': 'Nomi yoki muallifi boʻyicha qidiring',
   'discover.empty': 'Hozircha eʼlonlar yoʻq',
   'discover.emptyBody': 'Birinchi boʻling — kutubxonangizdan keraksiz kitobni eʼlon qiling.',

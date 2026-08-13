@@ -244,6 +244,7 @@ export const en = {
 
   'discover.title': 'Exchange',
   'discover.subtitle': 'Books other readers are passing on.',
+  'discover.addBook': 'Add book',
   'discover.searchPlaceholder': 'Search by title or author',
   'discover.empty': 'Nothing listed yet',
   'discover.emptyBody': 'Be the first — list a book from your library that you no longer need.',

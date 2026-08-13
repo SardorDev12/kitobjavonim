@@ -165,23 +165,24 @@ export default function BookDetailScreen() {
   }
 
   // /book/<id> is the owner's private library entry — sharing that URL would
-  // just bounce anyone else to sign-in (or an RLS-blocked page if they did),
-  // so a listed copy shares its public /listing/<id> link instead; an
-  // unlisted one shares plain text with nothing to click through to.
+  // just bounce anyone else to sign-in (or an RLS-blocked page if they did).
+  // The menu only offers Share on a listed book (see the menu below), so this
+  // always has a real public /listing/<id> link to share.
   async function shareBook() {
     setMenuOpen(false);
     const book = entry!;
 
     const webOrigin = process.env.EXPO_PUBLIC_WEB_ORIGIN;
+    if (!webOrigin) return;
+
     const byline = book.authors.length > 0 ? ` — ${formatAuthors(book.authors)}` : '';
-    const url = isListed && webOrigin ? `${webOrigin}/listing/${book.id}` : null;
-    const message = url ? `${book.title}${byline}\n${url}` : `${book.title}${byline}`;
+    const url = `${webOrigin}/listing/${book.id}`;
+    const message = `${book.title}${byline}\n${url}`;
 
     if (Platform.OS === 'web') {
-      const shareData = { title: book.title, text: `${book.title}${byline}`, url: url ?? undefined };
       if (typeof navigator !== 'undefined' && navigator.share) {
         try {
-          await navigator.share(shareData);
+          await navigator.share({ title: book.title, text: `${book.title}${byline}`, url });
         } catch {
           // AbortError when the user cancels the native share sheet — not a failure.
         }
@@ -189,13 +190,13 @@ export default function BookDetailScreen() {
       }
 
       if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(url ?? message);
+        await navigator.clipboard.writeText(url);
         globalThis.alert(t('book.shareCopied'));
       }
       return;
     }
 
-    await Share.share({ message, url: url ?? undefined });
+    await Share.share({ message, url });
   }
 
   return (
@@ -469,14 +470,18 @@ export default function BookDetailScreen() {
             <Divider inset={theme.spacing.lg} />
           </>
         ) : null}
-        <ListRow
-          icon="share-outline"
-          label={t('common.share')}
-          onPress={() => {
-            void shareBook();
-          }}
-        />
-        <Divider inset={theme.spacing.lg} />
+        {isListed ? (
+          <>
+            <ListRow
+              icon="share-outline"
+              label={t('common.share')}
+              onPress={() => {
+                void shareBook();
+              }}
+            />
+            <Divider inset={theme.spacing.lg} />
+          </>
+        ) : null}
         <ListRow
           icon="trash-outline"
           label={t('book.deleteBook')}
