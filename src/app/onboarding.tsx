@@ -1,3 +1,4 @@
+import type { User } from '@supabase/supabase-js';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 
@@ -7,6 +8,17 @@ import { useI18n } from '@/lib/i18n';
 import { useUpdateProfile } from '@/lib/queries/profile';
 import { useLocationOptions } from '@/lib/queries/reference';
 import { useTheme } from '@/theme';
+
+// Google and Telegram sign-in both populate user_metadata.full_name (see
+// supabase/functions/telegram-auth); Telegram's own auth.users.email is a
+// synthetic tg_<id>@telegram.local address, so it is the last resort, not
+// the first.
+function defaultDisplayName(user: User | null, fallback: string): string {
+  const fullName = user?.user_metadata?.full_name;
+  if (typeof fullName === 'string' && fullName.trim()) return fullName.trim();
+  if (user?.email) return user.email.split('@')[0];
+  return fallback;
+}
 
 /**
  * Collected once, after sign-up.
@@ -19,7 +31,7 @@ import { useTheme } from '@/theme';
 export default function OnboardingScreen() {
   const theme = useTheme();
   const { t } = useI18n();
-  const { profile } = useAuth();
+  const { user, profile } = useAuth();
   const locations = useLocationOptions();
   const updateProfile = useUpdateProfile();
 
@@ -27,11 +39,28 @@ export default function OnboardingScreen() {
   const [regionId, setRegionId] = useState<string | null>(profile?.region_id ?? null);
   const [districtId, setDistrictId] = useState<string | null>(profile?.district_id ?? null);
   const [telegram, setTelegram] = useState(profile?.telegram_username ?? '');
+  const [showTelegram, setShowTelegram] = useState(profile?.show_telegram ?? true);
   const [phone, setPhone] = useState(profile?.phone ?? '');
   const [showPhone, setShowPhone] = useState(profile?.show_phone ?? false);
   const [error, setError] = useState<string | null>(null);
+  const [skipping, setSkipping] = useState(false);
 
   const districts = locations.districtsFor(regionId);
+
+  async function skip() {
+    setSkipping(true);
+    setError(null);
+
+    try {
+      await updateProfile.mutateAsync({
+        display_name: defaultDisplayName(user, t('onboarding.defaultName')),
+        onboarded_at: new Date().toISOString(),
+      });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t('error.saveFailed'));
+      setSkipping(false);
+    }
+  }
 
   async function finish() {
     if (!name.trim()) {
@@ -48,6 +77,7 @@ export default function OnboardingScreen() {
         district_id: districtId,
         // Stored without the @ so links can be built by concatenation.
         telegram_username: telegram.trim().replace(/^@/, '') || null,
+        show_telegram: showTelegram,
         phone: phone.trim() || null,
         show_phone: showPhone,
         onboarded_at: new Date().toISOString(),
@@ -105,6 +135,14 @@ export default function OnboardingScreen() {
             placeholder="username"
           />
 
+          <Toggle
+            label={t('onboarding.showTelegram')}
+            hint={t('onboarding.showTelegramHint')}
+            value={showTelegram}
+            onChange={setShowTelegram}
+            disabled={!telegram.trim()}
+          />
+
           <TextField
             label={t('onboarding.phone')}
             value={phone}
@@ -131,8 +169,18 @@ export default function OnboardingScreen() {
           <Button
             title={t('onboarding.finish')}
             fullWidth
-            loading={updateProfile.isPending}
+            loading={updateProfile.isPending && !skipping}
+            disabled={skipping}
             onPress={finish}
+          />
+
+          <Button
+            title={t('onboarding.skip')}
+            variant="ghost"
+            fullWidth
+            loading={skipping}
+            disabled={updateProfile.isPending && !skipping}
+            onPress={skip}
           />
         </View>
       </KeyboardAvoidingView>

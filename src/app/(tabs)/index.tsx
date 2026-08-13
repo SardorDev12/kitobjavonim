@@ -5,19 +5,22 @@ import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-nat
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCard } from '@/components/BookCard';
+import { BookGridCard } from '@/components/BookGridCard';
 import { Chip, ChipRow, EmptyState, LoadingState, Sheet, Text, TextField } from '@/components/ui';
 import { useI18n } from '@/lib/i18n';
 import { selectLibrary, useLibrary, type LibraryFilter, type LibrarySort } from '@/lib/queries/library';
-import { useTheme } from '@/theme';
+import { useLayout, useTheme } from '@/theme';
 
 const FILTERS: LibraryFilter[] = ['all', 'want_to_read', 'reading', 'finished', 'exchange', 'sale'];
 const SORTS: LibrarySort[] = ['recent', 'title', 'author', 'finished', 'shelf'];
+type ViewMode = 'list' | 'gallery';
 
 export default function LibraryScreen() {
   const theme = useTheme();
   const { t } = useI18n();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { gridColumns } = useLayout();
 
   const { data, isPending, isError, refetch, isRefetching } = useLibrary();
 
@@ -25,6 +28,17 @@ export default function LibraryScreen() {
   const [filter, setFilter] = useState<LibraryFilter>('all');
   const [sort, setSort] = useState<LibrarySort>('recent');
   const [sortOpen, setSortOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+
+  // A fixed gutter divided across however many columns the width allows —
+  // same approach as the Discover grid.
+  const gutter = theme.spacing.md;
+  const horizontalPadding = theme.spacing.lg;
+  const [listWidth, setListWidth] = useState(0);
+  const tileWidth =
+    listWidth > 0
+      ? (listWidth - horizontalPadding * 2 - gutter * (gridColumns - 1)) / gridColumns
+      : 0;
 
   const entries = useMemo(
     () => selectLibrary(data ?? [], { filter, sort, search }),
@@ -67,26 +81,50 @@ export default function LibraryScreen() {
             </Text>
           </View>
 
-          <Pressable
-            onPress={() => setSortOpen(true)}
-            hitSlop={8}
-            accessibilityRole="button"
-            accessibilityLabel={t('common.sort')}
-            style={({ pressed }) => [
-              styles.sortButton,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.border,
-                borderRadius: theme.radius.md,
-                opacity: pressed ? 0.7 : 1,
-              },
-            ]}
-          >
-            <Ionicons name="swap-vertical" size={16} color={theme.colors.textMuted} />
-            <Text variant="caption" color="textMuted">
-              {t(`library.sort.${sort}`)}
-            </Text>
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={() => setViewMode(viewMode === 'list' ? 'gallery' : 'list')}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={viewMode === 'list' ? t('library.viewGallery') : t('library.viewList')}
+              style={({ pressed }) => [
+                styles.iconButton,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                  borderRadius: theme.radius.md,
+                  opacity: pressed ? 0.7 : 1,
+                },
+              ]}
+            >
+              <Ionicons
+                name={viewMode === 'list' ? 'grid-outline' : 'list-outline'}
+                size={18}
+                color={theme.colors.textMuted}
+              />
+            </Pressable>
+
+            <Pressable
+              onPress={() => setSortOpen(true)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.sort')}
+              style={({ pressed }) => [
+                styles.sortButton,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                  borderRadius: theme.radius.md,
+                  opacity: pressed ? 0.7 : 1,
+                },
+              ]}
+            >
+              <Ionicons name="swap-vertical" size={16} color={theme.colors.textMuted} />
+              <Text variant="caption" color="textMuted">
+                {t(`library.sort.${sort}`)}
+              </Text>
+            </Pressable>
+          </View>
         </View>
 
         <TextField
@@ -121,15 +159,26 @@ export default function LibraryScreen() {
         </ChipRow>
       </View>
 
+      <View style={styles.fill} onLayout={(event) => setListWidth(event.nativeEvent.layout.width)}>
       <FlatList
+        key={viewMode === 'gallery' ? `gallery-${gridColumns}` : 'list'}
         data={entries}
         keyExtractor={(entry) => entry.id}
-        renderItem={({ item }) => (
-          <BookCard entry={item} onPress={() => router.push(`/book/${item.id}`)} />
-        )}
+        numColumns={viewMode === 'gallery' ? gridColumns : 1}
+        columnWrapperStyle={viewMode === 'gallery' && gridColumns > 1 ? { gap: gutter } : undefined}
+        renderItem={({ item }) =>
+          viewMode === 'gallery' ? (
+            tileWidth > 0 ? (
+              <BookGridCard entry={item} width={tileWidth} onPress={() => router.push(`/book/${item.id}`)} />
+            ) : null
+          ) : (
+            <BookCard entry={item} onPress={() => router.push(`/book/${item.id}`)} />
+          )
+        }
         contentContainerStyle={[
           entries.length === 0 && styles.fill,
-          { paddingBottom: theme.spacing['2xl'] },
+          viewMode === 'gallery' && { paddingHorizontal: horizontalPadding },
+          { paddingBottom: theme.spacing['2xl'], gap: viewMode === 'gallery' ? theme.spacing.xl : 0 },
         ]}
         refreshControl={
           <RefreshControl
@@ -139,7 +188,18 @@ export default function LibraryScreen() {
           />
         }
         ListEmptyComponent={
-          isFiltered ? (
+          search.trim().length > 0 ? (
+            // A text search that turns up nothing in the user's own library
+            // most likely means they don't own that book yet — offer the
+            // fastest path to adding it, with the same query carried over.
+            <EmptyState
+              icon="search-outline"
+              title={t('library.noResults')}
+              body={t('library.noResultsAddBody')}
+              actionLabel={t('library.noResultsAddCta')}
+              onAction={() => router.push({ pathname: '/(tabs)/add', params: { q: search.trim() } })}
+            />
+          ) : isFiltered ? (
             <EmptyState
               icon="search-outline"
               title={t('library.noResults')}
@@ -160,6 +220,7 @@ export default function LibraryScreen() {
           )
         }
       />
+      </View>
 
       <Sheet visible={sortOpen} onClose={() => setSortOpen(false)} title={t('common.sort')}>
         {SORTS.map((option) => (
@@ -191,6 +252,14 @@ const styles = StyleSheet.create({
   header: { gap: 12 },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   titleText: { flex: 1, gap: 2 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
+  iconButton: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
   sortButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -198,7 +267,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 8,
-    marginTop: 4,
   },
   sortOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 });

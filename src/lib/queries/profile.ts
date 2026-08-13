@@ -46,6 +46,7 @@ export type ProfilePatch = Partial<
     | 'telegram_username'
     | 'phone'
     | 'show_phone'
+    | 'show_telegram'
     | 'preferred_locale'
     | 'onboarded_at'
   >
@@ -73,5 +74,8 @@ export function useUpdateProfile() {
 /** True once the user can actually be reached — required before listing a book. */
 export function hasContactMethod(profile: Profile | null): boolean {
   if (!profile) return false;
-  return Boolean(profile.telegram_username) || Boolean(profile.phone && profile.show_phone);
+  return (
+    Boolean(profile.telegram_username && profile.show_telegram) ||
+    Boolean(profile.phone && profile.show_phone)
+  );
 }

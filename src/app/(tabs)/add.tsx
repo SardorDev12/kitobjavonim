@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,9 +19,17 @@ export default function AddScreen() {
   const { t } = useI18n();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  // Carried over from the Library tab's "not found, add it" empty state —
+  // tabs stay mounted across switches, so this can't be initial state alone,
+  // it has to react to the param changing on an already-mounted screen too.
+  const params = useLocalSearchParams<{ q?: string }>();
 
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState(params.q ?? '');
   const [query, setQuery] = useState('');
+
+  useEffect(() => {
+    if (params.q) setInput(params.q);
+  }, [params.q]);
 
   // Debounced so typing a title does not fire a request per keystroke — the
   // providers are free but rate-limited, and this is the hottest screen.

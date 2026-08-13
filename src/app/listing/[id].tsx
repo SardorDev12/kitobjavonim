@@ -2,7 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/BookCover';
 import { Avatar, Button, Card, Chip, EmptyState, LoadingState, Screen, Sheet, Text, TextField } from '@/components/ui';
@@ -19,6 +20,7 @@ export default function ListingDetailScreen() {
   const theme = useTheme();
   const { t, locale } = useI18n();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
 
@@ -29,19 +31,41 @@ export default function ListingDetailScreen() {
   const [contactOpen, setContactOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
 
+  // Same fix as book/[id].tsx: a page loaded directly (deep link, browser
+  // refresh) has no in-app history to pop, so router.back() alone would do
+  // nothing.
+  function goBack() {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)/discover');
+  }
+
+  const header = (
+    <View style={{ paddingTop: insets.top + theme.spacing.sm, paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
+      <Pressable onPress={goBack} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common.back')}>
+        <Ionicons name="chevron-back" size={26} color={theme.colors.text} />
+      </Pressable>
+    </View>
+  );
+
   if (isPending) {
     return (
-      <Screen>
-        <LoadingState />
-      </Screen>
+      <View style={styles.flex}>
+        {header}
+        <Screen>
+          <LoadingState />
+        </Screen>
+      </View>
     );
   }
 
   if (isError || !listing) {
     return (
-      <Screen>
-        <EmptyState tone="error" title={t('error.notFound')} />
-      </Screen>
+      <View style={styles.flex}>
+        {header}
+        <Screen>
+          <EmptyState tone="error" title={t('error.notFound')} />
+        </Screen>
+      </View>
     );
   }
 
@@ -52,23 +76,26 @@ export default function ListingDetailScreen() {
   const location = locations.describe(listing.owner_district_id, listing.owner_region_id);
 
   return (
-    <Screen
-      scroll
-      footer={
-        isOwn ? (
-          <Text variant="caption" color="textMuted" align="center">
-            {t('discover.ownListing')}
-          </Text>
-        ) : (
-          <Button
-            title={t('discover.contactOwner')}
-            icon="chatbubble-ellipses-outline"
-            fullWidth
-            onPress={() => setContactOpen(true)}
-          />
-        )
-      }
-    >
+    <View style={styles.flex}>
+      {header}
+
+      <Screen
+        scroll
+        footer={
+          isOwn ? (
+            <Text variant="caption" color="textMuted" align="center">
+              {t('discover.ownListing')}
+            </Text>
+          ) : (
+            <Button
+              title={t('discover.contactOwner')}
+              icon="chatbubble-ellipses-outline"
+              fullWidth
+              onPress={() => setContactOpen(true)}
+            />
+          )
+        }
+      >
       <View style={{ gap: theme.spacing.xl, paddingBottom: theme.spacing.lg }}>
         <View style={[styles.hero, { gap: theme.spacing.lg }]}>
           <BookCover uri={listing.cover_url} title={listing.title} width={120} radius={theme.radius.md} />
@@ -190,7 +217,8 @@ export default function ListingDetailScreen() {
       />
 
       <ReportSheet visible={reportOpen} onClose={() => setReportOpen(false)} userBookId={listing.id} />
-    </Screen>
+      </Screen>
+    </View>
   );
 }
 
