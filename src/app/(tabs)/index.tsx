@@ -139,7 +139,18 @@ export default function LibraryScreen() {
           />
         }
         ListEmptyComponent={
-          isFiltered ? (
+          search.trim().length > 0 ? (
+            // A text search that turns up nothing in the user's own library
+            // most likely means they don't own that book yet — offer the
+            // fastest path to adding it, with the same query carried over.
+            <EmptyState
+              icon="search-outline"
+              title={t('library.noResults')}
+              body={t('library.noResultsAddBody')}
+              actionLabel={t('library.noResultsAddCta')}
+              onAction={() => router.push({ pathname: '/(tabs)/add', params: { q: search.trim() } })}
+            />
+          ) : isFiltered ? (
             <EmptyState
               icon="search-outline"
               title={t('library.noResults')}

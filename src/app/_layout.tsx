@@ -2,10 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { QueryClient, focusManager } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, usePathname, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, AppState, View, type AppStateStatus } from 'react-native';
+import { ActivityIndicator, AppState, Platform, View, type AppStateStatus } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -93,12 +93,25 @@ function RootNavigator() {
   const { session, needsOnboarding, initializing, setupError } = useAuth();
   const { ready: localeReady } = useI18n();
   const segments = useSegments();
+  const pathname = usePathname();
   const router = useRouter();
   const [navigationReady, setNavigationReady] = useState(false);
 
   useEffect(() => {
     setNavigationReady(true);
   }, []);
+
+  // Expo Router's web integration syncs document.title to whatever the
+  // focused screen's/tab's `options.title` is, which makes the browser tab
+  // flicker between "Library", "Discover", etc. as the user navigates. The
+  // brand name reads better as a fixed constant than as a page-by-page label,
+  // so this re-asserts it after every navigation rather than fighting the
+  // per-screen `title` options that also drive the tab bar labels.
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      document.title = 'Kitob Javonim';
+    }
+  }, [pathname]);
 
   useEffect(() => {
     if (initializing || !navigationReady) return;
@@ -187,8 +200,12 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
-        <Stack.Screen name="book/[id]" options={{ title: '' }} />
-        <Stack.Screen name="listing/[id]" options={{ title: '' }} />
+        {/* Both render their own header (back button + actions) rather than
+            the native one — react-navigation's default back button only
+            appears when there's in-app history to pop, which a direct link
+            or a browser refresh never has. */}
+        <Stack.Screen name="book/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="listing/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="add/scan" options={{ presentation: 'modal', title: '' }} />
         <Stack.Screen name="add/manual" options={{ title: '' }} />
         <Stack.Screen name="add/configure" options={{ title: '' }} />

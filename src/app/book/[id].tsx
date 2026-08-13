@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Platform, Pressable, Share, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/BookCover';
 import { CategoryPicker } from '@/components/CategoryPicker';
@@ -12,6 +13,7 @@ import {
   Chip,
   Divider,
   EmptyState,
+  ListRow,
   LoadingState,
   Rating,
   Screen,
@@ -44,6 +46,7 @@ export default function BookDetailScreen() {
   const theme = useTheme();
   const { t, locale } = useI18n();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user, profile } = useAuth();
 
@@ -59,20 +62,55 @@ export default function BookDetailScreen() {
 
   const [reviewOpen, setReviewOpen] = useState(false);
   const [listingOpen, setListingOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  // A page loaded directly (a deep link, or a browser refresh — both routine
+  // on web) has no in-app navigation history to pop, so router.back() alone
+  // would silently do nothing and leave the back button dead. Falling back to
+  // the library root guarantees it always goes somewhere.
+  function goBack() {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)');
+  }
+
+  const header = (
+    <View
+      style={[
+        styles.header,
+        { paddingTop: insets.top + theme.spacing.sm, paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.sm },
+      ]}
+    >
+      <Pressable onPress={goBack} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common.back')}>
+        <Ionicons name="chevron-back" size={26} color={theme.colors.text} />
+      </Pressable>
+
+      {entry ? (
+        <Pressable onPress={() => setMenuOpen(true)} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common.more')}>
+          <Ionicons name="ellipsis-horizontal" size={22} color={theme.colors.text} />
+        </Pressable>
+      ) : null}
+    </View>
+  );
 
   if (isPending) {
     return (
-      <Screen>
-        <LoadingState />
-      </Screen>
+      <View style={styles.fill}>
+        {header}
+        <Screen>
+          <LoadingState />
+        </Screen>
+      </View>
     );
   }
 
   if (isError || !entry) {
     return (
-      <Screen>
-        <EmptyState tone="error" title={t('error.notFound')} />
-      </Screen>
+      <View style={styles.fill}>
+        {header}
+        <Screen>
+          <EmptyState tone="error" title={t('error.notFound')} />
+        </Screen>
+      </View>
     );
   }
 
@@ -126,8 +164,45 @@ export default function BookDetailScreen() {
     ]);
   }
 
+  // /book/<id> is the owner's private library entry — sharing that URL would
+  // just bounce anyone else to sign-in (or an RLS-blocked page if they did),
+  // so a listed copy shares its public /listing/<id> link instead; an
+  // unlisted one shares plain text with nothing to click through to.
+  async function shareBook() {
+    setMenuOpen(false);
+    const book = entry!;
+
+    const webOrigin = process.env.EXPO_PUBLIC_WEB_ORIGIN;
+    const byline = book.authors.length > 0 ? ` — ${formatAuthors(book.authors)}` : '';
+    const url = isListed && webOrigin ? `${webOrigin}/listing/${book.id}` : null;
+    const message = url ? `${book.title}${byline}\n${url}` : `${book.title}${byline}`;
+
+    if (Platform.OS === 'web') {
+      const shareData = { title: book.title, text: `${book.title}${byline}`, url: url ?? undefined };
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        try {
+          await navigator.share(shareData);
+        } catch {
+          // AbortError when the user cancels the native share sheet — not a failure.
+        }
+        return;
+      }
+
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(url ?? message);
+        globalThis.alert(t('book.shareCopied'));
+      }
+      return;
+    }
+
+    await Share.share({ message, url: url ?? undefined });
+  }
+
   return (
-    <Screen scroll>
+    <View style={styles.fill}>
+      {header}
+
+      <Screen scroll>
       <View style={{ gap: theme.spacing.xl, paddingBottom: theme.spacing.xl }}>
         {/* ---------------------------------------------------------------- */}
         <View style={[styles.hero, { gap: theme.spacing.lg }]}>
@@ -320,24 +395,13 @@ export default function BookDetailScreen() {
         </Card>
 
         {/* Book metadata ----------------------------------------------------
-            Editing is restricted to whoever added this book to the shared
-            catalogue — the RLS policy behind useUpdateBook enforces the same
-            rule, this is only what decides whether to show the action. */}
+            Editing (from the three-dot menu) is restricted to whoever added
+            this book to the shared catalogue — the RLS policy behind
+            useUpdateBook enforces the same rule, this is only what decides
+            whether the menu offers the action. */}
         <Card padded={false}>
-          <View
-            style={[
-              styles.metaHeader,
-              { padding: theme.spacing.lg, paddingBottom: theme.spacing.sm },
-            ]}
-          >
+          <View style={{ padding: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
             <Text variant="heading">{t('book.about')}</Text>
-            {entry.book_created_by === user?.id ? (
-              <Pressable onPress={() => setEditBookOpen(true)} hitSlop={8}>
-                <Text variant="label" color="primary">
-                  {t('common.edit')}
-                </Text>
-              </Pressable>
-            ) : null}
           </View>
 
           <MetaRow label={t('book.isbn')} value={entry.isbn13} />
@@ -346,8 +410,6 @@ export default function BookDetailScreen() {
           <MetaRow label={t('book.pages')} value={entry.page_count?.toString()} />
           <MetaRow label={t('condition.label')} value={entry.condition ? t(`condition.${entry.condition}`) : null} />
         </Card>
-
-        <Button title={t('book.deleteBook')} variant="danger" fullWidth onPress={confirmDelete} />
       </View>
 
       {/* Both sheets seed their form state from the entry on mount, so they are
@@ -391,7 +453,41 @@ export default function BookDetailScreen() {
           updateBookDetails.mutate({ bookId: entry.book_id, userBookId: entry.id, patch: patchValues })
         }
       />
-    </Screen>
+      </Screen>
+
+      <Sheet visible={menuOpen} onClose={() => setMenuOpen(false)}>
+        {entry.book_created_by === user?.id ? (
+          <>
+            <ListRow
+              icon="pencil-outline"
+              label={t('common.edit')}
+              onPress={() => {
+                setMenuOpen(false);
+                setEditBookOpen(true);
+              }}
+            />
+            <Divider inset={theme.spacing.lg} />
+          </>
+        ) : null}
+        <ListRow
+          icon="share-outline"
+          label={t('common.share')}
+          onPress={() => {
+            void shareBook();
+          }}
+        />
+        <Divider inset={theme.spacing.lg} />
+        <ListRow
+          icon="trash-outline"
+          label={t('book.deleteBook')}
+          destructive
+          onPress={() => {
+            setMenuOpen(false);
+            confirmDelete();
+          }}
+        />
+      </Sheet>
+    </View>
   );
 }
 
@@ -792,11 +888,12 @@ function ListingSheet({
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   hero: { flexDirection: 'row', alignItems: 'flex-start', paddingTop: 8 },
   heroText: { flex: 1, gap: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  metaHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
   metaValue: { flex: 1, textAlign: 'right' },
   editCoverRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
