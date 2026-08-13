@@ -73,6 +73,8 @@ export const en = {
   'onboarding.selectDistrict': 'Select a district',
   'onboarding.telegram': 'Telegram username',
   'onboarding.telegramHint': 'Without the @ — this is how most people will reach you.',
+  'onboarding.showTelegram': 'Show my Telegram to interested buyers',
+  'onboarding.showTelegramHint': 'On by default, since this is usually the easiest way to reach you.',
   'onboarding.phone': 'Phone number',
   'onboarding.showPhone': 'Show my phone to interested buyers',
   'onboarding.showPhoneHint': 'Off by default. Your number is never shown on public listings.',

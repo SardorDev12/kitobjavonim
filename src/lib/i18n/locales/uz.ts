@@ -76,6 +76,8 @@ export const uz: LocaleCatalogue = {
   'onboarding.selectDistrict': 'Tumanni tanlang',
   'onboarding.telegram': 'Telegram foydalanuvchi nomi',
   'onboarding.telegramHint': '@ belgisisiz — koʻpchilik siz bilan shu orqali bogʻlanadi.',
+  'onboarding.showTelegram': 'Telegramimni qiziqqanlarga koʻrsatish',
+  'onboarding.showTelegramHint': 'Odatda bu siz bilan bogʻlanishning eng oson yoʻli boʻlgani uchun bu birlamchi yoqilgan.',
   'onboarding.phone': 'Telefon raqami',
   'onboarding.showPhone': 'Telefon raqamimni qiziqqanlarga koʻrsatish',
   'onboarding.showPhoneHint':

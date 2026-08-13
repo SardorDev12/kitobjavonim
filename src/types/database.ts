@@ -43,6 +43,7 @@ export type Profile = {
   telegram_username: string | null;
   phone: string | null;
   show_phone: boolean;
+  show_telegram: boolean;
   preferred_locale: 'uz' | 'ru' | 'en';
   onboarded_at: string | null;
   plan: 'free' | 'pro';

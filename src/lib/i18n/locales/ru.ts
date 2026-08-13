@@ -72,6 +72,8 @@ export const ru: LocaleCatalogue = {
   'onboarding.selectDistrict': 'Выберите район',
   'onboarding.telegram': 'Имя пользователя в Telegram',
   'onboarding.telegramHint': 'Без @ — так с вами свяжется большинство.',
+  'onboarding.showTelegram': 'Показывать мой Telegram заинтересованным',
+  'onboarding.showTelegramHint': 'Включено по умолчанию — обычно это самый простой способ с вами связаться.',
   'onboarding.phone': 'Номер телефона',
   'onboarding.showPhone': 'Показывать мой номер заинтересованным',
   'onboarding.showPhoneHint':

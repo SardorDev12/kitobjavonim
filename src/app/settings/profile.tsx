@@ -26,6 +26,7 @@ export default function EditProfileScreen() {
   const [regionId, setRegionId] = useState<string | null>(profile?.region_id ?? null);
   const [districtId, setDistrictId] = useState<string | null>(profile?.district_id ?? null);
   const [telegram, setTelegram] = useState(profile?.telegram_username ?? '');
+  const [showTelegram, setShowTelegram] = useState(profile?.show_telegram ?? true);
   const [phone, setPhone] = useState(profile?.phone ?? '');
   const [showPhone, setShowPhone] = useState(profile?.show_phone ?? false);
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +36,7 @@ export default function EditProfileScreen() {
   const draftHasContact = hasContactMethod({
     ...(profile ?? ({} as never)),
     telegram_username: telegram.trim().replace(/^@/, '') || null,
+    show_telegram: showTelegram,
     phone: phone.trim() || null,
     show_phone: showPhone,
   });
@@ -54,6 +56,7 @@ export default function EditProfileScreen() {
         region_id: regionId,
         district_id: districtId,
         telegram_username: telegram.trim().replace(/^@/, '') || null,
+        show_telegram: showTelegram,
         phone: phone.trim() || null,
         show_phone: showPhone,
       });
@@ -152,6 +155,14 @@ export default function EditProfileScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             placeholder="username"
+          />
+
+          <Toggle
+            label={t('onboarding.showTelegram')}
+            hint={t('onboarding.showTelegramHint')}
+            value={showTelegram}
+            onChange={setShowTelegram}
+            disabled={!telegram.trim()}
           />
 
           <TextField
