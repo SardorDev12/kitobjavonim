@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Platform, Pressable, Share, StyleSheet, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/BookCover';
@@ -163,41 +163,6 @@ export default function BookDetailScreen() {
       { text: t('common.cancel'), style: 'cancel' },
       { text: t('common.delete'), style: 'destructive', onPress: () => void remove() },
     ]);
-  }
-
-  // /book/<id> is the owner's private library entry — sharing that URL would
-  // just bounce anyone else to sign-in (or an RLS-blocked page if they did).
-  // The menu only offers Share on a listed book (see the menu below), so this
-  // always has a real public /listing/<id> link to share.
-  async function shareBook() {
-    setMenuOpen(false);
-    const book = entry!;
-
-    const webOrigin = process.env.EXPO_PUBLIC_WEB_ORIGIN;
-    if (!webOrigin) return;
-
-    const byline = book.authors.length > 0 ? ` — ${formatAuthors(book.authors)}` : '';
-    const url = `${webOrigin}/listing/${book.id}`;
-    const message = `${book.title}${byline}\n${url}`;
-
-    if (Platform.OS === 'web') {
-      if (typeof navigator !== 'undefined' && navigator.share) {
-        try {
-          await navigator.share({ title: book.title, text: `${book.title}${byline}`, url });
-        } catch {
-          // AbortError when the user cancels the native share sheet — not a failure.
-        }
-        return;
-      }
-
-      if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(url);
-        globalThis.alert(t('book.shareCopied'));
-      }
-      return;
-    }
-
-    await Share.share({ message, url });
   }
 
   return (
@@ -471,18 +436,6 @@ export default function BookDetailScreen() {
           }}
         />
         <Divider inset={theme.spacing.lg} />
-        {isListed ? (
-          <>
-            <ListRow
-              icon="share-outline"
-              label={t('common.share')}
-              onPress={() => {
-                void shareBook();
-              }}
-            />
-            <Divider inset={theme.spacing.lg} />
-          </>
-        ) : null}
         <ListRow
           icon="trash-outline"
           label={t('book.deleteBook')}
@@ -543,14 +496,18 @@ function EditBookSheet({
   const [pages, setPages] = useState(entry.page_count?.toString() ?? '');
   const [coverUrl, setCoverUrl] = useState(entry.cover_url);
   const [coverUploading, setCoverUploading] = useState(false);
+  const [coverError, setCoverError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
 
   async function pickCover() {
     if (!user || coverUploading) return;
     setCoverUploading(true);
+    setCoverError(null);
     try {
       const url = await pickAndUploadBookCover(user.id);
       if (url) setCoverUrl(url);
+    } catch (cause) {
+      setCoverError(cause instanceof Error ? cause.message : t('error.saveFailed'));
     } finally {
       setCoverUploading(false);
     }
@@ -559,9 +516,13 @@ function EditBookSheet({
   async function dropCover(file: File) {
     if (!user || coverUploading) return;
     setCoverUploading(true);
+    setCoverError(null);
     try {
       const url = await uploadDroppedBookCover(user.id, file);
       if (url) setCoverUrl(url);
+      else setCoverError(t('manual.coverNotImage'));
+    } catch (cause) {
+      setCoverError(cause instanceof Error ? cause.message : t('error.saveFailed'));
     } finally {
       setCoverUploading(false);
     }
@@ -640,6 +601,12 @@ function EditBookSheet({
             </Text>
           </View>
         </Pressable>
+
+        {coverError ? (
+          <Text variant="caption" color="danger">
+            {coverError}
+          </Text>
+        ) : null}
 
         <TextField
           label={t('manual.bookTitle')}

@@ -317,14 +317,18 @@ function CandidateEditSheet({
   const [pages, setPages] = useState(candidate.page_count?.toString() ?? '');
   const [coverUrl, setCoverUrl] = useState(candidate.cover_url);
   const [coverUploading, setCoverUploading] = useState(false);
+  const [coverError, setCoverError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
 
   async function pickCover() {
     if (!user || coverUploading) return;
     setCoverUploading(true);
+    setCoverError(null);
     try {
       const url = await pickAndUploadBookCover(user.id);
       if (url) setCoverUrl(url);
+    } catch (cause) {
+      setCoverError(cause instanceof Error ? cause.message : t('error.saveFailed'));
     } finally {
       setCoverUploading(false);
     }
@@ -333,9 +337,13 @@ function CandidateEditSheet({
   async function dropCover(file: File) {
     if (!user || coverUploading) return;
     setCoverUploading(true);
+    setCoverError(null);
     try {
       const url = await uploadDroppedBookCover(user.id, file);
       if (url) setCoverUrl(url);
+      else setCoverError(t('manual.coverNotImage'));
+    } catch (cause) {
+      setCoverError(cause instanceof Error ? cause.message : t('error.saveFailed'));
     } finally {
       setCoverUploading(false);
     }
@@ -414,6 +422,12 @@ function CandidateEditSheet({
             </Text>
           </View>
         </Pressable>
+
+        {coverError ? (
+          <Text variant="caption" color="danger">
+            {coverError}
+          </Text>
+        ) : null}
 
         <TextField
           label={t('manual.bookTitle')}

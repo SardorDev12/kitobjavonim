@@ -50,6 +50,7 @@ export default function ManualEntryScreen() {
   const [titleError, setTitleError] = useState<string | null>(null);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [coverUploading, setCoverUploading] = useState(false);
+  const [coverError, setCoverError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
 
@@ -57,10 +58,13 @@ export default function ManualEntryScreen() {
     if (!user || coverUploading) return;
 
     setCoverUploading(true);
+    setCoverError(null);
     setScanMessage(null);
     try {
       const url = await pickAndUploadBookCover(user.id);
       if (url) setCoverUrl(url);
+    } catch (cause) {
+      setCoverError(cause instanceof Error ? cause.message : t('error.saveFailed'));
     } finally {
       setCoverUploading(false);
     }
@@ -70,10 +74,14 @@ export default function ManualEntryScreen() {
     if (!user || coverUploading) return;
 
     setCoverUploading(true);
+    setCoverError(null);
     setScanMessage(null);
     try {
       const url = await uploadDroppedBookCover(user.id, file);
       if (url) setCoverUrl(url);
+      else setCoverError(t('manual.coverNotImage'));
+    } catch (cause) {
+      setCoverError(cause instanceof Error ? cause.message : t('error.saveFailed'));
     } finally {
       setCoverUploading(false);
     }
@@ -183,6 +191,12 @@ export default function ManualEntryScreen() {
             </Text>
           </View>
         </Pressable>
+
+        {coverError ? (
+          <Text variant="caption" color="danger">
+            {coverError}
+          </Text>
+        ) : null}
 
         {coverUrl ? (
           <View style={{ gap: 4 }}>

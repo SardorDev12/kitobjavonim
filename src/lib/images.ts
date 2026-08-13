@@ -74,36 +74,45 @@ async function upload(bucket: string, path: string, image: PickedImage): Promise
  * Same resize/compress pass as pickAndCompress, starting from a File a user
  * dropped onto the page instead of one ImagePicker handed back — web-only,
  * for drag-and-drop.
+ *
+ * Reads the file as a base64 data: URI rather than a URL.createObjectURL()
+ * blob: URL. expo-image-manipulator's own docs promise support for only "the
+ * local file system or a base64 data URI" — blob: URLs are not a documented
+ * input, and manipulateAsync silently produced nothing usable when given one,
+ * which is why a dropped file visibly landed (the dashed border reacts) but
+ * never actually became a cover.
  */
 async function fileToPickedImage(file: File, maxEdge: number): Promise<PickedImage | null> {
   if (!file.type.startsWith('image/')) return null;
 
-  const objectUrl = URL.createObjectURL(file);
-  try {
-    const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
-      const img = new globalThis.Image();
-      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
-      img.onerror = () => reject(new Error('Could not read the dropped file as an image.'));
-      img.src = objectUrl;
-    });
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Could not read the dropped file.'));
+    reader.readAsDataURL(file);
+  });
 
-    const longestEdge = Math.max(width, height);
-    const actions: ImageManipulator.Action[] =
-      longestEdge > maxEdge
-        ? [width >= height ? { resize: { width: maxEdge } } : { resize: { height: maxEdge } }]
-        : [];
+  const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+    const img = new globalThis.Image();
+    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onerror = () => reject(new Error('Could not read the dropped file as an image.'));
+    img.src = dataUrl;
+  });
 
-    const manipulated = await ImageManipulator.manipulateAsync(objectUrl, actions, {
-      compress: QUALITY,
-      format: ImageManipulator.SaveFormat.JPEG,
-      base64: true,
-    });
+  const longestEdge = Math.max(width, height);
+  const actions: ImageManipulator.Action[] =
+    longestEdge > maxEdge
+      ? [width >= height ? { resize: { width: maxEdge } } : { resize: { height: maxEdge } }]
+      : [];
 
-    if (!manipulated.base64) return null;
-    return { base64: manipulated.base64, contentType: 'image/jpeg', extension: 'jpg' };
-  } finally {
-    URL.revokeObjectURL(objectUrl);
-  }
+  const manipulated = await ImageManipulator.manipulateAsync(dataUrl, actions, {
+    compress: QUALITY,
+    format: ImageManipulator.SaveFormat.JPEG,
+    base64: true,
+  });
+
+  if (!manipulated.base64) return null;
+  return { base64: manipulated.base64, contentType: 'image/jpeg', extension: 'jpg' };
 }
 
 /**
