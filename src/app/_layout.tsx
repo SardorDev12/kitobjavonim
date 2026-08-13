@@ -9,6 +9,7 @@ import { ActivityIndicator, AppState, Platform, View, type AppStateStatus } from
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { ErrorBoundary, installGlobalErrorReporting } from '@/components/ErrorBoundary';
 import { EmptyState, Screen } from '@/components/ui';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { I18nProvider, useI18n } from '@/lib/i18n';
@@ -69,39 +70,45 @@ export default function RootLayout() {
     };
   }, []);
 
+  useEffect(() => {
+    if (Platform.OS === 'web') return installGlobalErrorReporting();
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
           <I18nProvider>
-            <PersistQueryClientProvider
-              client={queryClient}
-              persistOptions={{
-                persister,
-                maxAge: 1000 * 60 * 60 * 24 * 7,
-                dehydrateOptions: {
-                  shouldDehydrateQuery: (query) => {
-                    // Listings belong to other people and go stale quickly; only
-                    // the user's own library and the reference tables are worth
-                    // keeping on disk for offline reading.
-                    const root = query.queryKey[0];
-                    const isOfflineWorthy =
-                      root === 'library' || root === 'bookshelves' || root === 'reference';
+            <ErrorBoundary>
+              <PersistQueryClientProvider
+                client={queryClient}
+                persistOptions={{
+                  persister,
+                  maxAge: 1000 * 60 * 60 * 24 * 7,
+                  dehydrateOptions: {
+                    shouldDehydrateQuery: (query) => {
+                      // Listings belong to other people and go stale quickly; only
+                      // the user's own library and the reference tables are worth
+                      // keeping on disk for offline reading.
+                      const root = query.queryKey[0];
+                      const isOfflineWorthy =
+                        root === 'library' || root === 'bookshelves' || root === 'reference';
 
-                    // The status check is not optional. React Query will happily
-                    // dehydrate a query that is still pending, and its in-flight
-                    // promise does not survive a trip through JSON — on the next
-                    // launch hydration calls `.then` on a plain object and the
-                    // whole restore throws. Only settled data goes to disk.
-                    return isOfflineWorthy && query.state.status === 'success';
+                      // The status check is not optional. React Query will happily
+                      // dehydrate a query that is still pending, and its in-flight
+                      // promise does not survive a trip through JSON — on the next
+                      // launch hydration calls `.then` on a plain object and the
+                      // whole restore throws. Only settled data goes to disk.
+                      return isOfflineWorthy && query.state.status === 'success';
+                    },
                   },
-                },
-              }}
-            >
-              <AuthProvider>
-                <RootNavigator />
-              </AuthProvider>
-            </PersistQueryClientProvider>
+                }}
+              >
+                <AuthProvider>
+                  <RootNavigator />
+                </AuthProvider>
+              </PersistQueryClientProvider>
+            </ErrorBoundary>
           </I18nProvider>
         </ThemeProvider>
       </SafeAreaProvider>

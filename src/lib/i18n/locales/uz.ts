@@ -350,6 +350,9 @@ export const uz: LocaleCatalogue = {
   'error.offline': 'Siz oflaynsiz — saqlangan kutubxonangiz koʻrsatilmoqda.',
   'error.listingLimitReached': 'Faol eʼlonlar chegarasiga yetdingiz. Yangisini qoʻshish uchun birini oʻchiring.',
   'error.contactLimitReached': 'Shu oydagi egasi bilan aloqalar chegarasiga yetdingiz. Chegara keyingi oyda yangilanadi.',
+  'error.crashTitle': 'Nimadir buzildi',
+  'error.crashBody': 'Kutilmagan xatolik yuz berdi. Qayta urinib koʻring yoki bu takrorlansa, qayta yuklang.',
+  'error.reload': 'Qayta yuklash',
 
   'plan.title': 'Sizning tarifingiz',
   'plan.free': 'Bepul',
