@@ -4,16 +4,11 @@ import { Alert, Platform, StyleSheet, View } from 'react-native';
 
 import { Avatar, Button, Card, Divider, ListRow, Screen, Sheet, Text } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { formatDate, formatMonthYear } from '@/lib/format';
+import { formatMonthYear } from '@/lib/format';
 import { LOCALE_LABELS, LOCALES, useI18n, type Locale } from '@/lib/i18n';
-import { useMyPlanStatus, useProfileStats, useUpdateProfile } from '@/lib/queries/profile';
+import { useProfileStats, useUpdateProfile } from '@/lib/queries/profile';
 import { useLocationOptions } from '@/lib/queries/reference';
 import { THEME_MODES, useTheme, type ThemeMode } from '@/theme';
-
-// The DB uses int4 max as the "no cap" sentinel for the Pro tier (see
-// plan_limits in supabase/migrations/0008_plans_and_limits.sql) rather than
-// null, so a cap this large is shown as unlimited instead of the raw number.
-const UNLIMITED_CAP = 2147483647;
 
 export default function ProfileScreen() {
   const theme = useTheme();
@@ -22,7 +17,6 @@ export default function ProfileScreen() {
 
   const { profile, user, signOut } = useAuth();
   const { data: stats } = useProfileStats(user?.id);
-  const { data: planStatus } = useMyPlanStatus(user?.id);
   const locations = useLocationOptions();
   const updateProfile = useUpdateProfile();
 
@@ -84,43 +78,6 @@ export default function ProfileScreen() {
             <View style={styles.stat} />
           </View>
         </Card>
-
-        {planStatus ? (
-          <Card>
-            <View style={styles.metaHeader}>
-              <Text variant="heading">{t('plan.title')}</Text>
-              <Text variant="label" color="primary">
-                {planStatus.plan === 'pro' ? t('plan.pro') : t('plan.free')}
-              </Text>
-            </View>
-
-            {planStatus.plan === 'pro' && planStatus.plan_expires_at ? (
-              <Text variant="caption" color="textMuted" style={{ marginTop: 2 }}>
-                {t('plan.expiresOn', { date: formatDate(planStatus.plan_expires_at, locale) })}
-              </Text>
-            ) : null}
-
-            <View style={[styles.stats, { marginTop: theme.spacing.lg }]}>
-              <Stat
-                label={t('plan.activeListings')}
-                value={
-                  planStatus.active_listing_cap >= UNLIMITED_CAP
-                    ? `${planStatus.active_listings}`
-                    : `${planStatus.active_listings}/${planStatus.active_listing_cap}`
-                }
-              />
-              <Stat
-                label={t('plan.contactsThisMonth')}
-                value={
-                  planStatus.monthly_contact_cap >= UNLIMITED_CAP
-                    ? `${planStatus.contacts_this_month}`
-                    : `${planStatus.contacts_this_month}/${planStatus.monthly_contact_cap}`
-                }
-              />
-              <View style={styles.stat} />
-            </View>
-          </Card>
-        ) : null}
 
         <Card padded={false}>
           <ListRow
@@ -197,7 +154,7 @@ export default function ProfileScreen() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: number | string }) {
+function Stat({ label, value }: { label: string; value: number }) {
   return (
     <View style={styles.stat}>
       <Text variant="title">{value}</Text>
@@ -213,5 +170,4 @@ const styles = StyleSheet.create({
   identityText: { flex: 1, gap: 2 },
   stats: { flexDirection: 'row' },
   stat: { flex: 1, gap: 2 },
-  metaHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 });

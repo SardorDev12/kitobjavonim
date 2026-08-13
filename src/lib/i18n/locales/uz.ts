@@ -312,8 +312,8 @@ export const uz: LocaleCatalogue = {
   'error.saveFailed': 'Oʻzgarishlarni saqlab boʻlmadi.',
   'error.loadFailed': 'Buni yuklab boʻlmadi.',
   'error.offline': 'Siz oflaynsiz — saqlangan kutubxonangiz koʻrsatilmoqda.',
-  'error.listingLimitReached': 'Bepul tarifning faol eʼlonlar chegarasiga yetdingiz. Birini oʻchiring yoki Pro tarifga oʻting — Sozlamalar > Sizning tarifingiz.',
-  'error.contactLimitReached': 'Bepul tarifning shu oydagi egasi bilan aloqalar chegarasiga yetdingiz. Chegara keyingi oyda yangilanadi, yoki Pro tarifga oʻting — Sozlamalar > Sizning tarifingiz.',
+  'error.listingLimitReached': 'Faol eʼlonlar chegarasiga yetdingiz. Yangisini qoʻshish uchun birini oʻchiring.',
+  'error.contactLimitReached': 'Shu oydagi egasi bilan aloqalar chegarasiga yetdingiz. Chegara keyingi oyda yangilanadi.',
 
   'plan.title': 'Sizning tarifingiz',
   'plan.free': 'Bepul',

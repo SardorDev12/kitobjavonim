@@ -306,8 +306,8 @@ export const en = {
   'error.saveFailed': 'Could not save your changes.',
   'error.loadFailed': 'Could not load this.',
   'error.offline': 'You are offline — showing your saved library.',
-  'error.listingLimitReached': 'You have reached the Free plan limit for active listings. Remove one or upgrade to list more — see Your Plan in Settings.',
-  'error.contactLimitReached': 'You have reached the Free plan limit for owner contacts this month. It resets next month, or upgrade for unlimited contacts — see Your Plan in Settings.',
+  'error.listingLimitReached': 'You have reached your active listings limit. Remove one to list another.',
+  'error.contactLimitReached': 'You have reached your owner-contacts limit for this month. It resets next month.',
 
   'plan.title': 'Your plan',
   'plan.free': 'Free',
