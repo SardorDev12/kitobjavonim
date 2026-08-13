@@ -47,9 +47,15 @@ function json(body: unknown, status = 200): Response {
 }
 
 const PROMPT =
-  "This is a photo of a book cover. Read the title and author(s) exactly as printed on the cover — " +
-  'not a publisher, series name, or tagline. If no title is legible, return an empty string for it. ' +
-  'If no author is visible, return an empty array.';
+  'This is a photo of a book cover. Read the title and author(s) exactly as printed on the cover — ' +
+  'not a publisher, series name, or tagline. ' +
+  'Font size is not a reliable guide to which text is the title: some covers print the author\'s ' +
+  'name larger or bolder than the title, with the actual title in smaller or stylized script ' +
+  'elsewhere on the cover. Use the words themselves, not their prominence, to decide — a person\'s ' +
+  'name is the author, not the title, even if it is the biggest text on the cover. ' +
+  'If the cover is genuinely ambiguous, give your best guess rather than leaving a field empty. ' +
+  'Only return an empty string for the title, or an empty array for authors, if that information ' +
+  'is truly not present anywhere on the cover (not merely uncertain).';
 
 const RESPONSE_SCHEMA = {
   type: 'OBJECT',
