@@ -5,6 +5,7 @@ import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-nat
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ListingCard } from '@/components/ListingCard';
+import { ListingRow } from '@/components/ListingRow';
 import { Button, Chip, ChipRow, EmptyState, LoadingState, Screen, Select, Sheet, Text, TextField } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useI18n } from '@/lib/i18n';
@@ -18,6 +19,7 @@ const LANGUAGE_OPTIONS = [
   { value: 'ru', label: 'Русский' },
   { value: 'en', label: 'English' },
 ];
+type ViewMode = 'list' | 'gallery';
 
 export default function DiscoverScreen() {
   const theme = useTheme();
@@ -38,6 +40,7 @@ export default function DiscoverScreen() {
   const [filters, setFilters] = useState<ListingFilters>(emptyListingFilters);
   const [searchInput, setSearchInput] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('gallery');
 
   useEffect(() => {
     const timer = setTimeout(() => setFilters((prev) => ({ ...prev, search: searchInput })), 400);
@@ -77,13 +80,37 @@ export default function DiscoverScreen() {
             </Text>
           </View>
 
-          <Button
-            title={t('discover.addBook')}
-            icon="add"
-            variant="secondary"
-            size="sm"
-            onPress={goToAdd}
-          />
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={() => setViewMode(viewMode === 'gallery' ? 'list' : 'gallery')}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={viewMode === 'gallery' ? t('library.viewList') : t('library.viewGallery')}
+              style={({ pressed }) => [
+                styles.iconButton,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                  borderRadius: theme.radius.md,
+                  opacity: pressed ? 0.7 : 1,
+                },
+              ]}
+            >
+              <Ionicons
+                name={viewMode === 'gallery' ? 'list-outline' : 'grid-outline'}
+                size={18}
+                color={theme.colors.textMuted}
+              />
+            </Pressable>
+
+            <Button
+              title={t('discover.addBook')}
+              icon="add"
+              variant="secondary"
+              size="sm"
+              onPress={goToAdd}
+            />
+          </View>
         </View>
 
         <View style={[styles.searchRow, { gap: theme.spacing.sm }]}>
@@ -162,35 +189,47 @@ export default function DiscoverScreen() {
           />
         ) : (
           <FlatList
-            key={gridColumns}
+            key={viewMode === 'gallery' ? `gallery-${gridColumns}` : 'list'}
             data={listings}
-            numColumns={gridColumns}
+            numColumns={viewMode === 'gallery' ? gridColumns : 1}
             keyExtractor={(item) => item.id}
-            columnWrapperStyle={gridColumns > 1 ? { gap: gutter } : undefined}
+            columnWrapperStyle={viewMode === 'gallery' && gridColumns > 1 ? { gap: gutter } : undefined}
             contentContainerStyle={[
               listings.length === 0 && styles.fill,
-              {
-                paddingHorizontal: horizontalPadding,
-                paddingBottom: theme.spacing['2xl'],
-                gap: theme.spacing.xl,
-              },
+              viewMode === 'gallery' && { paddingHorizontal: horizontalPadding },
+              { paddingBottom: theme.spacing['2xl'], gap: viewMode === 'gallery' ? theme.spacing.xl : 0 },
             ]}
             refreshControl={
               <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={theme.colors.primary} />
             }
             renderItem={({ item }) =>
-              tileWidth > 0 ? (
-                <ListingCard
+              viewMode === 'gallery' ? (
+                tileWidth > 0 ? (
+                  <ListingCard
+                    listing={item}
+                    width={tileWidth}
+                    locationLabel={locations.describe(item.owner_district_id, item.owner_region_id)}
+                    onPress={() => router.push(`/listing/${item.id}`)}
+                  />
+                ) : null
+              ) : (
+                <ListingRow
                   listing={item}
-                  width={tileWidth}
                   locationLabel={locations.describe(item.owner_district_id, item.owner_region_id)}
                   onPress={() => router.push(`/listing/${item.id}`)}
                 />
-              ) : null
+              )
             }
             ListHeaderComponent={
               listings.length > 0 ? (
-                <Text variant="caption" color="textMuted" style={{ marginBottom: theme.spacing.sm }}>
+                <Text
+                  variant="caption"
+                  color="textMuted"
+                  style={{
+                    marginBottom: theme.spacing.sm,
+                    paddingHorizontal: viewMode === 'gallery' ? 0 : horizontalPadding,
+                  }}
+                >
                   {t('discover.resultCount', { count: listings.length })}
                 </Text>
               ) : null
@@ -331,6 +370,14 @@ const styles = StyleSheet.create({
   header: { gap: 8 },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   titleText: { flex: 1 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  iconButton: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
   searchRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 4 },
   filterButton: {
     width: 46,

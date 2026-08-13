@@ -112,7 +112,7 @@ export function useLayout() {
       isCompact: width < breakpoints.md,
       maxContentWidth,
       /** Columns for a cover grid at this width. */
-      gridColumns: width >= breakpoints.xl ? 6 : width >= breakpoints.lg ? 5 : width >= breakpoints.md ? 4 : 3,
+      gridColumns: width >= breakpoints.xl ? 8 : width >= breakpoints.lg ? 7 : width >= breakpoints.md ? 5 : 4,
     };
   }, [width, height]);
 }
