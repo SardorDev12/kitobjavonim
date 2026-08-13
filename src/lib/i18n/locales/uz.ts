@@ -114,6 +114,8 @@ export const uz: LocaleCatalogue = {
   'library.sort.finished': 'Yaqinda oʻqilgan',
   'library.sort.shelf': 'Javondagi oʻrni',
   'library.bookCount': '{{count}} ta kitob',
+  'library.viewGallery': 'Galereya koʻrinishiga oʻtish',
+  'library.viewList': 'Roʻyxat koʻrinishiga oʻtish',
   'library.bookCount_one': '{{count}} ta kitob',
   'library.bookCount_other': '{{count}} ta kitob',
 

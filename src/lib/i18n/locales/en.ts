@@ -112,6 +112,8 @@ export const en = {
   // what callers pass to `t()` and what `translate()` falls back to; the
   // suffixed entries are chosen by Intl.PluralRules and never referenced by name.
   'library.bookCount': '{{count}} books',
+  'library.viewGallery': 'Switch to gallery view',
+  'library.viewList': 'Switch to list view',
   'library.bookCount_one': '{{count}} book',
   'library.bookCount_other': '{{count}} books',
 

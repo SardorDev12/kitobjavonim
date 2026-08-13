@@ -110,6 +110,8 @@ export const ru: LocaleCatalogue = {
   'library.sort.finished': 'Недавно прочитанные',
   'library.sort.shelf': 'Месту на полке',
   'library.bookCount': '{{count}} книг',
+  'library.viewGallery': 'Показать сеткой',
+  'library.viewList': 'Показать списком',
   'library.bookCount_one': '{{count}} книга',
   'library.bookCount_few': '{{count}} книги',
   'library.bookCount_many': '{{count}} книг',

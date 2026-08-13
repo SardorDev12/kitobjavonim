@@ -92,7 +92,11 @@ export function BookCard({ entry, onPress }: { entry: LibraryEntry; onPress: () 
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-start' },
-  body: { flex: 1, gap: 4 },
+  // flex: 1 alone let the title/author column stretch to the full row width —
+  // fine on a phone, but on a wide desktop window a two-word title ends up
+  // alone on a line 800px wide. Capping it keeps text at a reading measure
+  // while still shrinking on narrow screens.
+  body: { flex: 1, maxWidth: 480, gap: 4 },
   meta: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 2 },
   location: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   locationText: { flex: 1 },
