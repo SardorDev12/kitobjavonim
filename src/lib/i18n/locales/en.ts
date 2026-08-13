@@ -80,6 +80,8 @@ export const en = {
   'onboarding.showPhoneHint': 'Off by default. Your number is never shown on public listings.',
   'onboarding.contactWarning': 'Add at least one way to be contacted before you list books.',
   'onboarding.finish': 'Get started',
+  'onboarding.skip': 'Skip for now',
+  'onboarding.defaultName': 'Reader',
 
   'tabs.library': 'Library',
   'tabs.discover': 'Exchange',

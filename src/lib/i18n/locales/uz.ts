@@ -84,6 +84,8 @@ export const uz: LocaleCatalogue = {
     'Standart holatda oʻchirilgan. Raqamingiz ochiq eʼlonlarda hech qachon koʻrsatilmaydi.',
   'onboarding.contactWarning': 'Kitob eʼlon qilishdan oldin kamida bitta bogʻlanish usulini qoʻshing.',
   'onboarding.finish': 'Boshlash',
+  'onboarding.skip': 'Hozircha oʻtkazib yuborish',
+  'onboarding.defaultName': 'Kitobxon',
 
   'tabs.library': 'Kutubxona',
   'tabs.discover': 'Almashuv',

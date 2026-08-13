@@ -80,6 +80,8 @@ export const ru: LocaleCatalogue = {
     'По умолчанию выключено. Ваш номер никогда не публикуется в открытых объявлениях.',
   'onboarding.contactWarning': 'Добавьте хотя бы один способ связи, прежде чем выставлять книги.',
   'onboarding.finish': 'Начать',
+  'onboarding.skip': 'Пропустить пока',
+  'onboarding.defaultName': 'Читатель',
 
   'tabs.library': 'Библиотека',
   'tabs.discover': 'Обмен',
