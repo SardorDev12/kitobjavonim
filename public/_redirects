@@ -23,11 +23,20 @@
 #   2. An underscore-prefixed flat name (_book-shell.html) *also* broke —
 #      Cloudflare reserves leading-underscore filenames for its own config
 #      (_redirects, _headers, _worker.js) and won't serve them as normal
-#      content, confirmed by the .html silently vanishing from the URL bar
-#      on request rather than the file loading.
-# A flat name with neither problem is what's left.
-/book/*      /book-shell.html      200
-/listing/*   /listing-shell.html   200
+#      content.
+#
+# The target is written WITHOUT the .html suffix on purpose (the file on
+# disk is still book-shell.html — Cloudflare's default html_handling mode,
+# auto-trailing-slash, maps a request for the extensionless path straight to
+# that file with a plain 200, same as it does for every other route). Ending
+# the rewrite destination in .html instead breaks deep-linking: that same
+# auto-trailing-slash mode 307-redirects any request that resolves to a
+# *.html path to its extensionless form, which fires again on top of this
+# rewrite's own destination — confirmed by refreshing /book/<id> and landing
+# on /book-shell with no id, which Expo Router then reports as Unmatched
+# Route since /book-shell isn't a real app route.
+/book/*      /book-shell      200
+/listing/*   /listing-shell   200
 
 # The custom 404 page is handled separately, via wrangler.jsonc's
 # assets.not_found_handling ("404-page") — Cloudflare's _redirects here only
