@@ -10,8 +10,9 @@ import { setPendingBook } from '@/features/add/pendingBook';
 import { emptyCandidate } from '@/lib/books/metadata';
 import { normalizeIsbn } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
-import { pickAndUploadBookCover } from '@/lib/images';
+import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
 import { scanCoverText } from '@/lib/ocr';
+import { useImageDropZone } from '@/lib/useImageDropZone';
 import { useTheme } from '@/theme';
 
 /**
@@ -64,6 +65,21 @@ export default function ManualEntryScreen() {
       setCoverUploading(false);
     }
   }
+
+  async function dropCover(file: File) {
+    if (!user || coverUploading) return;
+
+    setCoverUploading(true);
+    setScanMessage(null);
+    try {
+      const url = await uploadDroppedBookCover(user.id, file);
+      if (url) setCoverUrl(url);
+    } finally {
+      setCoverUploading(false);
+    }
+  }
+
+  const { ref: coverDropRef, isDragOver: coverDragOver } = useImageDropZone(dropCover, !coverUploading);
 
   // Pre-fills only — free OCR on a photographed cover is a good guess, not a
   // fact, so this never overwrites text the user already typed and every
@@ -128,11 +144,21 @@ export default function ManualEntryScreen() {
         <Text variant="display">{t('manual.title')}</Text>
 
         <Pressable
+          ref={coverDropRef}
           onPress={pickCover}
           disabled={coverUploading}
           accessibilityRole="button"
           accessibilityLabel={t('manual.cover')}
-          style={({ pressed }) => [styles.coverRow, { opacity: pressed || coverUploading ? 0.7 : 1 }]}
+          style={({ pressed }) => [
+            styles.coverRow,
+            { opacity: pressed || coverUploading ? 0.7 : 1 },
+            coverDragOver && {
+              borderRadius: theme.radius.md,
+              outlineStyle: 'dashed',
+              outlineWidth: 2,
+              outlineColor: theme.colors.primary,
+            },
+          ]}
         >
           <BookCover uri={coverUrl} title={title || t('manual.bookTitle')} width={80} radius={theme.radius.sm} />
           <View style={styles.coverAction}>
@@ -142,7 +168,13 @@ export default function ManualEntryScreen() {
               color={theme.colors.primary}
             />
             <Text variant="label" color="primary">
-              {coverUploading ? t('common.saving') : coverUrl ? t('manual.changeCover') : t('manual.addCover')}
+              {coverUploading
+                ? t('common.saving')
+                : coverUrl
+                  ? t('manual.changeCover')
+                  : Platform.OS === 'web'
+                    ? t('manual.addCoverWeb')
+                    : t('manual.addCover')}
             </Text>
           </View>
         </Pressable>

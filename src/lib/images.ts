@@ -156,6 +156,17 @@ export async function pickAndUploadBookCover(userId: string): Promise<string | n
   return publicUrlFor('book-photos', path);
 }
 
+/** Same as pickAndUploadBookCover, but for a file dropped onto the page (web). */
+export async function uploadDroppedBookCover(userId: string, file: File): Promise<string | null> {
+  const image = await fileToPickedImage(file, MAX_EDGE);
+  if (!image) return null;
+
+  const path = `${userId}/covers/${Date.now()}.${image.extension}`;
+  await upload('book-photos', path, image);
+
+  return publicUrlFor('book-photos', path);
+}
+
 export async function pickAndUploadAvatar(userId: string): Promise<string | null> {
   const image = await pickAndCompress(AVATAR_EDGE);
   if (!image) return null;

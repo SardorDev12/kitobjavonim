@@ -225,6 +225,7 @@ export const en = {
   'manual.pages': 'Pages',
   'manual.cover': 'Cover photo',
   'manual.addCover': 'Add cover',
+  'manual.addCoverWeb': 'Add or drag in a cover',
   'manual.changeCover': 'Change cover',
   'manual.scanCover': 'Scan cover for title & author',
   'manual.scanning': 'Reading cover…',

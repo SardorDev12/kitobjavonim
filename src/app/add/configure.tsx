@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { BookCover } from '@/components/BookCover';
 import { CategoryPicker } from '@/components/CategoryPicker';
@@ -11,7 +11,8 @@ import { setPendingBook, usePendingBook } from '@/features/add/pendingBook';
 import type { BookCandidate } from '@/lib/books/metadata';
 import { formatAuthors, normalizeIsbn } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
-import { pickAndUploadBookCover } from '@/lib/images';
+import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
+import { useImageDropZone } from '@/lib/useImageDropZone';
 import { usePositionOptions } from '@/lib/queries/bookshelves';
 import { useSetBookCategories } from '@/lib/queries/categories';
 import { useAddBook, useLibrary, useSimilarBooks } from '@/lib/queries/library';
@@ -329,6 +330,19 @@ function CandidateEditSheet({
     }
   }
 
+  async function dropCover(file: File) {
+    if (!user || coverUploading) return;
+    setCoverUploading(true);
+    try {
+      const url = await uploadDroppedBookCover(user.id, file);
+      if (url) setCoverUrl(url);
+    } finally {
+      setCoverUploading(false);
+    }
+  }
+
+  const { ref: coverDropRef, isDragOver: coverDragOver } = useImageDropZone(dropCover, !coverUploading);
+
   function save() {
     if (!title.trim()) {
       setTitleError(t('manual.titleRequired'));
@@ -362,11 +376,21 @@ function CandidateEditSheet({
     <Sheet visible={visible} onClose={onClose} title={t('add.editDetails')}>
       <View style={{ gap: theme.spacing.lg }}>
         <Pressable
+          ref={coverDropRef}
           onPress={pickCover}
           disabled={coverUploading}
           accessibilityRole="button"
           accessibilityLabel={t('manual.cover')}
-          style={({ pressed }) => [styles.editCoverRow, { opacity: pressed || coverUploading ? 0.7 : 1 }]}
+          style={({ pressed }) => [
+            styles.editCoverRow,
+            { opacity: pressed || coverUploading ? 0.7 : 1 },
+            coverDragOver && {
+              borderRadius: theme.radius.md,
+              outlineStyle: 'dashed',
+              outlineWidth: 2,
+              outlineColor: theme.colors.primary,
+            },
+          ]}
         >
           <BookCover uri={coverUrl} title={title || candidate.title} width={80} radius={theme.radius.sm} />
           <View style={styles.editCoverAction}>
@@ -376,7 +400,13 @@ function CandidateEditSheet({
               color={theme.colors.primary}
             />
             <Text variant="label" color="primary">
-              {coverUploading ? t('common.saving') : coverUrl ? t('manual.changeCover') : t('manual.addCover')}
+              {coverUploading
+                ? t('common.saving')
+                : coverUrl
+                  ? t('manual.changeCover')
+                  : Platform.OS === 'web'
+                    ? t('manual.addCoverWeb')
+                    : t('manual.addCover')}
             </Text>
           </View>
         </Pressable>

@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { useI18n } from '@/lib/i18n';
+import { useImageDropZone } from '@/lib/useImageDropZone';
 import { useAddListingPhoto, useDeleteListingPhoto, useOwnListingPhotos } from '@/lib/queries/photos';
 import { useTheme } from '@/theme';
 
@@ -29,56 +29,10 @@ export function PhotoManager({ userBookId }: { userBookId: string }) {
   const list = photos ?? [];
   const canAddMore = list.length < MAX_PHOTOS;
 
-  // Web-only: react-native-web renders a View as a real <div>, so the ref
-  // gives direct access to the DOM node for native drag-and-drop events —
-  // there is no RN-level equivalent to wire this through props instead.
-  const dropZoneRef = useRef<View>(null);
-  const [isDragOver, setIsDragOver] = useState(false);
-
-  useEffect(() => {
-    if (Platform.OS !== 'web') return;
-
-    const node = dropZoneRef.current as unknown as HTMLElement | null;
-    if (!node) return;
-
-    let dragDepth = 0;
-
-    const onDragEnter = (event: DragEvent) => {
-      if (!canAddMore) return;
-      event.preventDefault();
-      dragDepth += 1;
-      setIsDragOver(true);
-    };
-    const onDragOver = (event: DragEvent) => {
-      if (!canAddMore) return;
-      event.preventDefault();
-    };
-    const onDragLeave = (event: DragEvent) => {
-      event.preventDefault();
-      dragDepth = Math.max(0, dragDepth - 1);
-      if (dragDepth === 0) setIsDragOver(false);
-    };
-    const onDrop = (event: DragEvent) => {
-      event.preventDefault();
-      dragDepth = 0;
-      setIsDragOver(false);
-
-      const file = event.dataTransfer?.files?.[0];
-      if (file && canAddMore) addPhoto.mutate({ userBookId, sortOrder: list.length, file });
-    };
-
-    node.addEventListener('dragenter', onDragEnter);
-    node.addEventListener('dragover', onDragOver);
-    node.addEventListener('dragleave', onDragLeave);
-    node.addEventListener('drop', onDrop);
-
-    return () => {
-      node.removeEventListener('dragenter', onDragEnter);
-      node.removeEventListener('dragover', onDragOver);
-      node.removeEventListener('dragleave', onDragLeave);
-      node.removeEventListener('drop', onDrop);
-    };
-  }, [canAddMore, addPhoto, userBookId, list.length]);
+  const { ref: dropZoneRef, isDragOver } = useImageDropZone(
+    (file) => addPhoto.mutate({ userBookId, sortOrder: list.length, file }),
+    canAddMore
+  );
 
   return (
     <View ref={dropZoneRef} style={{ gap: theme.spacing.sm }}>

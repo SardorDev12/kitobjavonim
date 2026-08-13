@@ -226,6 +226,7 @@ export const ru: LocaleCatalogue = {
   'manual.pages': 'Страниц',
   'manual.cover': 'Обложка',
   'manual.addCover': 'Добавить обложку',
+  'manual.addCoverWeb': 'Добавьте или перетащите обложку',
   'manual.changeCover': 'Изменить обложку',
   'manual.scanCover': 'Распознать название и автора с обложки',
   'manual.scanning': 'Читаем обложку…',

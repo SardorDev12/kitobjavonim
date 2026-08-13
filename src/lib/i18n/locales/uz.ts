@@ -228,6 +228,7 @@ export const uz: LocaleCatalogue = {
   'manual.pages': 'Sahifalar',
   'manual.cover': 'Muqova surati',
   'manual.addCover': 'Muqova qoʻshish',
+  'manual.addCoverWeb': 'Qoʻshing yoki muqovani shu yerga tashlang',
   'manual.changeCover': 'Muqovani almashtirish',
   'manual.scanCover': 'Muqovadan nom va muallifni aniqlash',
   'manual.scanning': 'Muqova oʻqilmoqda…',

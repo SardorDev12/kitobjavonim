@@ -28,7 +28,8 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { describeError } from '@/lib/errors';
 import { formatAuthors, formatDate, formatPosition, formatPrice, normalizeIsbn, parsePriceInput } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
-import { pickAndUploadBookCover } from '@/lib/images';
+import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
+import { useImageDropZone } from '@/lib/useImageDropZone';
 import { usePositionOptions } from '@/lib/queries/bookshelves';
 import { useBookCategories, useSetBookCategories } from '@/lib/queries/categories';
 import {
@@ -555,6 +556,19 @@ function EditBookSheet({
     }
   }
 
+  async function dropCover(file: File) {
+    if (!user || coverUploading) return;
+    setCoverUploading(true);
+    try {
+      const url = await uploadDroppedBookCover(user.id, file);
+      if (url) setCoverUrl(url);
+    } finally {
+      setCoverUploading(false);
+    }
+  }
+
+  const { ref: coverDropRef, isDragOver: coverDragOver } = useImageDropZone(dropCover, !coverUploading);
+
   function save() {
     if (!title.trim()) {
       setTitleError(t('manual.titleRequired'));
@@ -588,11 +602,21 @@ function EditBookSheet({
     <Sheet visible={visible} onClose={onClose} title={t('book.editDetails')}>
       <View style={{ gap: theme.spacing.lg }}>
         <Pressable
+          ref={coverDropRef}
           onPress={pickCover}
           disabled={coverUploading}
           accessibilityRole="button"
           accessibilityLabel={t('manual.cover')}
-          style={({ pressed }) => [styles.editCoverRow, { opacity: pressed || coverUploading ? 0.7 : 1 }]}
+          style={({ pressed }) => [
+            styles.editCoverRow,
+            { opacity: pressed || coverUploading ? 0.7 : 1 },
+            coverDragOver && {
+              borderRadius: theme.radius.md,
+              outlineStyle: 'dashed',
+              outlineWidth: 2,
+              outlineColor: theme.colors.primary,
+            },
+          ]}
         >
           <BookCover uri={coverUrl} title={title || entry.title} width={80} radius={theme.radius.sm} />
           <View style={styles.editCoverAction}>
@@ -602,7 +626,13 @@ function EditBookSheet({
               color={theme.colors.primary}
             />
             <Text variant="label" color="primary">
-              {coverUploading ? t('common.saving') : coverUrl ? t('manual.changeCover') : t('manual.addCover')}
+              {coverUploading
+                ? t('common.saving')
+                : coverUrl
+                  ? t('manual.changeCover')
+                  : Platform.OS === 'web'
+                    ? t('manual.addCoverWeb')
+                    : t('manual.addCover')}
             </Text>
           </View>
         </Pressable>
