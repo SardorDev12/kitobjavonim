@@ -349,7 +349,11 @@ function CandidateEditSheet({
     }
   }
 
-  const { ref: coverDropRef, isDragOver: coverDragOver } = useImageDropZone(dropCover, !coverUploading);
+  const { ref: coverDropRef, isDragOver: coverDragOver } = useImageDropZone(
+    dropCover,
+    !coverUploading,
+    'add-configure-cover'
+  );
 
   function save() {
     if (!title.trim()) {

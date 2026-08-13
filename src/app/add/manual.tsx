@@ -87,7 +87,11 @@ export default function ManualEntryScreen() {
     }
   }
 
-  const { ref: coverDropRef, isDragOver: coverDragOver } = useImageDropZone(dropCover, !coverUploading);
+  const { ref: coverDropRef, isDragOver: coverDragOver } = useImageDropZone(
+    dropCover,
+    !coverUploading,
+    'add-manual-cover'
+  );
 
   // Pre-fills only — free OCR on a photographed cover is a good guess, not a
   // fact, so this never overwrites text the user already typed and every

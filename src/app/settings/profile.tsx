@@ -36,7 +36,8 @@ export default function EditProfileScreen() {
 
   const { ref: avatarDropRef, isDragOver: avatarDragOver } = useImageDropZone(
     (file) => uploadAvatar.mutate(file),
-    !uploadAvatar.isPending
+    !uploadAvatar.isPending,
+    'avatar'
   );
 
   const draftHasContact = hasContactMethod({

@@ -14,14 +14,22 @@ import { Platform, type View } from 'react-native';
  * arrow function at the call site doesn't tear down and re-attach the
  * listeners on every render.
  */
-export function useImageDropZone(onDrop: (file: File) => void, enabled = true) {
+export function useImageDropZone(onDrop: (file: File) => void, enabled = true, debugLabel?: string) {
   const ref = useRef<View>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const onDropRef = useRef(onDrop);
   onDropRef.current = onDrop;
 
   useEffect(() => {
-    if (Platform.OS !== 'web' || !enabled) return;
+    if (Platform.OS !== 'web') return;
+
+    // TEMP DIAGNOSTIC — remove once the add/edit-book drop reports are resolved.
+    if (debugLabel) {
+      // eslint-disable-next-line no-console
+      console.log(`[dragzone:${debugLabel}] effect ran, enabled=${enabled}, node=`, ref.current);
+    }
+
+    if (!enabled) return;
 
     const node = ref.current as unknown as HTMLElement | null;
     if (!node) return;
@@ -29,6 +37,7 @@ export function useImageDropZone(onDrop: (file: File) => void, enabled = true) {
     let dragDepth = 0;
 
     const handleDragEnter = (event: DragEvent) => {
+      if (debugLabel) console.log(`[dragzone:${debugLabel}] dragenter`); // eslint-disable-line no-console
       event.preventDefault();
       dragDepth += 1;
       setIsDragOver(true);
@@ -42,6 +51,10 @@ export function useImageDropZone(onDrop: (file: File) => void, enabled = true) {
       if (dragDepth === 0) setIsDragOver(false);
     };
     const handleDrop = (event: DragEvent) => {
+      if (debugLabel) {
+        // eslint-disable-next-line no-console
+        console.log(`[dragzone:${debugLabel}] drop, files=`, event.dataTransfer?.files);
+      }
       event.preventDefault();
       dragDepth = 0;
       setIsDragOver(false);
@@ -61,7 +74,7 @@ export function useImageDropZone(onDrop: (file: File) => void, enabled = true) {
       node.removeEventListener('dragleave', handleDragLeave);
       node.removeEventListener('drop', handleDrop);
     };
-  }, [enabled]);
+  }, [enabled, debugLabel]);
 
   return { ref, isDragOver };
 }

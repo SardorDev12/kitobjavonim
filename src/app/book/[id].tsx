@@ -522,7 +522,11 @@ function EditBookSheet({
     }
   }
 
-  const { ref: coverDropRef, isDragOver: coverDragOver } = useImageDropZone(dropCover, !coverUploading);
+  const { ref: coverDropRef, isDragOver: coverDragOver } = useImageDropZone(
+    dropCover,
+    !coverUploading,
+    'book-edit-cover'
+  );
 
   function save() {
     if (!title.trim()) {
