@@ -79,6 +79,13 @@ export default function DiscoverScreen() {
     listWidth > 0
       ? Math.max(2, Math.floor((listWidth - horizontalPadding * 2 + gutter) / (GALLERY_TILE_WIDTH + gutter)))
       : 0;
+  // See Library's identical calculation — widened past the base gutter so a
+  // full row's tiles reach the row's right edge exactly, while a partial
+  // last row keeps that same spacing and stays packed to the left.
+  const galleryRowGap =
+    galleryColumns > 1
+      ? Math.max(gutter, (listWidth - horizontalPadding * 2 - galleryColumns * GALLERY_TILE_WIDTH) / (galleryColumns - 1))
+      : gutter;
 
   return (
     <View style={[styles.fill, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
@@ -206,10 +213,10 @@ export default function DiscoverScreen() {
             data={listings}
             numColumns={viewMode === 'gallery' ? Math.max(galleryColumns, 1) : 1}
             keyExtractor={(item) => item.id}
-            // See Library's identical change/revert — space-between spread a
-            // partial last row's tiles to the far edges, leaving a visibly
-            // empty gap in between rather than looking intentional.
-            columnWrapperStyle={viewMode === 'gallery' && galleryColumns > 1 ? { gap: gutter } : undefined}
+            // See Library's identical change — galleryRowGap makes a full
+            // row's tiles reach the row's right edge exactly, while a
+            // partial row keeps that same spacing and stays packed left.
+            columnWrapperStyle={viewMode === 'gallery' && galleryColumns > 1 ? { gap: galleryRowGap } : undefined}
             contentContainerStyle={[
               listings.length === 0 && styles.fill,
               viewMode === 'gallery' && { paddingHorizontal: horizontalPadding },
