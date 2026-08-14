@@ -1,6 +1,6 @@
 import { Link, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button, EmptyState, Screen, Text, TextField } from '@/components/ui';
 import { useI18n } from '@/lib/i18n';
@@ -74,12 +74,11 @@ export default function SignUpScreen() {
 
   return (
     <Screen scroll scrollRef={scrollRef}>
-      <KeyboardAvoidingView
-        // See sign-in.tsx's identical change for why Android needs a real
-        // behavior now instead of relying on the OS's own window resize.
-        behavior={Platform.select({ ios: 'padding', android: 'height', default: undefined })}
-        style={styles.flex}
-      >
+      {/* See sign-in.tsx's identical structure — no KeyboardAvoidingView
+          here; it would be nested inside Screen's ScrollView, so it can't
+          affect what the ScrollView considers scrollable. Screen itself
+          handles the keyboard. */}
+      <View style={styles.flex}>
         <View style={[styles.container, { paddingTop: theme.spacing['3xl'], gap: theme.spacing.lg }]}>
           <Text variant="display">{t('auth.signUp')}</Text>
 
@@ -142,7 +141,7 @@ export default function SignUpScreen() {
             </Link>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Screen>
   );
 }

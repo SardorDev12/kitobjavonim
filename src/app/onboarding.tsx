@@ -1,6 +1,6 @@
 import type { User } from '@supabase/supabase-js';
 import { useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button, Screen, Select, Text, TextField, Toggle } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -91,12 +91,11 @@ export default function OnboardingScreen() {
 
   return (
     <Screen scroll scrollRef={scrollRef}>
-      <KeyboardAvoidingView
-        // See sign-in.tsx's identical change for why Android needs a real
-        // behavior now instead of relying on the OS's own window resize.
-        behavior={Platform.select({ ios: 'padding', android: 'height', default: undefined })}
-        style={styles.flex}
-      >
+      {/* See sign-in.tsx's identical structure — no KeyboardAvoidingView
+          here; it would be nested inside Screen's ScrollView, so it can't
+          affect what the ScrollView considers scrollable. Screen itself
+          handles the keyboard. */}
+      <View style={styles.flex}>
         <View style={[styles.container, { paddingTop: theme.spacing['3xl'], gap: theme.spacing.lg }]}>
           <View style={{ gap: theme.spacing.sm }}>
             <Text variant="display">{t('onboarding.title')}</Text>
@@ -194,7 +193,7 @@ export default function OnboardingScreen() {
             onPress={skip}
           />
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Screen>
   );
 }

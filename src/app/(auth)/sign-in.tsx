@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { isAppleSignInAvailable, signInWithApple, signInWithOAuth, signInWithTelegram } from '@/features/auth/providers';
 import { useI18n } from '@/lib/i18n';
@@ -48,16 +48,12 @@ export default function SignInScreen() {
 
   return (
     <Screen scroll scrollRef={scrollRef}>
-      <KeyboardAvoidingView
-        // 'undefined' on Android used to be enough — the OS's own
-        // adjustResize would shrink the window for the keyboard on its own.
-        // Edge-to-edge (mandatory since Expo SDK 54) changed that: the app
-        // has to consume the keyboard inset itself now, which is what
-        // 'height' does; without it, the password field this wraps ends up
-        // hidden behind the keyboard instead of scrolled into view.
-        behavior={Platform.select({ ios: 'padding', android: 'height', default: undefined })}
-        style={styles.flex}
-      >
+      {/* No KeyboardAvoidingView here — it would wrap this content, but it's
+          already inside Screen's ScrollView, so resizing it can't affect
+          what the ScrollView considers scrollable. The keyboard is handled
+          by Screen itself (extra bottom padding while it's open) plus
+          scrollToEndOnKeyboardShow on the password field below. */}
+      <View style={styles.flex}>
         <View style={[styles.container, { paddingTop: theme.spacing['4xl'], gap: theme.spacing.xl }]}>
           <View style={{ gap: theme.spacing.sm }}>
             <View style={[styles.mark, { backgroundColor: theme.colors.primarySoft, borderRadius: theme.radius.lg }]}>
@@ -180,7 +176,7 @@ export default function SignInScreen() {
             </Link>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Screen>
   );
 }
