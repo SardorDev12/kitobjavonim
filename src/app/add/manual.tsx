@@ -111,11 +111,8 @@ export default function ManualEntryScreen() {
       if (filledAuthors) setAuthors(result!.authors.join(', '));
 
       setScanMessage(filledTitle || filledAuthors ? t('manual.scanFilled') : t('manual.scanEmpty'));
-    } catch (cause) {
-      // Surfaces the Edge Function's own message (e.g. a Gemini quota/model
-      // error) when there is one, rather than a generic failure notice that
-      // looks identical whether the service is down or just misconfigured.
-      setScanMessage(cause instanceof Error && cause.message ? cause.message : t('manual.scanFailed'));
+    } catch {
+      setScanMessage(t('manual.scanFailed'));
     } finally {
       setScanning(false);
     }

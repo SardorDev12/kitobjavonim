@@ -17,34 +17,24 @@ export type CoverScanResult = {
  * font-size heuristics.
  *
  * This is optional infrastructure — see supabase/functions/scan-cover/README.md.
- * A genuine failure to reach the function at all (never deployed, no
- * network) resolves to `null` so callers can treat that as "no scan
- * available" and simply not show the button, same as before this feature
- * existed. Once the function does respond, though, its own error message
- * (e.g. a Gemini quota/model error) is thrown rather than swallowed —
- * collapsing every failure to the same silent `null` made a real outage
- * indistinguishable from "the cover has no readable text," which is exactly
- * the wrong thing to hide from whoever's trying to find out why scanning
- * stopped working.
+ * If the function was never deployed, this fails closed rather than
+ * throwing, so callers can treat `null` as "no scan available" and simply
+ * not show the button, same as before this feature existed.
  *
  * Pre-fills editable fields only, never saves unattended: cover typography
  * and OCR/LLM accuracy both vary too much for more than a guess.
  */
 export async function scanCoverText(imageUrl: string): Promise<CoverScanResult | null> {
-  const { data, error } = await supabase.functions.invoke<{
-    title: string | null;
-    authors: string[];
-    error?: string;
-  }>('scan-cover', { body: { imageUrl } });
+  try {
+    const { data, error } = await supabase.functions.invoke<{
+      title: string | null;
+      authors: string[];
+      error?: string;
+    }>('scan-cover', { body: { imageUrl } });
 
-  if (error) {
-    // supabase-js doesn't parse a non-2xx body into `data` — the function's
-    // own error message lives in the raw Response on `error.context`.
-    const detail = await (error as { context?: Response }).context?.json?.().catch(() => null);
-    throw new Error(detail?.error ?? error.message);
+    if (error || !data || data.error) return null;
+    return { title: data.title, authors: data.authors };
+  } catch {
+    return null;
   }
-  if (!data) return null;
-  if (data.error) throw new Error(data.error);
-
-  return { title: data.title, authors: data.authors };
 }
