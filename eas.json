@@ -8,8 +8,10 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_SUPABASE_URL": "",
-        "EXPO_PUBLIC_SUPABASE_ANON_KEY": ""
+        "EXPO_PUBLIC_SUPABASE_URL": "https://ahpsnvxpduaqrkvmpfck.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_nM9zD2eA5FtbkwEG_ISdnQ_W8ae4FQ3",
+        "EXPO_PUBLIC_TELEGRAM_BOT_USERNAME": "home_library_signin_bot",
+        "EXPO_PUBLIC_WEB_ORIGIN": "https://kitobjavonim-staging.sardorfarhodogli.workers.dev"
       }
     },
     "preview": {
