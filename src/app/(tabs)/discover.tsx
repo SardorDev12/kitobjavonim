@@ -7,11 +7,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { GALLERY_TILE_WIDTH } from '@/components/BookCover';
 import { ListingCard } from '@/components/ListingCard';
 import { ListingRow } from '@/components/ListingRow';
+import { PullToRefreshIndicator } from '@/components/PullToRefreshIndicator';
 import { Button, Chip, ChipRow, EmptyState, LoadingState, Screen, Select, Sheet, Text, TextField } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useI18n } from '@/lib/i18n';
 import { emptyListingFilters, useListings, type ListingFilters } from '@/lib/queries/listings';
 import { useCategoryOptions, useLocationOptions } from '@/lib/queries/reference';
+import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useTheme } from '@/theme';
 import { BOOK_CONDITIONS, type BookCondition } from '@/types/database';
 
@@ -54,6 +56,7 @@ export default function DiscoverScreen() {
   }, [searchInput]);
 
   const { data, isPending, isError, refetch, isRefetching } = useListings(filters);
+  const { pullDistance, handlers: pullHandlers } = usePullToRefresh(refetch, isRefetching);
   const locations = useLocationOptions();
 
   const listings = data ?? [];
@@ -196,6 +199,8 @@ export default function DiscoverScreen() {
             onAction={() => refetch()}
           />
         ) : (
+          <>
+          <PullToRefreshIndicator pullDistance={pullDistance} refreshing={isRefetching} />
           <FlatList
             key={viewMode === 'gallery' ? `gallery-${galleryColumns}` : 'list'}
             data={listings}
@@ -207,6 +212,8 @@ export default function DiscoverScreen() {
               viewMode === 'gallery' && { paddingHorizontal: horizontalPadding },
               { paddingBottom: theme.spacing['2xl'], gap: viewMode === 'gallery' ? theme.spacing.xl : 0 },
             ]}
+            scrollEventThrottle={16}
+            {...pullHandlers}
             refreshControl={
               <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={theme.colors.primary} />
             }
@@ -265,6 +272,7 @@ export default function DiscoverScreen() {
               )
             }
           />
+          </>
         )}
       </View>
 

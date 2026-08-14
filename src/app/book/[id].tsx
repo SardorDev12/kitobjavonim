@@ -49,7 +49,7 @@ export default function BookDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user, profile } = useAuth();
 
-  const { data: entry, isPending, isError } = useLibraryEntry(id);
+  const { data: entry, isPending, isError, refetch, isRefetching } = useLibraryEntry(id);
   const positions = usePositionOptions();
   const updateBook = useUpdateUserBook();
   const updateBookDetails = useUpdateBook();
@@ -167,7 +167,7 @@ export default function BookDetailScreen() {
     <View style={styles.fill}>
       {header}
 
-      <Screen scroll>
+      <Screen scroll onRefresh={refetch} refreshing={isRefetching}>
       <View style={{ gap: theme.spacing.xl, paddingBottom: theme.spacing.xl }}>
         {/* ---------------------------------------------------------------- */}
         <View style={[styles.hero, { gap: theme.spacing.lg }]}>

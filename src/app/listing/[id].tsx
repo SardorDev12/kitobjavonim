@@ -40,7 +40,7 @@ export default function ListingDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user, profile } = useAuth();
 
-  const { data: listing, isPending, isError } = useListing(id);
+  const { data: listing, isPending, isError, refetch, isRefetching } = useListing(id);
   const { data: photos } = useListingPhotos(id);
   const locations = useLocationOptions();
   const updateListing = useUpdateUserBook();
@@ -142,7 +142,7 @@ export default function ListingDetailScreen() {
     <View style={styles.flex}>
       {header}
 
-      <Screen scroll>
+      <Screen scroll onRefresh={refetch} refreshing={isRefetching}>
       <View style={{ gap: theme.spacing.xl, paddingBottom: theme.spacing.lg }}>
         <View style={[styles.hero, { gap: theme.spacing.lg }]}>
           <BookCover uri={listing.cover_url} title={listing.title} width={120} radius={theme.radius.md} />

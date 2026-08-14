@@ -7,9 +7,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BookCard } from '@/components/BookCard';
 import { BookGridCard } from '@/components/BookGridCard';
 import { GALLERY_TILE_WIDTH } from '@/components/BookCover';
+import { PullToRefreshIndicator } from '@/components/PullToRefreshIndicator';
 import { Chip, ChipRow, EmptyState, LoadingState, Sheet, Text, TextField } from '@/components/ui';
 import { useI18n } from '@/lib/i18n';
 import { selectLibrary, useLibrary, type LibraryFilter, type LibrarySort } from '@/lib/queries/library';
+import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useTheme } from '@/theme';
 
 const FILTERS: LibraryFilter[] = ['all', 'want_to_read', 'reading', 'finished', 'exchange', 'sale'];
@@ -23,6 +25,7 @@ export default function LibraryScreen() {
   const insets = useSafeAreaInsets();
 
   const { data, isPending, isError, refetch, isRefetching } = useLibrary();
+  const { pullDistance, handlers: pullHandlers } = usePullToRefresh(refetch, isRefetching);
 
   // Stable across renders so memo on BookCard/BookGridCard has something to
   // compare — see their own comments for why that matters in a virtualized
@@ -163,6 +166,7 @@ export default function LibraryScreen() {
       </View>
 
       <View style={styles.fill} onLayout={(event) => setListWidth(event.nativeEvent.layout.width)}>
+      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={isRefetching} />
       <FlatList
         key={viewMode === 'gallery' ? `gallery-${galleryColumns}` : 'list'}
         data={entries}
@@ -183,6 +187,8 @@ export default function LibraryScreen() {
           viewMode === 'gallery' && { paddingHorizontal: horizontalPadding },
           { paddingBottom: theme.spacing['2xl'], gap: viewMode === 'gallery' ? theme.spacing.xl : 0 },
         ]}
+        scrollEventThrottle={16}
+        {...pullHandlers}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}

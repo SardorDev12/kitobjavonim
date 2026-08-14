@@ -1,8 +1,11 @@
 import type { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useLayout, useTheme } from '@/theme';
+
+import { PullToRefreshIndicator } from '../PullToRefreshIndicator';
 
 type ScreenProps = {
   children: ReactNode;
@@ -13,6 +16,9 @@ type ScreenProps = {
   style?: StyleProp<ViewStyle>;
   contentStyle?: StyleProp<ViewStyle>;
   footer?: ReactNode;
+  /** Pull-to-refresh, wired to a query's refetch. Requires `scroll`. */
+  onRefresh?: () => void;
+  refreshing?: boolean;
 };
 
 /**
@@ -22,10 +28,20 @@ type ScreenProps = {
  * desktop browser: content centres and stops growing past a comfortable reading
  * measure while the background still fills the window.
  */
-export function Screen({ children, scroll = false, padded = true, style, contentStyle, footer }: ScreenProps) {
+export function Screen({
+  children,
+  scroll = false,
+  padded = true,
+  style,
+  contentStyle,
+  footer,
+  onRefresh,
+  refreshing = false,
+}: ScreenProps) {
   const theme = useTheme();
   const { maxContentWidth } = useLayout();
   const insets = useSafeAreaInsets();
+  const { pullDistance, handlers: pullHandlers } = usePullToRefresh(onRefresh ?? noop, refreshing);
 
   const inner = (
     <View style={[styles.constrain, { maxWidth: maxContentWidth }, contentStyle]}>{children}</View>
@@ -44,7 +60,15 @@ export function Screen({ children, scroll = false, padded = true, style, content
           ]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
+          scrollEventThrottle={16}
+          {...(onRefresh ? pullHandlers : null)}
+          refreshControl={
+            onRefresh ? (
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
+            ) : undefined
+          }
         >
+          {onRefresh ? <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} /> : null}
           {inner}
         </ScrollView>
       ) : (
@@ -70,6 +94,8 @@ export function Screen({ children, scroll = false, padded = true, style, content
     </View>
   );
 }
+
+function noop() {}
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
