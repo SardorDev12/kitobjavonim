@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { isAppleSignInAvailable, signInWithApple, signInWithOAuth, signInWithTelegram } from '@/features/auth/providers';
 import { useI18n } from '@/lib/i18n';
@@ -18,6 +18,7 @@ export default function SignInScreen() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<null | 'email' | 'google' | 'apple' | 'telegram'>(null);
   const [appleAvailable, setAppleAvailable] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     isAppleSignInAvailable().then(setAppleAvailable);
@@ -45,7 +46,7 @@ export default function SignInScreen() {
     });
 
   return (
-    <Screen scroll>
+    <Screen scroll scrollRef={scrollRef}>
       <KeyboardAvoidingView
         // 'undefined' on Android used to be enough — the OS's own
         // adjustResize would shrink the window for the keyboard on its own.
@@ -134,6 +135,12 @@ export default function SignInScreen() {
               textContentType="password"
               onSubmitEditing={signInWithEmail}
               returnKeyType="go"
+              // Android's ScrollView doesn't reliably scroll a focused field
+              // into view on its own (see Screen's scrollRef comment) — this
+              // field sits below three provider buttons and a divider, so
+              // without this the keyboard covers it entirely rather than
+              // just partially.
+              onFocus={() => scrollRef.current?.scrollToEnd({ animated: true })}
             />
 
             {error ? (

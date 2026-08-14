@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import { Platform, RefreshControl, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -29,6 +29,14 @@ type ScreenProps = {
   /** Pull-to-refresh, wired to a query's refetch. Requires `scroll`. */
   onRefresh?: () => void;
   refreshing?: boolean;
+  /**
+   * Exposes the underlying ScrollView so a caller can scroll a focused field
+   * into view by hand — Android's ScrollView doesn't reliably do this on its
+   * own the way iOS's does, especially now that KeyboardAvoidingView has to
+   * actively resize the viewport itself under edge-to-edge rather than the
+   * OS doing it. Requires `scroll`.
+   */
+  scrollRef?: RefObject<ScrollView | null>;
 };
 
 /**
@@ -47,6 +55,7 @@ export function Screen({
   footer,
   onRefresh,
   refreshing = false,
+  scrollRef,
 }: ScreenProps) {
   const theme = useTheme();
   const { maxContentWidth } = useLayout();
@@ -63,6 +72,7 @@ export function Screen({
     <View style={[styles.root, { backgroundColor: theme.colors.background }, style]}>
       {scroll ? (
         <ScrollView
+          ref={scrollRef}
           // A bare `flex: 1` here, and nothing else — without it a ScrollView
           // with no other height constraint sizes itself to its *content*
           // rather than to the space available in this flex-column root, on

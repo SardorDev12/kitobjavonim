@@ -1,6 +1,6 @@
 import type { User } from '@supabase/supabase-js';
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button, Screen, Select, Text, TextField, Toggle } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -44,6 +44,7 @@ export default function OnboardingScreen() {
   const [showPhone, setShowPhone] = useState(profile?.show_phone ?? false);
   const [error, setError] = useState<string | null>(null);
   const [skipping, setSkipping] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   const districts = locations.districtsFor(regionId);
 
@@ -88,7 +89,7 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <Screen scroll>
+    <Screen scroll scrollRef={scrollRef}>
       <KeyboardAvoidingView
         // See sign-in.tsx's identical change for why Android needs a real
         // behavior now instead of relying on the OS's own window resize.
@@ -138,6 +139,9 @@ export default function OnboardingScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             placeholder="username"
+            // See sign-in.tsx's identical field — Android's ScrollView
+            // doesn't reliably bring a focused field into view on its own.
+            onFocus={() => scrollRef.current?.scrollToEnd({ animated: true })}
           />
 
           <Toggle
@@ -155,6 +159,7 @@ export default function OnboardingScreen() {
             keyboardType="phone-pad"
             inputMode="tel"
             placeholder="+998 90 123 45 67"
+            onFocus={() => scrollRef.current?.scrollToEnd({ animated: true })}
           />
 
           <Toggle

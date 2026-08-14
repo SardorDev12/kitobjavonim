@@ -1,6 +1,6 @@
 import { Link, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button, EmptyState, Screen, Text, TextField } from '@/components/ui';
 import { useI18n } from '@/lib/i18n';
@@ -19,6 +19,7 @@ export default function SignUpScreen() {
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   function validate() {
     const next: typeof fieldErrors = {};
@@ -71,7 +72,7 @@ export default function SignUpScreen() {
   }
 
   return (
-    <Screen scroll>
+    <Screen scroll scrollRef={scrollRef}>
       <KeyboardAvoidingView
         // See sign-in.tsx's identical change for why Android needs a real
         // behavior now instead of relying on the OS's own window resize.
@@ -112,6 +113,9 @@ export default function SignUpScreen() {
             error={fieldErrors.password}
             onSubmitEditing={submit}
             returnKeyType="go"
+            // See sign-in.tsx's identical field — Android's ScrollView
+            // doesn't reliably bring a focused field into view on its own.
+            onFocus={() => scrollRef.current?.scrollToEnd({ animated: true })}
           />
 
           {error ? (
