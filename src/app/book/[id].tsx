@@ -411,7 +411,12 @@ export default function BookDetailScreen() {
         onClose={() => setEditBookOpen(false)}
         entry={entry}
         onSave={(patchValues) =>
-          updateBookDetails.mutate({ bookId: entry.book_id, userBookId: entry.id, patch: patchValues })
+          updateBookDetails.mutate({
+            bookId: entry.book_id,
+            userBookId: entry.id,
+            patch: patchValues,
+            previousCoverUrl: entry.cover_url,
+          })
         }
       />
       </Screen>
