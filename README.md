@@ -119,15 +119,16 @@ variables under Settings → Environment variables.
 Cloudflare Pages rather than Vercel on purpose — Vercel's Hobby tier is licensed
 for non-commercial use only, and this app has a marketplace in its roadmap.
 
-### Admin panel → `admin-panel` branch
+### Admin panel → `admin/`
 
-A separate app, separate deploy, separate subdomain, and its own branch
-(`admin-panel`, not `develop`/`main`) — see `admin/README.md` there. All
-moderation and account-management operations live there now; this app has
-no admin surface of its own. The database side
-(`supabase/migrations/0013_admin_panel.sql` and
-`supabase/functions/admin-users/`) stays on this branch, since it's schema
-history that has to stay in sequence regardless of which frontend calls it.
+A separate app and a separate deploy (its own subdomain, its own Cloudflare
+project with root directory `admin/`) but the same branch as everything
+else — see `admin/README.md`. All moderation and account-management
+operations live there; this app has no admin surface of its own. The
+database side (`supabase/migrations/0013_admin_panel.sql` and
+`supabase/functions/admin-users/`) lives here too, same as it always did,
+since it's schema history that has to stay in sequence regardless of which
+frontend calls it.
 
 ### Crash reporting → Sentry (optional)
 
