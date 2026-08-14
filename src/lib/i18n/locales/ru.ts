@@ -320,6 +320,7 @@ export const ru: LocaleCatalogue = {
   'profile.appearance.system': 'Как на устройстве',
 
   'profile.appearance': 'Оформление',
+  'profile.sendInquiry': 'Отправить обращение',
   'profile.signOutConfirm': 'Выйти из аккаунта?',
   'profile.memberSince': 'Читатель с {{date}}',
   'profile.noListings': 'Вы ещё не выставили ни одной книги.',

@@ -315,6 +315,7 @@ export const en = {
   'profile.appearance.system': 'Match device',
 
   'profile.appearance': 'Appearance',
+  'profile.sendInquiry': 'Send an inquiry',
   'profile.signOutConfirm': 'Sign out of this account?',
   'profile.memberSince': 'Reader since {{date}}',
   'profile.noListings': 'You have not listed any books yet.',

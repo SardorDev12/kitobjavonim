@@ -321,6 +321,7 @@ export const uz: LocaleCatalogue = {
   'profile.appearance.system': 'Qurilma sozlamasi',
 
   'profile.appearance': 'Koʻrinish',
+  'profile.sendInquiry': 'Murojaat yoʻllash',
   'profile.signOutConfirm': 'Hisobdan chiqasizmi?',
   'profile.memberSince': '{{date}} dan beri kitobxon',
   'profile.noListings': 'Siz hali hech qanday kitob eʼlon qilmagansiz.',
