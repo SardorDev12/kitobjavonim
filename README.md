@@ -129,6 +129,22 @@ no admin surface of its own. The database side
 `supabase/functions/admin-users/`) stays on this branch, since it's schema
 history that has to stay in sequence regardless of which frontend calls it.
 
+### Crash reporting → Sentry (optional)
+
+Off by default. `EXPO_PUBLIC_SENTRY_DSN` unset means `initErrorReporting()`
+and `reportError()` (`src/components/ErrorBoundary.tsx`) are no-ops and the
+app behaves exactly as if this didn't exist — same shape as
+`EXPO_PUBLIC_TELEGRAM_BOT_USERNAME`. To turn it on: free account at
+[sentry.io](https://sentry.io) → Projects → Create Project → React Native,
+copy the DSN it gives you into `EXPO_PUBLIC_SENTRY_DSN`, and set
+`EXPO_PUBLIC_SENTRY_ENVIRONMENT` to `staging` or `production` per
+deployment so events don't mix between them. Covers render crashes
+(`ErrorBoundary`) and unhandled errors/rejections outside of render
+(`installGlobalErrorReporting`, web only) — nothing native-specific is
+configured (no Expo config plugin, no source map upload), since the only
+environment actually live right now is the web build; worth adding once
+native builds are real.
+
 ### Mobile → EAS
 
 ```bash
