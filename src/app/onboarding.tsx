@@ -89,7 +89,12 @@ export default function OnboardingScreen() {
 
   return (
     <Screen scroll>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+      <KeyboardAvoidingView
+        // See sign-in.tsx's identical change for why Android needs a real
+        // behavior now instead of relying on the OS's own window resize.
+        behavior={Platform.select({ ios: 'padding', android: 'height', default: undefined })}
+        style={styles.flex}
+      >
         <View style={[styles.container, { paddingTop: theme.spacing['3xl'], gap: theme.spacing.lg }]}>
           <View style={{ gap: theme.spacing.sm }}>
             <Text variant="display">{t('onboarding.title')}</Text>

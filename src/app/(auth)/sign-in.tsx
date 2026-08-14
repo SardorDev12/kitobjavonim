@@ -46,7 +46,16 @@ export default function SignInScreen() {
 
   return (
     <Screen scroll>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+      <KeyboardAvoidingView
+        // 'undefined' on Android used to be enough — the OS's own
+        // adjustResize would shrink the window for the keyboard on its own.
+        // Edge-to-edge (mandatory since Expo SDK 54) changed that: the app
+        // has to consume the keyboard inset itself now, which is what
+        // 'height' does; without it, the password field this wraps ends up
+        // hidden behind the keyboard instead of scrolled into view.
+        behavior={Platform.select({ ios: 'padding', android: 'height', default: undefined })}
+        style={styles.flex}
+      >
         <View style={[styles.container, { paddingTop: theme.spacing['4xl'], gap: theme.spacing.xl }]}>
           <View style={{ gap: theme.spacing.sm }}>
             <View style={[styles.mark, { backgroundColor: theme.colors.primarySoft, borderRadius: theme.radius.lg }]}>
