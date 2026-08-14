@@ -94,17 +94,7 @@ Deno.serve(async (request) => {
     .eq('id', callerId)
     .single();
   if (profileError || !callerProfile?.is_admin) {
-    // TEMPORARY — diagnosing an is_admin=true-in-the-database-but-still-
-    // rejected report. Safe to expose: only ever shown to the caller about
-    // their own request, no other user's data. Remove once resolved.
-    return json(
-      request,
-      {
-        error: 'Not authorized',
-        debug: { callerId, profileError: profileError?.message ?? null, callerProfile: callerProfile ?? null },
-      },
-      403
-    );
+    return json(request, { error: 'Not authorized' }, 403);
   }
 
   let body: { action?: string; [key: string]: unknown };
