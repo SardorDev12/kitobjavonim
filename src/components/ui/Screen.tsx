@@ -1,5 +1,14 @@
 import type { ReactNode } from 'react';
-import { Platform, RefreshControl, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  Dimensions,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
@@ -8,15 +17,14 @@ import { useLayout, useTheme } from '@/theme';
 import { PullToRefreshIndicator } from '../PullToRefreshIndicator';
 import { Text } from './Text';
 
-// Some Android OEM skins (MIUI in particular) don't report the 3-button nav
-// bar's height through the standard WindowInsets API the way stock Android
-// does — `useSafeAreaInsets().bottom` comes back 0 on those devices even
-// though the bar is there covering content. Flooring at the standard
-// Material nav-bar height means a footer button stays clickable on those
-// devices instead of trusting a bottom inset that's silently wrong; on
-// devices that report correctly, insets.bottom is already at or above this
-// most of the time, so Math.max leaves it untouched.
-const MIN_ANDROID_BOTTOM_INSET = 48;
+// First attempt at this was 48 (standard Material nav-bar height), on the
+// theory that MIUI reports insets.bottom as a flat 0. Real device data
+// proved that theory wrong: it reported ~47, meaning MIUI *is* reporting a
+// real value here — it's just still shorter than this device's actual
+// 3-button nav bar. Bumped well past both numbers as a wider safety margin
+// while we get a second data point (see the debug line below) rather than
+// inching up by a few px at a time and burning another test round each try.
+const MIN_ANDROID_BOTTOM_INSET = 96;
 
 type ScreenProps = {
   children: ReactNode;
@@ -114,12 +122,17 @@ export function Screen({
         >
           <View style={[styles.constrain, { maxWidth: maxContentWidth }]}>{footer}</View>
           {/* TEMPORARY — diagnosing a report that this footer still sits
-              behind the on-screen nav bar on a MIUI device even with the
-              48dp floor below. Remove once we have a real number and the
-              floor is corrected to match it. */}
+              behind the on-screen nav bar on a MIUI device even with a
+              48dp floor (bumped to 96 above as a wider safety margin while
+              this is still open). screen/window height are a second,
+              independent signal — their difference is roughly status bar +
+              nav bar height on Android, and doesn't depend on
+              safe-area-context's own inset reporting being right. Remove
+              this whole block once resolved. */}
           {Platform.OS === 'android' ? (
             <Text variant="caption" color="textSubtle">
-              debug: insets.bottom={insets.bottom} floored={bottomInset}
+              debug: insets.bottom={insets.bottom} floored={bottomInset} screenH=
+              {Dimensions.get('screen').height} windowH={Dimensions.get('window').height}
             </Text>
           ) : null}
         </View>
