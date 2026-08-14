@@ -1,14 +1,5 @@
 import type { ReactNode } from 'react';
-import {
-  Dimensions,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { Platform, RefreshControl, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
@@ -120,21 +111,18 @@ export function Screen({
             },
           ]}
         >
-          <View style={[styles.constrain, { maxWidth: maxContentWidth }]}>{footer}</View>
           {/* TEMPORARY — diagnosing a report that this footer still sits
               behind the on-screen nav bar on a MIUI device even with a
-              48dp floor (bumped to 96 above as a wider safety margin while
-              this is still open). screen/window height are a second,
-              independent signal — their difference is roughly status bar +
-              nav bar height on Android, and doesn't depend on
-              safe-area-context's own inset reporting being right. Remove
-              this whole block once resolved. */}
+              96dp floor. Kept to one short line and placed *above* the
+              button (not below) — a longer, multi-line version of this
+              last round visually collided with the button's own label
+              instead of stacking cleanly under it. Remove once resolved. */}
           {Platform.OS === 'android' ? (
             <Text variant="caption" color="textSubtle">
-              debug: insets.bottom={insets.bottom} floored={bottomInset} screenH=
-              {Dimensions.get('screen').height} windowH={Dimensions.get('window').height}
+              debug: bottom={insets.bottom} floored={bottomInset}
             </Text>
           ) : null}
+          <View style={[styles.constrain, { maxWidth: maxContentWidth }]}>{footer}</View>
         </View>
       ) : null}
     </View>
