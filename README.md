@@ -161,6 +161,27 @@ Two things worth knowing before you plan a launch date:
 - Apple review will ask what the app does with the camera; the usage strings in
   `app.json` already explain the ISBN scanning.
 
+### Over-the-air updates → EAS Update
+
+JS-only changes (most of them) don't need a new native build at all once a
+build with `expo-updates` installed is on the device — `.github/workflows/
+eas-update.yml` publishes one to the `preview` channel automatically on every
+push to `main`, which the `preview` build profile's installed APK checks on
+launch. A change that touches native code (a new native dependency, a
+permission, `app.json`'s icon/splash/plugins) still needs a real build
+through the usual `eas build` flow above; `runtimeVersion`'s `appVersion`
+policy is what stops an incompatible OTA update from being offered to a
+binary that can't run it — bump `version` in `app.json` when a native change
+ships, same as any other native-affecting release.
+
+Requires an `EXPO_TOKEN` repository secret (GitHub → Settings → Secrets and
+variables → Actions) — generate one at
+[expo.dev](https://expo.dev/accounts/[account]/settings/access-tokens).
+Production intentionally isn't wired to auto-publish — a Play Store release
+should stay a deliberate step, not something every push to `main` changes
+underneath already-live users; publish there by hand with
+`eas update --channel production` when that's actually wanted.
+
 ---
 
 ## The data model

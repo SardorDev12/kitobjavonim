@@ -9,6 +9,12 @@
     "scheme": "homelibrary",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/212fd706-666a-4cc5-8be7-bcb524ad9a82"
+    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "uz.homelibrary.app",
@@ -39,6 +45,7 @@
       "expo-localization",
       "expo-secure-store",
       "expo-apple-authentication",
+      "expo-updates",
       [
         "expo-splash-screen",
         {
