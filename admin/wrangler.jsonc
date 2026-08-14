@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Pure static site, same shape as the root wrangler.jsonc — see the
+  // comment there. A separate Worker so the admin subdomain never shares a
+  // deploy, a build, or a set of environment variables with the consumer
+  // site; "kitobjavonim-admin" avoids colliding with that Worker's own name.
+  "name": "kitobjavonim-admin",
+  "compatibility_date": "2026-01-01",
+  // No router in this app (see README.md) — a single page, so there is no
+  // custom 404 to build and nothing to fall back to; Cloudflare's own
+  // generic 404 for an unmatched path is the correct behavior here.
+  "assets": {
+    "directory": "./dist"
+  }
+}

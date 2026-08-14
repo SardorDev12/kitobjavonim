@@ -119,6 +119,12 @@ variables under Settings → Environment variables.
 Cloudflare Pages rather than Vercel on purpose — Vercel's Hobby tier is licensed
 for non-commercial use only, and this app has a marketplace in its roadmap.
 
+### Admin panel → `admin/`
+
+A separate app, separate deploy, separate subdomain — see `admin/README.md`.
+All moderation and account-management operations live there now; this app
+has no admin surface of its own.
+
 ### Mobile → EAS
 
 ```bash

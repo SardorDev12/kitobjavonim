@@ -340,12 +340,6 @@ export const en = {
   'report.offensive': 'Offensive content',
   'report.other': 'Something else',
 
-  'admin.reports': 'Reports',
-  'admin.noReports': 'No reports.',
-  'admin.reportedBy': 'Reported by {{name}}',
-  'admin.listingOwner': 'Listing owner: {{name}}',
-  'admin.markResolved': 'Mark resolved',
-  'admin.resolved': 'Resolved',
 
   'error.generic': 'Something went wrong. Please try again.',
   'error.network': 'No connection. Check your internet and try again.',
