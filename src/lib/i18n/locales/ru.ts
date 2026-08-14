@@ -345,12 +345,6 @@ export const ru: LocaleCatalogue = {
   'report.offensive': 'Оскорбительный контент',
   'report.other': 'Другое',
 
-  'admin.reports': 'Жалобы',
-  'admin.noReports': 'Жалоб нет.',
-  'admin.reportedBy': 'Пожаловался: {{name}}',
-  'admin.listingOwner': 'Владелец объявления: {{name}}',
-  'admin.markResolved': 'Отметить рассмотренной',
-  'admin.resolved': 'Рассмотрено',
 
   'error.generic': 'Что-то пошло не так. Попробуйте ещё раз.',
   'error.network': 'Нет соединения. Проверьте интернет и повторите.',

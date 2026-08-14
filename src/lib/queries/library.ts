@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { BookCandidate } from '@/lib/books/metadata';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { storagePathFromPublicUrl } from '@/lib/images';
 import { supabase } from '@/lib/supabase';
 import type { Book, LibraryEntry, UserBook } from '@/types/database';
 
@@ -225,6 +226,8 @@ export type UpdateBookInput = {
   patch: Partial<
     Pick<Book, 'title' | 'subtitle' | 'authors' | 'isbn13' | 'publisher' | 'publication_year' | 'language' | 'page_count' | 'cover_url'>
   >;
+  /** The book's cover_url before this edit — lets a real replacement clean up the file it replaces. */
+  previousCoverUrl?: string | null;
 };
 
 /**
@@ -241,9 +244,29 @@ export function useUpdateBook() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ bookId, patch }: UpdateBookInput) => {
+    mutationFn: async ({ bookId, patch, previousCoverUrl }: UpdateBookInput) => {
       const { error } = await supabase.from('books').update(patch).eq('id', bookId);
       if (error) throw error;
+
+      // A cover swap orphans the old file otherwise — nothing else in the
+      // schema points at it once cover_url has moved on, and it would just
+      // sit in the bucket counting against the free tier's 1 GB forever.
+      // Best-effort: a failed cleanup here should never undo an otherwise
+      // successful save, so it's swallowed rather than thrown.
+      if (
+        patch.cover_url !== undefined &&
+        previousCoverUrl &&
+        previousCoverUrl !== patch.cover_url
+      ) {
+        const oldPath = storagePathFromPublicUrl('book-photos', previousCoverUrl);
+        if (oldPath) {
+          try {
+            await supabase.storage.from('book-photos').remove([oldPath]);
+          } catch {
+            // Best-effort — a failed cleanup must not undo the save above.
+          }
+        }
+      }
     },
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.library.all });

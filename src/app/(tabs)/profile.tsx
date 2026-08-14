@@ -131,16 +131,6 @@ export default function ProfileScreen() {
             label={t('profile.sendInquiry')}
             onPress={() => void Linking.openURL(`mailto:${INQUIRY_EMAIL}`)}
           />
-          {profile?.is_admin ? (
-            <>
-              <Divider inset={theme.spacing.lg} />
-              <ListRow
-                icon="flag-outline"
-                label={t('admin.reports')}
-                onPress={() => router.push('/admin/reports')}
-              />
-            </>
-          ) : null}
         </Card>
 
         <Button title={t('auth.signOut')} variant="secondary" fullWidth onPress={confirmSignOut} />

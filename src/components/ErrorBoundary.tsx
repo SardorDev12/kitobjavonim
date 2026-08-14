@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react-native';
 import { Component, type ReactNode } from 'react';
 import { View } from 'react-native';
 
@@ -5,6 +6,29 @@ import { useI18n } from '@/lib/i18n';
 import { useTheme } from '@/theme';
 
 import { EmptyState } from './ui';
+
+const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN;
+
+/**
+ * Optional, same as GEMINI_API_KEY/scan-cover: if EXPO_PUBLIC_SENTRY_DSN is
+ * never set, this is a no-op and the app behaves exactly as it did before
+ * crash reporting existed — no error, no missing feature a user would
+ * notice, just silence. Call once, before anything else renders, from the
+ * root layout's module scope (not inside a component or effect) so a crash
+ * during the very first render is still caught.
+ */
+export function initErrorReporting() {
+  if (!SENTRY_DSN) return;
+
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    environment: process.env.EXPO_PUBLIC_SENTRY_ENVIRONMENT ?? 'production',
+    // Error capture only — no performance/session tracing, which would
+    // burn through Sentry's free-tier event quota on every screen view
+    // rather than only when something actually goes wrong.
+    tracesSampleRate: 0,
+  });
+}
 
 /**
  * Last-resort catch for render crashes. Without this, an uncaught error
@@ -54,12 +78,16 @@ function CrashFallback({ onRetry }: { onRetry: () => void }) {
 }
 
 /**
- * Placeholder hook for crash reporting — swap in a real Sentry/Bugsnag call
- * here once one is wired up. Kept as a single seam rather than scattered
- * `console.error` calls so that wiring in a real reporter later is a
- * one-line change, not a codebase-wide search.
+ * The one seam every crash and unhandled rejection in the app funnels
+ * through, rather than scattered `console.error` calls — kept deliberately
+ * this thin so swapping or adding another reporter later stays a one-line
+ * change here, not a codebase-wide search.
  */
-export function reportError(_error: Error, _componentStack?: string) {}
+export function reportError(error: Error, componentStack?: string) {
+  if (!SENTRY_DSN) return;
+
+  Sentry.captureException(error, componentStack ? { contexts: { react: { componentStack } } } : undefined);
+}
 
 /**
  * Catches what ErrorBoundary structurally cannot: a class component's
