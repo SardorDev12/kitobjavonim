@@ -1,16 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { GALLERY_TILE_WIDTH } from '@/components/BookCover';
 import { ListingCard } from '@/components/ListingCard';
+import { ListingRow } from '@/components/ListingRow';
+import { PullToRefreshIndicator } from '@/components/PullToRefreshIndicator';
 import { Button, Chip, ChipRow, EmptyState, LoadingState, Screen, Select, Sheet, Text, TextField } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useI18n } from '@/lib/i18n';
 import { emptyListingFilters, useListings, type ListingFilters } from '@/lib/queries/listings';
 import { useCategoryOptions, useLocationOptions } from '@/lib/queries/reference';
-import { useLayout, useTheme } from '@/theme';
+import { usePullToRefresh } from '@/lib/usePullToRefresh';
+import { useTheme } from '@/theme';
 import { BOOK_CONDITIONS, type BookCondition } from '@/types/database';
 
 const LANGUAGE_OPTIONS = [
@@ -18,13 +22,13 @@ const LANGUAGE_OPTIONS = [
   { value: 'ru', label: 'Русский' },
   { value: 'en', label: 'English' },
 ];
+type ViewMode = 'list' | 'gallery';
 
 export default function DiscoverScreen() {
   const theme = useTheme();
   const { t } = useI18n();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { gridColumns } = useLayout();
   const { session } = useAuth();
 
   // Listing links are public, so a signed-out visitor who followed one here
@@ -35,9 +39,16 @@ export default function DiscoverScreen() {
     router.push(session ? '/(tabs)/add' : '/(auth)/sign-in');
   }
 
+  // Stable across renders (router itself doesn't change identity) so that
+  // memo on ListingCard/ListingRow actually has something to compare —
+  // an inline `() => router.push(...)` recreated per row per render would
+  // give it nothing stable and defeat it entirely.
+  const openListing = useCallback((id: string) => router.push(`/listing/${id}`), [router]);
+
   const [filters, setFilters] = useState<ListingFilters>(emptyListingFilters);
   const [searchInput, setSearchInput] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('gallery');
 
   useEffect(() => {
     const timer = setTimeout(() => setFilters((prev) => ({ ...prev, search: searchInput })), 400);
@@ -45,6 +56,7 @@ export default function DiscoverScreen() {
   }, [searchInput]);
 
   const { data, isPending, isError, refetch, isRefetching } = useListings(filters);
+  const { pullDistance, handlers: pullHandlers } = usePullToRefresh(refetch, isRefetching);
   const locations = useLocationOptions();
 
   const listings = data ?? [];
@@ -57,13 +69,15 @@ export default function DiscoverScreen() {
     [filters]
   );
 
-  // A fixed gutter divided across however many columns the width allows.
+  // Tiles stay a fixed, small size on every screen — a wider window just
+  // fits more columns of it, rather than a fixed column count rendering
+  // visibly larger tiles.
   const gutter = theme.spacing.md;
   const horizontalPadding = theme.spacing.lg;
   const [listWidth, setListWidth] = useState(0);
-  const tileWidth =
+  const galleryColumns =
     listWidth > 0
-      ? (listWidth - horizontalPadding * 2 - gutter * (gridColumns - 1)) / gridColumns
+      ? Math.max(2, Math.floor((listWidth - horizontalPadding * 2 + gutter) / (GALLERY_TILE_WIDTH + gutter)))
       : 0;
 
   return (
@@ -77,13 +91,37 @@ export default function DiscoverScreen() {
             </Text>
           </View>
 
-          <Button
-            title={t('discover.addBook')}
-            icon="add"
-            variant="secondary"
-            size="sm"
-            onPress={goToAdd}
-          />
+          <View style={styles.headerActions}>
+            <Pressable
+              onPress={() => setViewMode(viewMode === 'gallery' ? 'list' : 'gallery')}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={viewMode === 'gallery' ? t('library.viewList') : t('library.viewGallery')}
+              style={({ pressed }) => [
+                styles.iconButton,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                  borderRadius: theme.radius.md,
+                  opacity: pressed ? 0.7 : 1,
+                },
+              ]}
+            >
+              <Ionicons
+                name={viewMode === 'gallery' ? 'list-outline' : 'grid-outline'}
+                size={18}
+                color={theme.colors.textMuted}
+              />
+            </Pressable>
+
+            <Button
+              title={t('discover.addBook')}
+              icon="add"
+              variant="secondary"
+              size="sm"
+              onPress={goToAdd}
+            />
+          </View>
         </View>
 
         <View style={[styles.searchRow, { gap: theme.spacing.sm }]}>
@@ -161,36 +199,52 @@ export default function DiscoverScreen() {
             onAction={() => refetch()}
           />
         ) : (
+          <>
+          <PullToRefreshIndicator pullDistance={pullDistance} refreshing={isRefetching} />
           <FlatList
-            key={gridColumns}
+            key={viewMode === 'gallery' ? `gallery-${galleryColumns}` : 'list'}
             data={listings}
-            numColumns={gridColumns}
+            numColumns={viewMode === 'gallery' ? Math.max(galleryColumns, 1) : 1}
             keyExtractor={(item) => item.id}
-            columnWrapperStyle={gridColumns > 1 ? { gap: gutter } : undefined}
+            columnWrapperStyle={viewMode === 'gallery' && galleryColumns > 1 ? { gap: gutter } : undefined}
             contentContainerStyle={[
               listings.length === 0 && styles.fill,
-              {
-                paddingHorizontal: horizontalPadding,
-                paddingBottom: theme.spacing['2xl'],
-                gap: theme.spacing.xl,
-              },
+              viewMode === 'gallery' && { paddingHorizontal: horizontalPadding },
+              { paddingBottom: theme.spacing['2xl'], gap: viewMode === 'gallery' ? theme.spacing.xl : 0 },
             ]}
+            scrollEventThrottle={16}
+            {...pullHandlers}
             refreshControl={
               <RefreshControl refreshing={isRefetching} onRefresh={refetch} tintColor={theme.colors.primary} />
             }
             renderItem={({ item }) =>
-              tileWidth > 0 ? (
-                <ListingCard
+              viewMode === 'gallery' ? (
+                galleryColumns > 0 ? (
+                  <ListingCard
+                    listing={item}
+                    width={GALLERY_TILE_WIDTH}
+                    locationLabel={locations.describe(item.owner_district_id, item.owner_region_id)}
+                    onPress={openListing}
+                  />
+                ) : null
+              ) : (
+                <ListingRow
                   listing={item}
-                  width={tileWidth}
                   locationLabel={locations.describe(item.owner_district_id, item.owner_region_id)}
-                  onPress={() => router.push(`/listing/${item.id}`)}
+                  onPress={openListing}
                 />
-              ) : null
+              )
             }
             ListHeaderComponent={
               listings.length > 0 ? (
-                <Text variant="caption" color="textMuted" style={{ marginBottom: theme.spacing.sm }}>
+                <Text
+                  variant="caption"
+                  color="textMuted"
+                  style={{
+                    marginBottom: theme.spacing.sm,
+                    paddingHorizontal: viewMode === 'gallery' ? 0 : horizontalPadding,
+                  }}
+                >
                   {t('discover.resultCount', { count: listings.length })}
                 </Text>
               ) : null
@@ -218,6 +272,7 @@ export default function DiscoverScreen() {
               )
             }
           />
+          </>
         )}
       </View>
 
@@ -331,6 +386,14 @@ const styles = StyleSheet.create({
   header: { gap: 8 },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   titleText: { flex: 1 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  iconButton: {
+    width: 34,
+    height: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
   searchRow: { flexDirection: 'row', alignItems: 'flex-start', marginTop: 4 },
   filterButton: {
     width: 46,

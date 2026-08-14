@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { BookCover } from '@/components/BookCover';
 import { CategoryPicker } from '@/components/CategoryPicker';
@@ -11,11 +11,12 @@ import { setPendingBook, usePendingBook } from '@/features/add/pendingBook';
 import type { BookCandidate } from '@/lib/books/metadata';
 import { formatAuthors, normalizeIsbn } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
-import { pickAndUploadBookCover } from '@/lib/images';
+import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
+import { useImageDropZone } from '@/lib/useImageDropZone';
 import { usePositionOptions } from '@/lib/queries/bookshelves';
 import { useSetBookCategories } from '@/lib/queries/categories';
 import { useAddBook, useLibrary, useSimilarBooks } from '@/lib/queries/library';
-import { useTheme } from '@/theme';
+import { useLayout, useTheme } from '@/theme';
 import { BOOK_CONDITIONS, READING_STATUSES, type Book, type BookCondition, type ReadingStatus } from '@/types/database';
 
 const LANGUAGE_OPTIONS = [
@@ -304,6 +305,7 @@ function CandidateEditSheet({
   onSave: (patch: Partial<BookCandidate>) => void;
 }) {
   const theme = useTheme();
+  const { isWide } = useLayout();
   const { t } = useI18n();
   const { user } = useAuth();
 
@@ -316,18 +318,43 @@ function CandidateEditSheet({
   const [pages, setPages] = useState(candidate.page_count?.toString() ?? '');
   const [coverUrl, setCoverUrl] = useState(candidate.cover_url);
   const [coverUploading, setCoverUploading] = useState(false);
+  const [coverError, setCoverError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
 
   async function pickCover() {
     if (!user || coverUploading) return;
     setCoverUploading(true);
+    setCoverError(null);
     try {
       const url = await pickAndUploadBookCover(user.id);
       if (url) setCoverUrl(url);
+    } catch (cause) {
+      setCoverError(cause instanceof Error ? cause.message : t('error.saveFailed'));
     } finally {
       setCoverUploading(false);
     }
   }
+
+  async function dropCover(file: File) {
+    if (!user || coverUploading) return;
+    setCoverUploading(true);
+    setCoverError(null);
+    try {
+      const url = await uploadDroppedBookCover(user.id, file);
+      if (url) setCoverUrl(url);
+      else setCoverError(t('manual.coverNotImage'));
+    } catch (cause) {
+      setCoverError(cause instanceof Error ? cause.message : t('error.saveFailed'));
+    } finally {
+      setCoverUploading(false);
+    }
+  }
+
+  const { ref: coverDropRef, isDragOver: coverDragOver } = useImageDropZone(
+    dropCover,
+    !coverUploading,
+    'add-configure-cover'
+  );
 
   function save() {
     if (!title.trim()) {
@@ -361,6 +388,25 @@ function CandidateEditSheet({
   return (
     <Sheet visible={visible} onClose={onClose} title={t('add.editDetails')}>
       <View style={{ gap: theme.spacing.lg }}>
+        {/* The drop target is this outer View, not the Pressable inside it —
+            react-native-web's Pressable wires its own pointer/hover handling
+            onto the same node, and that combination doesn't reliably deliver
+            native HTML5 drag events. A plain View ref does. */}
+        <View
+          ref={coverDropRef}
+          style={[
+            // Always-visible on web, not just on drag-over — a hover-only
+            // highlight has nothing to hover over until the user already
+            // knows dropping is possible here.
+            Platform.OS === 'web' && {
+              borderRadius: theme.radius.md,
+              borderWidth: 1,
+              borderStyle: 'dashed',
+              borderColor: coverDragOver ? theme.colors.primary : theme.colors.borderStrong,
+              padding: theme.spacing.sm,
+            },
+          ]}
+        >
         <Pressable
           onPress={pickCover}
           disabled={coverUploading}
@@ -376,10 +422,23 @@ function CandidateEditSheet({
               color={theme.colors.primary}
             />
             <Text variant="label" color="primary">
-              {coverUploading ? t('common.saving') : coverUrl ? t('manual.changeCover') : t('manual.addCover')}
+              {coverUploading
+                ? t('common.saving')
+                : coverUrl
+                  ? t('manual.changeCover')
+                  : Platform.OS === 'web' && isWide
+                    ? t('manual.addCoverWeb')
+                    : t('manual.addCover')}
             </Text>
           </View>
         </Pressable>
+        </View>
+
+        {coverError ? (
+          <Text variant="caption" color="danger">
+            {coverError}
+          </Text>
+        ) : null}
 
         <TextField
           label={t('manual.bookTitle')}

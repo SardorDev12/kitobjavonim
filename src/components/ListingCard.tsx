@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { memo, useCallback } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { formatAuthors, formatPrice } from '@/lib/format';
@@ -9,8 +10,16 @@ import type { Listing } from '@/types/database';
 import { BookCover } from './BookCover';
 import { Chip, Text } from './ui';
 
-/** A tile in the Exchange grid. */
-export function ListingCard({
+/**
+ * A tile in the Exchange grid.
+ *
+ * onPress takes the listing id rather than being pre-bound to one, and the
+ * component is memoized — Discover's FlatList can render hundreds of these,
+ * and a pre-bound `() => router.push(...)` recreated fresh per item on every
+ * render of the list (typing in the search box, toggling a filter) would
+ * give memo nothing stable to compare against, defeating it entirely.
+ */
+export const ListingCard = memo(function ListingCard({
   listing,
   width,
   locationLabel,
@@ -19,7 +28,7 @@ export function ListingCard({
   listing: Listing;
   width: number;
   locationLabel?: string;
-  onPress: () => void;
+  onPress: (id: string) => void;
 }) {
   const theme = useTheme();
   const { t, locale } = useI18n();
@@ -28,9 +37,11 @@ export function ListingCard({
   const isExchange =
     listing.availability_type === 'exchange' || listing.availability_type === 'exchange_or_sale';
 
+  const handlePress = useCallback(() => onPress(listing.id), [onPress, listing.id]);
+
   return (
     <Pressable
-      onPress={onPress}
+      onPress={handlePress}
       accessibilityRole="button"
       style={({ pressed }) => [{ width, gap: theme.spacing.sm, opacity: pressed ? 0.85 : 1 }]}
     >
@@ -74,7 +85,7 @@ export function ListingCard({
       </View>
     </Pressable>
   );
-}
+});
 
 const styles = StyleSheet.create({
   body: { gap: 3 },

@@ -10,9 +10,10 @@ import { setPendingBook } from '@/features/add/pendingBook';
 import { emptyCandidate } from '@/lib/books/metadata';
 import { normalizeIsbn } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
-import { pickAndUploadBookCover } from '@/lib/images';
+import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
 import { scanCoverText } from '@/lib/ocr';
-import { useTheme } from '@/theme';
+import { useImageDropZone } from '@/lib/useImageDropZone';
+import { useLayout, useTheme } from '@/theme';
 
 /**
  * Manual entry.
@@ -34,6 +35,7 @@ const LANGUAGE_OPTIONS = [
 
 export default function ManualEntryScreen() {
   const theme = useTheme();
+  const { isWide } = useLayout();
   const { t } = useI18n();
   const router = useRouter();
   const params = useLocalSearchParams<{ isbn?: string; title?: string }>();
@@ -49,6 +51,7 @@ export default function ManualEntryScreen() {
   const [titleError, setTitleError] = useState<string | null>(null);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [coverUploading, setCoverUploading] = useState(false);
+  const [coverError, setCoverError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
 
@@ -56,18 +59,44 @@ export default function ManualEntryScreen() {
     if (!user || coverUploading) return;
 
     setCoverUploading(true);
+    setCoverError(null);
     setScanMessage(null);
     try {
       const url = await pickAndUploadBookCover(user.id);
       if (url) setCoverUrl(url);
+    } catch (cause) {
+      setCoverError(cause instanceof Error ? cause.message : t('error.saveFailed'));
     } finally {
       setCoverUploading(false);
     }
   }
 
-  // Pre-fills only — free OCR on a photographed cover is a good guess, not a
-  // fact, so this never overwrites text the user already typed and every
-  // field it fills stays exactly as editable as if they had typed it in.
+  async function dropCover(file: File) {
+    if (!user || coverUploading) return;
+
+    setCoverUploading(true);
+    setCoverError(null);
+    setScanMessage(null);
+    try {
+      const url = await uploadDroppedBookCover(user.id, file);
+      if (url) setCoverUrl(url);
+      else setCoverError(t('manual.coverNotImage'));
+    } catch (cause) {
+      setCoverError(cause instanceof Error ? cause.message : t('error.saveFailed'));
+    } finally {
+      setCoverUploading(false);
+    }
+  }
+
+  const { ref: coverDropRef, isDragOver: coverDragOver } = useImageDropZone(
+    dropCover,
+    !coverUploading,
+    'add-manual-cover'
+  );
+
+  // Overwrites title/authors with whatever the current cover reads as — the
+  // user pressed "scan" for this exact cover, so that result should win over
+  // whatever was there before, not defer to it.
   async function scanCover() {
     if (!coverUrl || scanning) return;
 
@@ -75,8 +104,8 @@ export default function ManualEntryScreen() {
     setScanMessage(null);
     try {
       const result = await scanCoverText(coverUrl);
-      const filledTitle = !title.trim() && result?.title;
-      const filledAuthors = !authors.trim() && (result?.authors.length ?? 0) > 0;
+      const filledTitle = !!result?.title;
+      const filledAuthors = (result?.authors.length ?? 0) > 0;
 
       if (filledTitle) setTitle(result!.title!);
       if (filledAuthors) setAuthors(result!.authors.join(', '));
@@ -127,6 +156,26 @@ export default function ManualEntryScreen() {
       <View style={[styles.container, { gap: theme.spacing.lg, paddingTop: theme.spacing.md }]}>
         <Text variant="display">{t('manual.title')}</Text>
 
+        {/* The drop target is this outer View, not the Pressable inside it —
+            react-native-web's Pressable wires its own pointer/hover handling
+            onto the same node, and that combination doesn't reliably deliver
+            native HTML5 drag events. A plain View ref does. */}
+        <View
+          ref={coverDropRef}
+          style={[
+            // A dashed border that's always visible on web (not just while
+            // actively dragging) is what makes this read as a drop target in
+            // the first place — a hover-only highlight has nothing to hover
+            // over until the user already knows dropping is possible here.
+            Platform.OS === 'web' && {
+              borderRadius: theme.radius.md,
+              borderWidth: 1,
+              borderStyle: 'dashed',
+              borderColor: coverDragOver ? theme.colors.primary : theme.colors.borderStrong,
+              padding: theme.spacing.sm,
+            },
+          ]}
+        >
         <Pressable
           onPress={pickCover}
           disabled={coverUploading}
@@ -142,14 +191,25 @@ export default function ManualEntryScreen() {
               color={theme.colors.primary}
             />
             <Text variant="label" color="primary">
-              {coverUploading ? t('common.saving') : coverUrl ? t('manual.changeCover') : t('manual.addCover')}
+              {coverUploading
+                ? t('common.saving')
+                : coverUrl
+                  ? t('manual.changeCover')
+                  : Platform.OS === 'web' && isWide
+                    ? t('manual.addCoverWeb')
+                    : t('manual.addCover')}
             </Text>
           </View>
         </Pressable>
+        </View>
 
-        {/* OCR only runs in the browser (see lib/ocr.ts) — Tesseract.js needs
-            Web Workers and WASM the way a browser provides them. */}
-        {Platform.OS === 'web' && coverUrl ? (
+        {coverError ? (
+          <Text variant="caption" color="danger">
+            {coverError}
+          </Text>
+        ) : null}
+
+        {coverUrl ? (
           <View style={{ gap: 4 }}>
             <Button
               title={scanning ? t('manual.scanning') : t('manual.scanCover')}

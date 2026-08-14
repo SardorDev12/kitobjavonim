@@ -2,15 +2,31 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, Platform, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/BookCover';
-import { Avatar, Button, Card, Chip, EmptyState, LoadingState, Screen, Sheet, Text, TextField } from '@/components/ui';
+import { ListingSheet } from '@/components/ListingSheet';
+import {
+  Avatar,
+  Button,
+  Card,
+  Chip,
+  Divider,
+  EmptyState,
+  ListRow,
+  LoadingState,
+  Screen,
+  Sheet,
+  Text,
+  TextField,
+} from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { hasContactMethod } from '@/lib/contactMethod';
 import { describeError } from '@/lib/errors';
 import { formatAuthors, formatDate, formatPrice } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
+import { useUpdateUserBook } from '@/lib/queries/library';
 import { useListing, useListingPhotos, useReportListing, useRequestContact } from '@/lib/queries/listings';
 import { useLocationOptions } from '@/lib/queries/reference';
 import { useTheme } from '@/theme';
@@ -22,14 +38,17 @@ export default function ListingDetailScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
-  const { data: listing, isPending, isError } = useListing(id);
+  const { data: listing, isPending, isError, refetch, isRefetching } = useListing(id);
   const { data: photos } = useListingPhotos(id);
   const locations = useLocationOptions();
+  const updateListing = useUpdateUserBook();
 
   const [contactOpen, setContactOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [listingOpen, setListingOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // Same fix as book/[id].tsx: a page loaded directly (deep link, browser
   // refresh) has no in-app history to pop, so router.back() alone would do
@@ -39,11 +58,55 @@ export default function ListingDetailScreen() {
     else router.replace('/(tabs)/discover');
   }
 
+  // Unlike book/[id].tsx's private library entry, this page's own URL is
+  // already the public, shareable one — no branching on listed/unlisted.
+  async function shareListing() {
+    setMenuOpen(false);
+    if (!listing) return;
+
+    const webOrigin = process.env.EXPO_PUBLIC_WEB_ORIGIN;
+    if (!webOrigin) return;
+
+    const byline = listing.authors.length > 0 ? ` — ${formatAuthors(listing.authors)}` : '';
+    const url = `${webOrigin}/listing/${listing.id}`;
+    const message = `${listing.title}${byline}\n${url}`;
+
+    if (Platform.OS === 'web') {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        try {
+          await navigator.share({ title: listing.title, text: `${listing.title}${byline}`, url });
+        } catch {
+          // AbortError when the user cancels the native share sheet — not a failure.
+        }
+        return;
+      }
+
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+        globalThis.alert(t('book.shareCopied'));
+      }
+      return;
+    }
+
+    await Share.share({ message, url });
+  }
+
   const header = (
-    <View style={{ paddingTop: insets.top + theme.spacing.sm, paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
+    <View
+      style={[
+        styles.header,
+        { paddingTop: insets.top + theme.spacing.sm, paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.sm },
+      ]}
+    >
       <Pressable onPress={goBack} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common.back')}>
         <Ionicons name="chevron-back" size={26} color={theme.colors.text} />
       </Pressable>
+
+      {listing ? (
+        <Pressable onPress={() => setMenuOpen(true)} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common.more')}>
+          <Ionicons name="ellipsis-horizontal" size={22} color={theme.colors.text} />
+        </Pressable>
+      ) : null}
     </View>
   );
 
@@ -79,23 +142,7 @@ export default function ListingDetailScreen() {
     <View style={styles.flex}>
       {header}
 
-      <Screen
-        scroll
-        footer={
-          isOwn ? (
-            <Text variant="caption" color="textMuted" align="center">
-              {t('discover.ownListing')}
-            </Text>
-          ) : (
-            <Button
-              title={t('discover.contactOwner')}
-              icon="chatbubble-ellipses-outline"
-              fullWidth
-              onPress={() => setContactOpen(true)}
-            />
-          )
-        }
-      >
+      <Screen scroll onRefresh={refetch} refreshing={isRefetching}>
       <View style={{ gap: theme.spacing.xl, paddingBottom: theme.spacing.lg }}>
         <View style={[styles.hero, { gap: theme.spacing.lg }]}>
           <BookCover uri={listing.cover_url} title={listing.title} width={120} radius={theme.radius.md} />
@@ -187,6 +234,30 @@ export default function ListingDetailScreen() {
               ) : null}
             </View>
           </View>
+
+          {isOwn ? (
+            <>
+              <Text variant="caption" color="textMuted" align="center" style={{ marginTop: theme.spacing.md }}>
+                {t('discover.ownListing')}
+              </Text>
+              <Button
+                title={t('book.editListing')}
+                icon="pricetag-outline"
+                variant="secondary"
+                fullWidth
+                style={{ marginTop: theme.spacing.sm }}
+                onPress={() => setListingOpen(true)}
+              />
+            </>
+          ) : (
+            <Button
+              title={t('discover.contactOwner')}
+              icon="chatbubble-ellipses-outline"
+              fullWidth
+              style={{ marginTop: theme.spacing.md }}
+              onPress={() => setContactOpen(true)}
+            />
+          )}
         </Card>
 
         {listing.publisher || listing.publication_year || listing.isbn13 ? (
@@ -198,10 +269,6 @@ export default function ListingDetailScreen() {
               {[listing.publisher, listing.publication_year, listing.isbn13].filter(Boolean).join(' · ')}
             </Text>
           </View>
-        ) : null}
-
-        {!isOwn && user ? (
-          <Button title={t('discover.report')} variant="ghost" size="sm" onPress={() => setReportOpen(true)} />
         ) : null}
       </View>
 
@@ -217,7 +284,54 @@ export default function ListingDetailScreen() {
       />
 
       <ReportSheet visible={reportOpen} onClose={() => setReportOpen(false)} userBookId={listing.id} />
+
+      {isOwn ? (
+        <ListingSheet
+          // Listing (unlike LibraryEntry) carries no updated_at to key on —
+          // this reconstructs the same "reset the form after a save" effect
+          // from the fields the sheet actually seeds its state from.
+          key={[
+            listing.availability_type,
+            listing.sale_price,
+            listing.price_negotiable,
+            listing.exchange_preferences,
+            listing.sale_description,
+          ].join('|')}
+          visible={listingOpen}
+          onClose={() => setListingOpen(false)}
+          entry={listing}
+          canList={hasContactMethod(profile)}
+          onOpenProfile={() => {
+            setListingOpen(false);
+            router.push('/settings/profile');
+          }}
+          onSave={(patch) => updateListing.mutateAsync({ id: listing.id, patch })}
+        />
+      ) : null}
       </Screen>
+
+      <Sheet visible={menuOpen} onClose={() => setMenuOpen(false)}>
+        <ListRow
+          icon="share-outline"
+          label={t('common.share')}
+          onPress={() => {
+            void shareListing();
+          }}
+        />
+        {!isOwn && user ? (
+          <>
+            <Divider inset={theme.spacing.lg} />
+            <ListRow
+              icon="flag-outline"
+              label={t('discover.report')}
+              onPress={() => {
+                setMenuOpen(false);
+                setReportOpen(true);
+              }}
+            />
+          </>
+        ) : null}
+      </Sheet>
     </View>
   );
 }
@@ -410,6 +524,7 @@ function ReportSheet({
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   hero: { flexDirection: 'row', alignItems: 'flex-start', paddingTop: 8 },
   heroText: { flex: 1, gap: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

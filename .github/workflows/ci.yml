@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  typecheck-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx tsc --noEmit
+
+      - run: npm test
+
+      # Placeholder values, not real secrets — this only verifies the web
+      # bundle compiles and every route exports cleanly, it never talks to
+      # a real Supabase project. supabase.ts throws at import time if these
+      # are unset at all, which is what actually needs guarding against.
+      - name: Verify web build
+        run: npx expo export --platform web --output-dir /tmp/ci-web-build
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key

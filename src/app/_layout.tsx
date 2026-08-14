@@ -9,6 +9,8 @@ import { ActivityIndicator, AppState, Platform, View, type AppStateStatus } from
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { ErrorBoundary, installGlobalErrorReporting } from '@/components/ErrorBoundary';
+import { OfflineBanner } from '@/components/OfflineBanner';
 import { EmptyState, Screen } from '@/components/ui';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { I18nProvider, useI18n } from '@/lib/i18n';
@@ -48,39 +50,66 @@ export default function RootLayout() {
     return () => subscription.remove();
   }, []);
 
+  // Every drop zone in the app only guards its own bounds. Without a
+  // page-wide backstop, a file dropped a few pixels outside one — easy to do,
+  // since the zones are small — falls through to the browser's default
+  // action: navigating the whole tab away to display the raw image. That
+  // reads as "drag-and-drop is broken" even when the zone the user meant to
+  // hit works fine, so this suppresses the default everywhere, once.
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    const swallow = (event: DragEvent) => {
+      if (event.dataTransfer?.types?.includes('Files')) event.preventDefault();
+    };
+
+    window.addEventListener('dragover', swallow);
+    window.addEventListener('drop', swallow);
+    return () => {
+      window.removeEventListener('dragover', swallow);
+      window.removeEventListener('drop', swallow);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (Platform.OS === 'web') return installGlobalErrorReporting();
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <ThemeProvider>
           <I18nProvider>
-            <PersistQueryClientProvider
-              client={queryClient}
-              persistOptions={{
-                persister,
-                maxAge: 1000 * 60 * 60 * 24 * 7,
-                dehydrateOptions: {
-                  shouldDehydrateQuery: (query) => {
-                    // Listings belong to other people and go stale quickly; only
-                    // the user's own library and the reference tables are worth
-                    // keeping on disk for offline reading.
-                    const root = query.queryKey[0];
-                    const isOfflineWorthy =
-                      root === 'library' || root === 'bookshelves' || root === 'reference';
+            <ErrorBoundary>
+              <PersistQueryClientProvider
+                client={queryClient}
+                persistOptions={{
+                  persister,
+                  maxAge: 1000 * 60 * 60 * 24 * 7,
+                  dehydrateOptions: {
+                    shouldDehydrateQuery: (query) => {
+                      // Listings belong to other people and go stale quickly; only
+                      // the user's own library and the reference tables are worth
+                      // keeping on disk for offline reading.
+                      const root = query.queryKey[0];
+                      const isOfflineWorthy =
+                        root === 'library' || root === 'bookshelves' || root === 'reference';
 
-                    // The status check is not optional. React Query will happily
-                    // dehydrate a query that is still pending, and its in-flight
-                    // promise does not survive a trip through JSON — on the next
-                    // launch hydration calls `.then` on a plain object and the
-                    // whole restore throws. Only settled data goes to disk.
-                    return isOfflineWorthy && query.state.status === 'success';
+                      // The status check is not optional. React Query will happily
+                      // dehydrate a query that is still pending, and its in-flight
+                      // promise does not survive a trip through JSON — on the next
+                      // launch hydration calls `.then` on a plain object and the
+                      // whole restore throws. Only settled data goes to disk.
+                      return isOfflineWorthy && query.state.status === 'success';
+                    },
                   },
-                },
-              }}
-            >
-              <AuthProvider>
-                <RootNavigator />
-              </AuthProvider>
-            </PersistQueryClientProvider>
+                }}
+              >
+                <AuthProvider>
+                  <RootNavigator />
+                </AuthProvider>
+              </PersistQueryClientProvider>
+            </ErrorBoundary>
           </I18nProvider>
         </ThemeProvider>
       </SafeAreaProvider>
@@ -107,9 +136,15 @@ function RootNavigator() {
   // brand name reads better as a fixed constant than as a page-by-page label,
   // so this re-asserts it after every navigation rather than fighting the
   // per-screen `title` options that also drive the tab bar labels.
+  //
+  // Read from the actual hostname the page loaded from, not an env var —
+  // that way it's right regardless of which .env the build happened to be
+  // made with, and it's what actually lets a staging and a production tab
+  // sit side by side without looking identical.
   useEffect(() => {
     if (Platform.OS === 'web') {
-      document.title = 'Kitob Javonim';
+      const isStaging = window.location.hostname.includes('staging');
+      document.title = isStaging ? 'Kitob Javonim (Staging)' : 'Kitob Javonim';
     }
   }, [pathname]);
 
@@ -134,8 +169,12 @@ function RootNavigator() {
     // Discovery and listing pages stay open to signed-out visitors: the RLS
     // policies already expose exactly those rows to `anon`, it lets someone see
     // what is on offer before committing to an account, and it is what makes
-    // listing URLs worth sharing. Everything else needs a session.
-    const isPublicRoute = (group === '(tabs)' && path[1] === 'discover') || group === 'listing';
+    // listing URLs worth sharing. legal/* (privacy, terms) is public too — the
+    // sign-up screen links to it before there's a session, and an app store
+    // reviewer needs to reach it without one either. Everything else needs a
+    // session.
+    const isPublicRoute =
+      (group === '(tabs)' && path[1] === 'discover') || group === 'listing' || group === 'legal';
 
     // auth/callback and auth/telegram-login run before a session exists by
     // definition — bouncing them to sign-in would abort the token exchange
@@ -187,6 +226,7 @@ function RootNavigator() {
   return (
     <>
       <StatusBar style={theme.scheme === 'dark' ? 'light' : 'dark'} />
+      <OfflineBanner />
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: theme.colors.background },
@@ -206,6 +246,9 @@ function RootNavigator() {
             or a browser refresh never has. */}
         <Stack.Screen name="book/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="listing/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="legal/privacy" options={{ headerShown: false }} />
+        <Stack.Screen name="legal/terms" options={{ headerShown: false }} />
+        <Stack.Screen name="admin/reports" options={{ headerShown: false }} />
         <Stack.Screen name="add/scan" options={{ presentation: 'modal', title: '' }} />
         <Stack.Screen name="add/manual" options={{ title: '' }} />
         <Stack.Screen name="add/configure" options={{ title: '' }} />

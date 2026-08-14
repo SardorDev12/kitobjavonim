@@ -55,6 +55,7 @@ export const en = {
   'auth.orUseEmail': 'or use email',
   'auth.noAccount': 'No account yet?',
   'auth.haveAccount': 'Already have an account?',
+  'auth.agreeToTerms': 'By creating an account, you agree to our {terms} and {privacy}.',
   'auth.invalidEmail': 'Enter a valid email address',
   'auth.passwordTooShort': 'Password must be at least 8 characters',
   'auth.nameRequired': 'Please enter your name',
@@ -159,6 +160,7 @@ export const en = {
   'book.deleteConfirm': 'Remove “{{title}}” from your library?',
   'book.shareCopied': 'Link copied to clipboard.',
   'book.listing': 'Listing',
+  'book.addListing': 'List for exchange or sale',
   'book.notListed': 'This copy is private.',
   'book.listForExchange': 'List for exchange',
   'book.listForSale': 'List for sale',
@@ -225,12 +227,13 @@ export const en = {
   'manual.pages': 'Pages',
   'manual.cover': 'Cover photo',
   'manual.addCover': 'Add cover',
+  'manual.addCoverWeb': 'Add or drag in a cover',
+  'manual.coverNotImage': "That doesn't look like an image file — try dragging a JPG or PNG.",
   'manual.changeCover': 'Change cover',
   'manual.scanCover': 'Scan cover for title & author',
   'manual.scanning': 'Reading cover…',
   'manual.scanFilled': 'Filled in from the cover — check it over.',
-  'manual.scanEmpty': "Couldn't make out clear text — fill in manually.",
-  'manual.scanFailed': 'Scan failed — fill in manually.',
+  'manual.scanEmpty': "Couldn't make out clear text — fill in manually.",  'manual.scanFailed': 'Scan failed — fill in manually.',
 
   'manual.titleRequired': 'A title is required',
 
@@ -312,9 +315,13 @@ export const en = {
   'profile.appearance.system': 'Match device',
 
   'profile.appearance': 'Appearance',
+  'profile.sendInquiry': 'Send an inquiry',
   'profile.signOutConfirm': 'Sign out of this account?',
   'profile.memberSince': 'Reader since {{date}}',
   'profile.noListings': 'You have not listed any books yet.',
+
+  'legal.privacyPolicy': 'Privacy Policy',
+  'legal.termsOfService': 'Terms of Service',
 
   'security.title': 'Email & password sign-in',
   'security.subtitle':
@@ -333,6 +340,13 @@ export const en = {
   'report.offensive': 'Offensive content',
   'report.other': 'Something else',
 
+  'admin.reports': 'Reports',
+  'admin.noReports': 'No reports.',
+  'admin.reportedBy': 'Reported by {{name}}',
+  'admin.listingOwner': 'Listing owner: {{name}}',
+  'admin.markResolved': 'Mark resolved',
+  'admin.resolved': 'Resolved',
+
   'error.generic': 'Something went wrong. Please try again.',
   'error.network': 'No connection. Check your internet and try again.',
   'error.notFound': 'Not found',
@@ -341,6 +355,10 @@ export const en = {
   'error.offline': 'You are offline — showing your saved library.',
   'error.listingLimitReached': 'You have reached your active listings limit. Remove one to list another.',
   'error.contactLimitReached': 'You have reached your owner-contacts limit for this month. It resets next month.',
+  'error.reportLimitReached': 'You have sent a lot of reports today — please try again tomorrow.',
+  'error.crashTitle': 'Something broke',
+  'error.crashBody': 'The app hit an unexpected error. Try again, or reload if that keeps happening.',
+  'error.reload': 'Reload',
 
   'plan.title': 'Your plan',
   'plan.free': 'Free',

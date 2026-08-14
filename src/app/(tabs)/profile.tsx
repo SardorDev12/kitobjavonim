@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Platform, StyleSheet, View } from 'react-native';
+import { Alert, Linking, Platform, StyleSheet, View } from 'react-native';
 
 import { Avatar, Button, Card, Divider, ListRow, Screen, Sheet, Text } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -9,6 +9,8 @@ import { LOCALE_LABELS, LOCALES, useI18n, type Locale } from '@/lib/i18n';
 import { useProfileStats, useUpdateProfile } from '@/lib/queries/profile';
 import { useLocationOptions } from '@/lib/queries/reference';
 import { THEME_MODES, useTheme, type ThemeMode } from '@/theme';
+
+const INQUIRY_EMAIL = 'murojaat@kitobjavonim.uz';
 
 export default function ProfileScreen() {
   const theme = useTheme();
@@ -111,6 +113,34 @@ export default function ProfileScreen() {
             value={t(`profile.appearance.${theme.mode}`)}
             onPress={() => setAppearanceOpen(true)}
           />
+          <Divider inset={theme.spacing.lg} />
+          <ListRow
+            icon="document-text-outline"
+            label={t('legal.termsOfService')}
+            onPress={() => router.push('/legal/terms')}
+          />
+          <Divider inset={theme.spacing.lg} />
+          <ListRow
+            icon="shield-checkmark-outline"
+            label={t('legal.privacyPolicy')}
+            onPress={() => router.push('/legal/privacy')}
+          />
+          <Divider inset={theme.spacing.lg} />
+          <ListRow
+            icon="mail-outline"
+            label={t('profile.sendInquiry')}
+            onPress={() => void Linking.openURL(`mailto:${INQUIRY_EMAIL}`)}
+          />
+          {profile?.is_admin ? (
+            <>
+              <Divider inset={theme.spacing.lg} />
+              <ListRow
+                icon="flag-outline"
+                label={t('admin.reports')}
+                onPress={() => router.push('/admin/reports')}
+              />
+            </>
+          ) : null}
         </Card>
 
         <Button title={t('auth.signOut')} variant="secondary" fullWidth onPress={confirmSignOut} />

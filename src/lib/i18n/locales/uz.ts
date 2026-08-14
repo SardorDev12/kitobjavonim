@@ -58,6 +58,7 @@ export const uz: LocaleCatalogue = {
   'auth.orUseEmail': 'yoki email bilan',
   'auth.noAccount': 'Hisobingiz yoʻqmi?',
   'auth.haveAccount': 'Hisobingiz bormi?',
+  'auth.agreeToTerms': 'Hisob yaratish orqali siz bizning {terms} va {privacy} bilan rozilik bildirasiz.',
   'auth.invalidEmail': 'Toʻgʻri email manzilini kiriting',
   'auth.passwordTooShort': 'Parol kamida 8 ta belgidan iborat boʻlishi kerak',
   'auth.nameRequired': 'Ismingizni kiriting',
@@ -161,6 +162,7 @@ export const uz: LocaleCatalogue = {
   'book.deleteConfirm': '«{{title}}» kutubxonangizdan olib tashlansinmi?',
   'book.shareCopied': 'Havola nusxalandi.',
   'book.listing': 'Eʼlon',
+  'book.addListing': 'Almashuv yoki sotuvga qoʻyish',
   'book.notListed': 'Bu nusxa shaxsiy.',
   'book.listForExchange': 'Almashuvga qoʻyish',
   'book.listForSale': 'Sotuvga qoʻyish',
@@ -228,12 +230,13 @@ export const uz: LocaleCatalogue = {
   'manual.pages': 'Sahifalar',
   'manual.cover': 'Muqova surati',
   'manual.addCover': 'Muqova qoʻshish',
+  'manual.addCoverWeb': 'Qoʻshing yoki muqovani shu yerga tashlang',
+  'manual.coverNotImage': "Bu rasm fayliga oʻxshamayapti — JPG yoki PNG bilan urinib koʻring.",
   'manual.changeCover': 'Muqovani almashtirish',
   'manual.scanCover': 'Muqovadan nom va muallifni aniqlash',
   'manual.scanning': 'Muqova oʻqilmoqda…',
   'manual.scanFilled': 'Muqovadan toʻldirildi — tekshirib chiqing.',
-  'manual.scanEmpty': 'Aniq matn topilmadi — qoʻlda toʻldiring.',
-  'manual.scanFailed': 'Aniqlab boʻlmadi — qoʻlda toʻldiring.',
+  'manual.scanEmpty': 'Aniq matn topilmadi — qoʻlda toʻldiring.',  'manual.scanFailed': 'Aniqlab boʻlmadi — qoʻlda toʻldiring.',
 
   'manual.titleRequired': 'Kitob nomi kerak',
 
@@ -318,9 +321,13 @@ export const uz: LocaleCatalogue = {
   'profile.appearance.system': 'Qurilma sozlamasi',
 
   'profile.appearance': 'Koʻrinish',
+  'profile.sendInquiry': 'Murojaat yoʻllash',
   'profile.signOutConfirm': 'Hisobdan chiqasizmi?',
   'profile.memberSince': '{{date}} dan beri kitobxon',
   'profile.noListings': 'Siz hali hech qanday kitob eʼlon qilmagansiz.',
+
+  'legal.privacyPolicy': 'Maxfiylik siyosati',
+  'legal.termsOfService': 'Foydalanish shartlari',
 
   'security.title': 'Email va parol orqali kirish',
   'security.subtitle':
@@ -339,6 +346,13 @@ export const uz: LocaleCatalogue = {
   'report.offensive': 'Nomaqbul mazmun',
   'report.other': 'Boshqa sabab',
 
+  'admin.reports': 'Shikoyatlar',
+  'admin.noReports': 'Shikoyatlar yoʻq.',
+  'admin.reportedBy': 'Shikoyatchi: {{name}}',
+  'admin.listingOwner': 'Eʼlon egasi: {{name}}',
+  'admin.markResolved': 'Koʻrib chiqildi deb belgilash',
+  'admin.resolved': 'Koʻrib chiqildi',
+
   'error.generic': 'Xatolik yuz berdi. Qayta urinib koʻring.',
   'error.network': 'Aloqa yoʻq. Internetni tekshirib, qayta urinib koʻring.',
   'error.notFound': 'Topilmadi',
@@ -347,6 +361,10 @@ export const uz: LocaleCatalogue = {
   'error.offline': 'Siz oflaynsiz — saqlangan kutubxonangiz koʻrsatilmoqda.',
   'error.listingLimitReached': 'Faol eʼlonlar chegarasiga yetdingiz. Yangisini qoʻshish uchun birini oʻchiring.',
   'error.contactLimitReached': 'Shu oydagi egasi bilan aloqalar chegarasiga yetdingiz. Chegara keyingi oyda yangilanadi.',
+  'error.reportLimitReached': 'Bugun juda koʻp shikoyat yubordingiz — ertaga qayta urinib koʻring.',
+  'error.crashTitle': 'Nimadir buzildi',
+  'error.crashBody': 'Kutilmagan xatolik yuz berdi. Qayta urinib koʻring yoki bu takrorlansa, qayta yuklang.',
+  'error.reload': 'Qayta yuklash',
 
   'plan.title': 'Sizning tarifingiz',
   'plan.free': 'Bepul',

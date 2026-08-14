@@ -259,8 +259,23 @@ export function useDeleteUserBook() {
 
   return useMutation({
     mutationFn: async (id: string) => {
+      // user_book_photos rows cascade-delete with the parent row (0001_init.sql's
+      // FK), but a cascade only ever touches the database — the actual files in
+      // the book-photos bucket have no FK pointing at them and would otherwise
+      // sit there forever. Read their paths before the row (and the cascade)
+      // is gone, then remove them once the delete that matters to the user has
+      // actually succeeded.
+      const { data: photos } = await supabase
+        .from('user_book_photos')
+        .select('storage_path')
+        .eq('user_book_id', id);
+
       const { error } = await supabase.from('user_books').delete().eq('id', id);
       if (error) throw error;
+
+      if (photos && photos.length > 0) {
+        await supabase.storage.from('book-photos').remove(photos.map((p) => p.storage_path));
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.library.all });

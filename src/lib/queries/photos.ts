@@ -6,6 +6,7 @@ import {
   pickAndUploadListingPhoto,
   publicUrlFor,
   storagePathFromPublicUrl,
+  uploadDroppedAvatar,
   uploadDroppedListingPhoto,
 } from '@/lib/images';
 import { supabase } from '@/lib/supabase';
@@ -104,14 +105,20 @@ export function useUploadAvatar() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async () => {
+    // The current avatar_url is passed in rather than read from cache, same
+    // reasoning as useRemoveAvatar below — it's what lets the old file get
+    // cleaned up once the new one is live, instead of orphaning it.
+    mutationFn: async ({ file, currentAvatarUrl }: { file?: File; currentAvatarUrl: string | null }) => {
       if (!user) throw new Error('Not signed in');
 
-      const url = await pickAndUploadAvatar(user.id);
+      const url = file ? await uploadDroppedAvatar(user.id, file) : await pickAndUploadAvatar(user.id);
       if (!url) return null;
 
       const { error } = await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id);
       if (error) throw error;
+
+      const oldPath = currentAvatarUrl ? storagePathFromPublicUrl('avatars', currentAvatarUrl) : null;
+      if (oldPath) await supabase.storage.from('avatars').remove([oldPath]);
 
       return url;
     },

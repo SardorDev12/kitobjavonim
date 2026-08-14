@@ -1,12 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Platform, Pressable, Share, StyleSheet, View } from 'react-native';
+import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/BookCover';
 import { CategoryPicker } from '@/components/CategoryPicker';
-import { PhotoManager } from '@/components/PhotoManager';
+import { ListingSheet } from '@/components/ListingSheet';
 import {
   Button,
   Card,
@@ -22,13 +22,13 @@ import {
   Sheet,
   Text,
   TextField,
-  Toggle,
 } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { describeError } from '@/lib/errors';
-import { formatAuthors, formatDate, formatPosition, formatPrice, normalizeIsbn, parsePriceInput } from '@/lib/format';
+import { hasContactMethod } from '@/lib/contactMethod';
+import { formatAuthors, formatDate, formatPosition, formatPrice, normalizeIsbn } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
-import { pickAndUploadBookCover } from '@/lib/images';
+import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
+import { useImageDropZone } from '@/lib/useImageDropZone';
 import { usePositionOptions } from '@/lib/queries/bookshelves';
 import { useBookCategories, useSetBookCategories } from '@/lib/queries/categories';
 import {
@@ -38,9 +38,8 @@ import {
   useUpdateUserBook,
   type UpdateBookInput,
 } from '@/lib/queries/library';
-import { hasContactMethod } from '@/lib/queries/profile';
-import { useTheme } from '@/theme';
-import { BOOK_CONDITIONS, READING_STATUSES, type AvailabilityType, type ReadingStatus } from '@/types/database';
+import { useLayout, useTheme } from '@/theme';
+import { BOOK_CONDITIONS, READING_STATUSES, type ReadingStatus } from '@/types/database';
 
 export default function BookDetailScreen() {
   const theme = useTheme();
@@ -50,7 +49,7 @@ export default function BookDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user, profile } = useAuth();
 
-  const { data: entry, isPending, isError } = useLibraryEntry(id);
+  const { data: entry, isPending, isError, refetch, isRefetching } = useLibraryEntry(id);
   const positions = usePositionOptions();
   const updateBook = useUpdateUserBook();
   const updateBookDetails = useUpdateBook();
@@ -164,46 +163,11 @@ export default function BookDetailScreen() {
     ]);
   }
 
-  // /book/<id> is the owner's private library entry — sharing that URL would
-  // just bounce anyone else to sign-in (or an RLS-blocked page if they did).
-  // The menu only offers Share on a listed book (see the menu below), so this
-  // always has a real public /listing/<id> link to share.
-  async function shareBook() {
-    setMenuOpen(false);
-    const book = entry!;
-
-    const webOrigin = process.env.EXPO_PUBLIC_WEB_ORIGIN;
-    if (!webOrigin) return;
-
-    const byline = book.authors.length > 0 ? ` — ${formatAuthors(book.authors)}` : '';
-    const url = `${webOrigin}/listing/${book.id}`;
-    const message = `${book.title}${byline}\n${url}`;
-
-    if (Platform.OS === 'web') {
-      if (typeof navigator !== 'undefined' && navigator.share) {
-        try {
-          await navigator.share({ title: book.title, text: `${book.title}${byline}`, url });
-        } catch {
-          // AbortError when the user cancels the native share sheet — not a failure.
-        }
-        return;
-      }
-
-      if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(url);
-        globalThis.alert(t('book.shareCopied'));
-      }
-      return;
-    }
-
-    await Share.share({ message, url });
-  }
-
   return (
     <View style={styles.fill}>
       {header}
 
-      <Screen scroll>
+      <Screen scroll onRefresh={refetch} refreshing={isRefetching}>
       <View style={{ gap: theme.spacing.xl, paddingBottom: theme.spacing.xl }}>
         {/* ---------------------------------------------------------------- */}
         <View style={[styles.hero, { gap: theme.spacing.lg }]}>
@@ -359,10 +323,6 @@ export default function BookDetailScreen() {
                 </Text>
               ) : null}
 
-              <View style={{ marginTop: theme.spacing.sm }}>
-                <PhotoManager userBookId={entry.id} />
-              </View>
-
               <Button
                 title={t('book.removeListing')}
                 variant="ghost"
@@ -470,18 +430,6 @@ export default function BookDetailScreen() {
             <Divider inset={theme.spacing.lg} />
           </>
         ) : null}
-        {isListed ? (
-          <>
-            <ListRow
-              icon="share-outline"
-              label={t('common.share')}
-              onPress={() => {
-                void shareBook();
-              }}
-            />
-            <Divider inset={theme.spacing.lg} />
-          </>
-        ) : null}
         <ListRow
           icon="trash-outline"
           label={t('book.deleteBook')}
@@ -529,6 +477,7 @@ function EditBookSheet({
   onSave: (patch: UpdateBookInput['patch']) => void;
 }) {
   const theme = useTheme();
+  const { isWide } = useLayout();
   const { t } = useI18n();
   const { user } = useAuth();
 
@@ -542,18 +491,43 @@ function EditBookSheet({
   const [pages, setPages] = useState(entry.page_count?.toString() ?? '');
   const [coverUrl, setCoverUrl] = useState(entry.cover_url);
   const [coverUploading, setCoverUploading] = useState(false);
+  const [coverError, setCoverError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
 
   async function pickCover() {
     if (!user || coverUploading) return;
     setCoverUploading(true);
+    setCoverError(null);
     try {
       const url = await pickAndUploadBookCover(user.id);
       if (url) setCoverUrl(url);
+    } catch (cause) {
+      setCoverError(cause instanceof Error ? cause.message : t('error.saveFailed'));
     } finally {
       setCoverUploading(false);
     }
   }
+
+  async function dropCover(file: File) {
+    if (!user || coverUploading) return;
+    setCoverUploading(true);
+    setCoverError(null);
+    try {
+      const url = await uploadDroppedBookCover(user.id, file);
+      if (url) setCoverUrl(url);
+      else setCoverError(t('manual.coverNotImage'));
+    } catch (cause) {
+      setCoverError(cause instanceof Error ? cause.message : t('error.saveFailed'));
+    } finally {
+      setCoverUploading(false);
+    }
+  }
+
+  const { ref: coverDropRef, isDragOver: coverDragOver } = useImageDropZone(
+    dropCover,
+    !coverUploading,
+    'book-edit-cover'
+  );
 
   function save() {
     if (!title.trim()) {
@@ -587,6 +561,25 @@ function EditBookSheet({
   return (
     <Sheet visible={visible} onClose={onClose} title={t('book.editDetails')}>
       <View style={{ gap: theme.spacing.lg }}>
+        {/* The drop target is this outer View, not the Pressable inside it —
+            react-native-web's Pressable wires its own pointer/hover handling
+            onto the same node, and that combination doesn't reliably deliver
+            native HTML5 drag events. A plain View ref does. */}
+        <View
+          ref={coverDropRef}
+          style={[
+            // Always-visible on web, not just on drag-over — a hover-only
+            // highlight has nothing to hover over until the user already
+            // knows dropping is possible here.
+            Platform.OS === 'web' && {
+              borderRadius: theme.radius.md,
+              borderWidth: 1,
+              borderStyle: 'dashed',
+              borderColor: coverDragOver ? theme.colors.primary : theme.colors.borderStrong,
+              padding: theme.spacing.sm,
+            },
+          ]}
+        >
         <Pressable
           onPress={pickCover}
           disabled={coverUploading}
@@ -602,10 +595,23 @@ function EditBookSheet({
               color={theme.colors.primary}
             />
             <Text variant="label" color="primary">
-              {coverUploading ? t('common.saving') : coverUrl ? t('manual.changeCover') : t('manual.addCover')}
+              {coverUploading
+                ? t('common.saving')
+                : coverUrl
+                  ? t('manual.changeCover')
+                  : Platform.OS === 'web' && isWide
+                    ? t('manual.addCoverWeb')
+                    : t('manual.addCover')}
             </Text>
           </View>
         </Pressable>
+        </View>
+
+        {coverError ? (
+          <Text variant="caption" color="danger">
+            {coverError}
+          </Text>
+        ) : null}
 
         <TextField
           label={t('manual.bookTitle')}
@@ -741,152 +747,6 @@ function ReviewSheet({
             onClose();
           }}
         />
-      </View>
-    </Sheet>
-  );
-}
-
-// -----------------------------------------------------------------------------
-
-function ListingSheet({
-  visible,
-  onClose,
-  entry,
-  canList,
-  onOpenProfile,
-  onSave,
-}: {
-  visible: boolean;
-  onClose: () => void;
-  entry: { availability_type: AvailabilityType; sale_price: number | null; price_negotiable: boolean; exchange_preferences: string | null; sale_description: string | null; condition: string | null };
-  canList: boolean;
-  onOpenProfile: () => void;
-  onSave: (patch: Parameters<ReturnType<typeof useUpdateUserBook>['mutate']>[0]['patch']) => Promise<unknown>;
-}) {
-  const theme = useTheme();
-  const { t } = useI18n();
-
-  const [forExchange, setForExchange] = useState(
-    entry.availability_type === 'exchange' || entry.availability_type === 'exchange_or_sale'
-  );
-  const [forSale, setForSale] = useState(
-    entry.availability_type === 'sale' || entry.availability_type === 'exchange_or_sale'
-  );
-  const [price, setPrice] = useState(entry.sale_price ? String(entry.sale_price) : '');
-  const [negotiable, setNegotiable] = useState(entry.price_negotiable);
-  const [preferences, setPreferences] = useState(entry.exchange_preferences ?? '');
-  const [description, setDescription] = useState(entry.sale_description ?? '');
-  const [error, setError] = useState<string | null>(null);
-
-  const [saving, setSaving] = useState(false);
-
-  async function save() {
-    const parsedPrice = parsePriceInput(price);
-
-    if (forSale && parsedPrice === null) {
-      setError(t('book.priceRequired'));
-      return;
-    }
-
-    // Exchange and sale are two flags over one enum, which is what lets a book be
-    // offered both ways without a second listing record.
-    const availability: AvailabilityType =
-      forExchange && forSale
-        ? 'exchange_or_sale'
-        : forSale
-          ? 'sale'
-          : forExchange
-            ? 'exchange'
-            : 'private';
-
-    setError(null);
-    setSaving(true);
-
-    try {
-      await onSave({
-        availability_type: availability,
-        sale_price: forSale ? parsedPrice : null,
-        price_negotiable: forSale ? negotiable : false,
-        exchange_preferences: forExchange ? preferences.trim() || null : null,
-        sale_description: forSale ? description.trim() || null : null,
-      });
-      onClose();
-    } catch (cause) {
-      setError(describeError(cause, t));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <Sheet visible={visible} onClose={onClose} title={t('book.listing')}>
-      <View style={{ gap: theme.spacing.lg }}>
-        {!canList ? (
-          <Card style={{ backgroundColor: theme.colors.warningSoft, borderColor: 'transparent' }}>
-            <Text variant="body">{t('book.contactRequired')}</Text>
-            <Button
-              title={t('profile.contactDetails')}
-              variant="secondary"
-              size="sm"
-              style={{ marginTop: theme.spacing.md }}
-              onPress={onOpenProfile}
-            />
-          </Card>
-        ) : null}
-
-        <Toggle
-          label={t('availability.exchange')}
-          value={forExchange}
-          onChange={setForExchange}
-          disabled={!canList}
-        />
-
-        {forExchange ? (
-          <TextField
-            label={t('book.exchangePreferences')}
-            placeholder={t('book.exchangePreferencesPlaceholder')}
-            value={preferences}
-            onChangeText={setPreferences}
-            multiline
-          />
-        ) : null}
-
-        <Divider />
-
-        <Toggle label={t('availability.sale')} value={forSale} onChange={setForSale} disabled={!canList} />
-
-        {forSale ? (
-          <>
-            <TextField
-              label={t('book.price')}
-              placeholder={t('book.pricePlaceholder')}
-              value={price}
-              onChangeText={(value) => {
-                setPrice(value);
-                if (error) setError(null);
-              }}
-              keyboardType="number-pad"
-              inputMode="numeric"
-              error={error}
-            />
-            <Toggle label={t('book.negotiable')} value={negotiable} onChange={setNegotiable} />
-            <TextField
-              label={t('book.saleDescription')}
-              placeholder={t('book.saleDescriptionPlaceholder')}
-              value={description}
-              onChangeText={setDescription}
-              multiline
-            />
-          </>
-        ) : null}
-
-        {error ? (
-          <Text variant="caption" color="danger">
-            {error}
-          </Text>
-        ) : null}
-
-        <Button title={t('common.save')} fullWidth onPress={save} disabled={!canList} loading={saving} />
       </View>
     </Sheet>
   );

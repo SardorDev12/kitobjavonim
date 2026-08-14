@@ -115,6 +115,8 @@ export default function SignUpScreen() {
             </Text>
           ) : null}
 
+          <AgreementText />
+
           <Button title={t('auth.signUp')} fullWidth loading={loading} onPress={submit} />
 
           <View style={[styles.footer, { gap: theme.spacing.xs }]}>
@@ -132,6 +134,40 @@ export default function SignUpScreen() {
         </View>
       </KeyboardAvoidingView>
     </Screen>
+  );
+}
+
+/**
+ * Splits the translated sentence on its {terms}/{privacy} tokens so each
+ * can become its own tappable inline span while the surrounding wording —
+ * including word order, which varies by language — stays a single
+ * translatable string rather than three concatenated fragments.
+ */
+function AgreementText() {
+  const { t } = useI18n();
+  const router = useRouter();
+  const parts = t('auth.agreeToTerms').split(/(\{terms\}|\{privacy\})/);
+
+  return (
+    <Text variant="caption" color="textSubtle" align="center">
+      {parts.map((part, index) => {
+        if (part === '{terms}') {
+          return (
+            <Text key={index} variant="caption" color="primary" onPress={() => router.push('/legal/terms')}>
+              {t('legal.termsOfService')}
+            </Text>
+          );
+        }
+        if (part === '{privacy}') {
+          return (
+            <Text key={index} variant="caption" color="primary" onPress={() => router.push('/legal/privacy')}>
+              {t('legal.privacyPolicy')}
+            </Text>
+          );
+        }
+        return part;
+      })}
+    </Text>
   );
 }
 

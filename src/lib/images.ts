@@ -74,36 +74,45 @@ async function upload(bucket: string, path: string, image: PickedImage): Promise
  * Same resize/compress pass as pickAndCompress, starting from a File a user
  * dropped onto the page instead of one ImagePicker handed back — web-only,
  * for drag-and-drop.
+ *
+ * Reads the file as a base64 data: URI rather than a URL.createObjectURL()
+ * blob: URL. expo-image-manipulator's own docs promise support for only "the
+ * local file system or a base64 data URI" — blob: URLs are not a documented
+ * input, and manipulateAsync silently produced nothing usable when given one,
+ * which is why a dropped file visibly landed (the dashed border reacts) but
+ * never actually became a cover.
  */
 async function fileToPickedImage(file: File, maxEdge: number): Promise<PickedImage | null> {
   if (!file.type.startsWith('image/')) return null;
 
-  const objectUrl = URL.createObjectURL(file);
-  try {
-    const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
-      const img = new globalThis.Image();
-      img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
-      img.onerror = () => reject(new Error('Could not read the dropped file as an image.'));
-      img.src = objectUrl;
-    });
+  const dataUrl = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error('Could not read the dropped file.'));
+    reader.readAsDataURL(file);
+  });
 
-    const longestEdge = Math.max(width, height);
-    const actions: ImageManipulator.Action[] =
-      longestEdge > maxEdge
-        ? [width >= height ? { resize: { width: maxEdge } } : { resize: { height: maxEdge } }]
-        : [];
+  const { width, height } = await new Promise<{ width: number; height: number }>((resolve, reject) => {
+    const img = new globalThis.Image();
+    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onerror = () => reject(new Error('Could not read the dropped file as an image.'));
+    img.src = dataUrl;
+  });
 
-    const manipulated = await ImageManipulator.manipulateAsync(objectUrl, actions, {
-      compress: QUALITY,
-      format: ImageManipulator.SaveFormat.JPEG,
-      base64: true,
-    });
+  const longestEdge = Math.max(width, height);
+  const actions: ImageManipulator.Action[] =
+    longestEdge > maxEdge
+      ? [width >= height ? { resize: { width: maxEdge } } : { resize: { height: maxEdge } }]
+      : [];
 
-    if (!manipulated.base64) return null;
-    return { base64: manipulated.base64, contentType: 'image/jpeg', extension: 'jpg' };
-  } finally {
-    URL.revokeObjectURL(objectUrl);
-  }
+  const manipulated = await ImageManipulator.manipulateAsync(dataUrl, actions, {
+    compress: QUALITY,
+    format: ImageManipulator.SaveFormat.JPEG,
+    base64: true,
+  });
+
+  if (!manipulated.base64) return null;
+  return { base64: manipulated.base64, contentType: 'image/jpeg', extension: 'jpg' };
 }
 
 /**
@@ -156,8 +165,30 @@ export async function pickAndUploadBookCover(userId: string): Promise<string | n
   return publicUrlFor('book-photos', path);
 }
 
+/** Same as pickAndUploadBookCover, but for a file dropped onto the page (web). */
+export async function uploadDroppedBookCover(userId: string, file: File): Promise<string | null> {
+  const image = await fileToPickedImage(file, MAX_EDGE);
+  if (!image) return null;
+
+  const path = `${userId}/covers/${Date.now()}.${image.extension}`;
+  await upload('book-photos', path, image);
+
+  return publicUrlFor('book-photos', path);
+}
+
 export async function pickAndUploadAvatar(userId: string): Promise<string | null> {
   const image = await pickAndCompress(AVATAR_EDGE);
+  if (!image) return null;
+
+  const path = `${userId}/avatar-${Date.now()}.${image.extension}`;
+  await upload('avatars', path, image);
+
+  return supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+}
+
+/** Same as pickAndUploadAvatar, but for a file dropped onto the page (web). */
+export async function uploadDroppedAvatar(userId: string, file: File): Promise<string | null> {
+  const image = await fileToPickedImage(file, AVATAR_EDGE);
   if (!image) return null;
 
   const path = `${userId}/avatar-${Date.now()}.${image.extension}`;

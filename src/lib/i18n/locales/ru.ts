@@ -54,6 +54,7 @@ export const ru: LocaleCatalogue = {
   'auth.orUseEmail': 'или по эл. почте',
   'auth.noAccount': 'Ещё нет аккаунта?',
   'auth.haveAccount': 'Уже есть аккаунт?',
+  'auth.agreeToTerms': 'Создавая аккаунт, вы соглашаетесь с нашими {terms} и {privacy}.',
   'auth.invalidEmail': 'Введите корректный адрес эл. почты',
   'auth.passwordTooShort': 'Пароль должен быть не короче 8 символов',
   'auth.nameRequired': 'Введите ваше имя',
@@ -159,6 +160,7 @@ export const ru: LocaleCatalogue = {
   'book.deleteConfirm': 'Убрать «{{title}}» из вашей библиотеки?',
   'book.shareCopied': 'Ссылка скопирована.',
   'book.listing': 'Объявление',
+  'book.addListing': 'Выставить на обмен или продажу',
   'book.notListed': 'Этот экземпляр личный.',
   'book.listForExchange': 'Выставить на обмен',
   'book.listForSale': 'Выставить на продажу',
@@ -226,12 +228,13 @@ export const ru: LocaleCatalogue = {
   'manual.pages': 'Страниц',
   'manual.cover': 'Обложка',
   'manual.addCover': 'Добавить обложку',
+  'manual.addCoverWeb': 'Добавьте или перетащите обложку',
+  'manual.coverNotImage': 'Это не похоже на файл изображения — попробуйте JPG или PNG.',
   'manual.changeCover': 'Изменить обложку',
   'manual.scanCover': 'Распознать название и автора с обложки',
   'manual.scanning': 'Читаем обложку…',
   'manual.scanFilled': 'Заполнено по обложке — проверьте.',
-  'manual.scanEmpty': 'Не удалось разобрать текст — заполните вручную.',
-  'manual.scanFailed': 'Не удалось распознать — заполните вручную.',
+  'manual.scanEmpty': 'Не удалось разобрать текст — заполните вручную.',  'manual.scanFailed': 'Не удалось распознать — заполните вручную.',
 
   'manual.titleRequired': 'Укажите название',
 
@@ -317,9 +320,13 @@ export const ru: LocaleCatalogue = {
   'profile.appearance.system': 'Как на устройстве',
 
   'profile.appearance': 'Оформление',
+  'profile.sendInquiry': 'Отправить обращение',
   'profile.signOutConfirm': 'Выйти из аккаунта?',
   'profile.memberSince': 'Читатель с {{date}}',
   'profile.noListings': 'Вы ещё не выставили ни одной книги.',
+
+  'legal.privacyPolicy': 'Политика конфиденциальности',
+  'legal.termsOfService': 'Условия использования',
 
   'security.title': 'Вход по email и паролю',
   'security.subtitle':
@@ -338,6 +345,13 @@ export const ru: LocaleCatalogue = {
   'report.offensive': 'Оскорбительный контент',
   'report.other': 'Другое',
 
+  'admin.reports': 'Жалобы',
+  'admin.noReports': 'Жалоб нет.',
+  'admin.reportedBy': 'Пожаловался: {{name}}',
+  'admin.listingOwner': 'Владелец объявления: {{name}}',
+  'admin.markResolved': 'Отметить рассмотренной',
+  'admin.resolved': 'Рассмотрено',
+
   'error.generic': 'Что-то пошло не так. Попробуйте ещё раз.',
   'error.network': 'Нет соединения. Проверьте интернет и повторите.',
   'error.notFound': 'Не найдено',
@@ -346,6 +360,10 @@ export const ru: LocaleCatalogue = {
   'error.offline': 'Вы офлайн — показана сохранённая библиотека.',
   'error.listingLimitReached': 'Вы достигли лимита активных объявлений. Уберите одно, чтобы добавить новое.',
   'error.contactLimitReached': 'Вы достигли лимита контактов с владельцами в этом месяце. Лимит обновится в следующем месяце.',
+  'error.reportLimitReached': 'Вы отправили слишком много жалоб сегодня — попробуйте завтра.',
+  'error.crashTitle': 'Что-то сломалось',
+  'error.crashBody': 'Произошла непредвиденная ошибка. Попробуйте ещё раз или перезагрузите, если это повторяется.',
+  'error.reload': 'Перезагрузить',
 
   'plan.title': 'Ваш план',
   'plan.free': 'Бесплатный',

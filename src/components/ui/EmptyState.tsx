@@ -48,7 +48,16 @@ export function EmptyState({ icon = 'book-outline', title, body, actionLabel, on
       ) : null}
 
       {actionLabel && onAction ? (
-        <Button title={actionLabel} onPress={onAction} variant={isError ? 'secondary' : 'primary'} />
+        <Button
+          title={actionLabel}
+          onPress={onAction}
+          variant={isError ? 'secondary' : 'primary'}
+          // Button sets alignSelf: 'flex-start' internally whenever it isn't
+          // fullWidth, which wins over this container's own alignItems:
+          // 'center' — align-self on a component always overrides its
+          // parent's align-items. Has to be overridden here explicitly.
+          style={{ alignSelf: 'center' }}
+        />
       ) : null}
     </View>
   );
