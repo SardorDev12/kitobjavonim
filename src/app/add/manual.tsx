@@ -104,13 +104,23 @@ export default function ManualEntryScreen() {
     setScanMessage(null);
     try {
       const result = await scanCoverText(coverUrl);
-      const filledTitle = !title.trim() && result?.title;
+      const hasResult = !!result?.title || (result?.authors.length ?? 0) > 0;
+      const filledTitle = !title.trim() && !!result?.title;
       const filledAuthors = !authors.trim() && (result?.authors.length ?? 0) > 0;
 
       if (filledTitle) setTitle(result!.title!);
       if (filledAuthors) setAuthors(result!.authors.join(', '));
 
-      setScanMessage(filledTitle || filledAuthors ? t('manual.scanFilled') : t('manual.scanEmpty'));
+      // A successful scan whose fields were already typed in isn't the same
+      // failure as the model genuinely finding nothing on the cover — saying
+      // "no clear text found" in that case is just wrong.
+      setScanMessage(
+        filledTitle || filledAuthors
+          ? t('manual.scanFilled')
+          : hasResult
+            ? t('manual.scanAlreadyFilled')
+            : t('manual.scanEmpty')
+      );
     } catch {
       setScanMessage(t('manual.scanFailed'));
     } finally {

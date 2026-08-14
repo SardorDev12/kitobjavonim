@@ -235,6 +235,7 @@ export const ru: LocaleCatalogue = {
   'manual.scanning': 'Читаем обложку…',
   'manual.scanFilled': 'Заполнено по обложке — проверьте.',
   'manual.scanEmpty': 'Не удалось разобрать текст — заполните вручную.',
+  'manual.scanAlreadyFilled': 'Название или автор найдены, но эти поля уже заполнены — очистите поле, чтобы перезаписать.',
   'manual.scanFailed': 'Не удалось распознать — заполните вручную.',
 
   'manual.titleRequired': 'Укажите название',

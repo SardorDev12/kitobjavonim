@@ -234,6 +234,7 @@ export const en = {
   'manual.scanning': 'Reading cover…',
   'manual.scanFilled': 'Filled in from the cover — check it over.',
   'manual.scanEmpty': "Couldn't make out clear text — fill in manually.",
+  'manual.scanAlreadyFilled': 'Found a title or author, but those fields are already filled — clear one to overwrite it.',
   'manual.scanFailed': 'Scan failed — fill in manually.',
 
   'manual.titleRequired': 'A title is required',
