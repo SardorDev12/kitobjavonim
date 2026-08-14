@@ -6,6 +6,7 @@ import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useLayout, useTheme } from '@/theme';
 
 import { PullToRefreshIndicator } from '../PullToRefreshIndicator';
+import { Text } from './Text';
 
 // Some Android OEM skins (MIUI in particular) don't report the 3-button nav
 // bar's height through the standard WindowInsets API the way stock Android
@@ -112,6 +113,15 @@ export function Screen({
           ]}
         >
           <View style={[styles.constrain, { maxWidth: maxContentWidth }]}>{footer}</View>
+          {/* TEMPORARY — diagnosing a report that this footer still sits
+              behind the on-screen nav bar on a MIUI device even with the
+              48dp floor below. Remove once we have a real number and the
+              floor is corrected to match it. */}
+          {Platform.OS === 'android' ? (
+            <Text variant="caption" color="textSubtle">
+              debug: insets.bottom={insets.bottom} floored={bottomInset}
+            </Text>
+          ) : null}
         </View>
       ) : null}
     </View>
