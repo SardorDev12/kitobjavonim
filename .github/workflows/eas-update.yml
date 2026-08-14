@@ -1,0 +1,41 @@
+name: EAS Update
+
+# Publishes an over-the-air JS update to the already-installed app instead of
+# requiring a fresh native build for every change — see eas.json's per-profile
+# "channel" and app.json's "updates"/"runtimeVersion" for the other half of
+# this setup. Only covers JS-only changes; anything that touches native code
+# (a new native dependency, a permission, app.json's icon/splash/plugins)
+# still needs a real build through the usual EAS flow, since the installed
+# binary itself doesn't change here.
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "admin/**"
+      - "supabase/**"
+      - "*.md"
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      # The "preview" channel is what the installed testing APK checks —
+      # production intentionally isn't auto-published here, so a Play Store
+      # release stays a deliberate, reviewed step rather than something any
+      # push to main can silently change underneath already-live users.
+      - name: Publish update to the preview channel
+        run: eas update --channel preview --message "${{ github.event.head_commit.message }}" --non-interactive
