@@ -12,10 +12,6 @@
     "node_modules",
     // Edge Functions run on Deno, not React Native. They have their own globals
     // and resolve jsr:/npm: specifiers, neither of which this config knows about.
-    "supabase/functions",
-    // A separate Vite + React web app with its own package.json, tsconfig,
-    // and React version — see admin/README.md for why it isn't part of this
-    // Expo project at all.
-    "admin"
+    "supabase/functions"
   ]
 }

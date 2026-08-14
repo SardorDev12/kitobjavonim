@@ -31,26 +31,3 @@ jobs:
         env:
           EXPO_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
-
-  admin-typecheck-and-build:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: admin
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: admin/package-lock.json
-
-      - run: npm ci
-
-      # Placeholder values, same reasoning as the main build above — this
-      # only verifies the admin panel's bundle compiles cleanly.
-      - run: npm run build
-        env:
-          VITE_SUPABASE_URL: https://ci-placeholder.supabase.co
-          VITE_SUPABASE_ANON_KEY: ci-placeholder-anon-key
