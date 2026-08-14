@@ -1,5 +1,14 @@
 import type { ReactNode } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
@@ -48,9 +57,26 @@ export function Screen({
   );
 
   return (
-    <View style={[styles.root, { backgroundColor: theme.colors.background }, style]}>
+    <KeyboardAvoidingView
+      style={[styles.root, { backgroundColor: theme.colors.background }, style]}
+      // 'height' rather than 'padding' on Android: with edge-to-edge display
+      // (mandatory since Expo SDK 54), the window no longer resizes itself
+      // for the keyboard the way pre-edge-to-edge Android did, and 'padding'
+      // ends up double-applied on top of whatever the OS already shifted —
+      // 'height' is what actually shrinks this container to the visible
+      // space so the ScrollView (and the footer button sitting below it)
+      // stay reachable instead of sliding out from under the keyboard.
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
       {scroll ? (
         <ScrollView
+          // Without an explicit flex here, a ScrollView with no other height
+          // constraint sizes itself to its *content* rather than to the
+          // available space in this flex-column root — on native (unlike
+          // react-native-web, which is more forgiving) that let a long form
+          // grow taller than the screen and push the footer below the fold,
+          // behind the on-screen nav bar, with no way to reach it.
+          style={styles.flex}
           contentContainerStyle={[
             styles.scrollContent,
             {
@@ -91,7 +117,7 @@ export function Screen({
           <View style={[styles.constrain, { maxWidth: maxContentWidth }]}>{footer}</View>
         </View>
       ) : null}
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
