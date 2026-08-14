@@ -1,0 +1,17 @@
+# Cloudflare's header-injection convention — copied into dist/ verbatim by
+# Vite's own public/ handling, same idea as the main app's public/_headers.
+#
+# Tighter than the main app's on every axis that's actually different here:
+# no external images are ever rendered (nothing in admin/src puts a
+# cover_url or avatar_url into an <img>), no third-party script is loaded
+# (no Telegram widget, no OAuth), and this panel should never be reachable
+# inside a frame at all — clickjacking a page that can ban or delete an
+# account is a meaningfully worse outcome than clickjacking the consumer
+# app. style-src still needs 'unsafe-inline': every page here is styled
+# with plain `style={{...}}` objects rather than CSS classes.
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=()
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://*.supabase.co; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'

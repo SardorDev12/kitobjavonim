@@ -12,6 +12,10 @@
     "node_modules",
     // Edge Functions run on Deno, not React Native. They have their own globals
     // and resolve jsr:/npm: specifiers, neither of which this config knows about.
-    "supabase/functions"
+    "supabase/functions",
+    // The admin panel is a separate Vite + React app with its own
+    // tsconfig.json (browser/DOM types, not React Native) and its own
+    // dependency tree — it has no business being picked up by this one.
+    "admin"
   ]
 }
