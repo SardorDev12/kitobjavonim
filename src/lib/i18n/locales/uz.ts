@@ -236,9 +236,7 @@ export const uz: LocaleCatalogue = {
   'manual.scanCover': 'Muqovadan nom va muallifni aniqlash',
   'manual.scanning': 'Muqova oʻqilmoqda…',
   'manual.scanFilled': 'Muqovadan toʻldirildi — tekshirib chiqing.',
-  'manual.scanEmpty': 'Aniq matn topilmadi — qoʻlda toʻldiring.',
-  'manual.scanAlreadyFilled': 'Nom yoki muallif topildi, lekin bu maydonlar allaqachon toʻldirilgan — qayta yozish uchun boʻsh qiling.',
-  'manual.scanFailed': 'Aniqlab boʻlmadi — qoʻlda toʻldiring.',
+  'manual.scanEmpty': 'Aniq matn topilmadi — qoʻlda toʻldiring.',  'manual.scanFailed': 'Aniqlab boʻlmadi — qoʻlda toʻldiring.',
 
   'manual.titleRequired': 'Kitob nomi kerak',
 

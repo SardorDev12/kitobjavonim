@@ -94,9 +94,9 @@ export default function ManualEntryScreen() {
     'add-manual-cover'
   );
 
-  // Pre-fills only — free OCR on a photographed cover is a good guess, not a
-  // fact, so this never overwrites text the user already typed and every
-  // field it fills stays exactly as editable as if they had typed it in.
+  // Overwrites title/authors with whatever the current cover reads as — the
+  // user pressed "scan" for this exact cover, so that result should win over
+  // whatever was there before, not defer to it.
   async function scanCover() {
     if (!coverUrl || scanning) return;
 
@@ -104,23 +104,13 @@ export default function ManualEntryScreen() {
     setScanMessage(null);
     try {
       const result = await scanCoverText(coverUrl);
-      const hasResult = !!result?.title || (result?.authors.length ?? 0) > 0;
-      const filledTitle = !title.trim() && !!result?.title;
-      const filledAuthors = !authors.trim() && (result?.authors.length ?? 0) > 0;
+      const filledTitle = !!result?.title;
+      const filledAuthors = (result?.authors.length ?? 0) > 0;
 
       if (filledTitle) setTitle(result!.title!);
       if (filledAuthors) setAuthors(result!.authors.join(', '));
 
-      // A successful scan whose fields were already typed in isn't the same
-      // failure as the model genuinely finding nothing on the cover — saying
-      // "no clear text found" in that case is just wrong.
-      setScanMessage(
-        filledTitle || filledAuthors
-          ? t('manual.scanFilled')
-          : hasResult
-            ? t('manual.scanAlreadyFilled')
-            : t('manual.scanEmpty')
-      );
+      setScanMessage(filledTitle || filledAuthors ? t('manual.scanFilled') : t('manual.scanEmpty'));
     } catch {
       setScanMessage(t('manual.scanFailed'));
     } finally {
