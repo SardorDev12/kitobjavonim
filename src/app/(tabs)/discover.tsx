@@ -206,7 +206,12 @@ export default function DiscoverScreen() {
             data={listings}
             numColumns={viewMode === 'gallery' ? Math.max(galleryColumns, 1) : 1}
             keyExtractor={(item) => item.id}
-            columnWrapperStyle={viewMode === 'gallery' && galleryColumns > 1 ? { gap: gutter } : undefined}
+            // See Library's identical change — space-between spreads a
+            // partial last row's tiles to the row's full width instead of
+            // clustering them left with empty space after.
+            columnWrapperStyle={
+              viewMode === 'gallery' && galleryColumns > 1 ? { gap: gutter, justifyContent: 'space-between' } : undefined
+            }
             contentContainerStyle={[
               listings.length === 0 && styles.fill,
               viewMode === 'gallery' && { paddingHorizontal: horizontalPadding },

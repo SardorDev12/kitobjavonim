@@ -172,7 +172,14 @@ export default function LibraryScreen() {
         data={entries}
         keyExtractor={(entry) => entry.id}
         numColumns={viewMode === 'gallery' ? Math.max(galleryColumns, 1) : 1}
-        columnWrapperStyle={viewMode === 'gallery' && galleryColumns > 1 ? { gap: gutter } : undefined}
+        // space-between (not just gap) so a partial last row — fewer items
+        // than galleryColumns — spreads its tiles to the row's full width
+        // instead of clustering them to the left with empty space after.
+        // A full row is unaffected either way, since its tiles' width plus
+        // gaps already fills the row almost exactly.
+        columnWrapperStyle={
+          viewMode === 'gallery' && galleryColumns > 1 ? { gap: gutter, justifyContent: 'space-between' } : undefined
+        }
         renderItem={({ item }) =>
           viewMode === 'gallery' ? (
             galleryColumns > 0 ? (
