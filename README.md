@@ -165,22 +165,29 @@ Two things worth knowing before you plan a launch date:
 
 JS-only changes (most of them) don't need a new native build at all once a
 build with `expo-updates` installed is on the device — `.github/workflows/
-eas-update.yml` publishes one to the `preview` channel automatically on every
-push to `main`, which the `preview` build profile's installed APK checks on
-launch. A change that touches native code (a new native dependency, a
-permission, `app.json`'s icon/splash/plugins) still needs a real build
-through the usual `eas build` flow above; `runtimeVersion`'s `appVersion`
-policy is what stops an incompatible OTA update from being offered to a
-binary that can't run it — bump `version` in `app.json` when a native change
-ships, same as any other native-affecting release.
+eas-update.yml` publishes one automatically on every push to `develop` or
+`main`, which the `preview` build profile's installed APK checks on launch.
+A change that touches native code (a new native dependency, a permission,
+`app.json`'s icon/splash/plugins) still needs a real build through the usual
+`eas build` flow above; `runtimeVersion`'s `appVersion` policy is what stops
+an incompatible OTA update from being offered to a binary that can't run
+it — bump `version` in `app.json` when a native change ships, same as any
+other native-affecting release.
+
+Both branches publish to the same `preview` channel rather than one each —
+there's one installed test device, so there's nothing for a second channel
+to reach. What differs per branch is the Supabase project the published
+bundle points at: a `develop` push re-points the installed app at **staging**
+data to try a change against, and a `main` push re-points it at
+**production** data once that change is confirmed good — the same promotion
+step the web deploys already do, just without needing a second physical
+device to hold a separate staging install. (`eas update` doesn't read
+`eas.json`'s build-time `env` blocks — those only apply to `eas build` — so
+the workflow sets the right `EXPO_PUBLIC_*` values explicitly per branch.)
 
 Requires an `EXPO_TOKEN` repository secret (GitHub → Settings → Secrets and
 variables → Actions) — generate one at
 [expo.dev](https://expo.dev/accounts/[account]/settings/access-tokens).
-Production intentionally isn't wired to auto-publish — a Play Store release
-should stay a deliberate step, not something every push to `main` changes
-underneath already-live users; publish there by hand with
-`eas update --channel production` when that's actually wanted.
 
 ---
 

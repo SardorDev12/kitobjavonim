@@ -48,6 +48,18 @@ export default function LibraryScreen() {
     listWidth > 0
       ? Math.max(2, Math.floor((listWidth - horizontalPadding * 2 + gutter) / (GALLERY_TILE_WIDTH + gutter)))
       : 0;
+  // Widened past the base gutter to close the slack Math.floor leaves
+  // behind, so a full row's tiles reach the row's actual right edge exactly
+  // (the same effect as justifyContent: 'space-between', without its
+  // downside: applied as a real justifyContent, it would also stretch a
+  // partial last row's one or two tiles apart to fill the leftover width,
+  // which reads as a missing tile rather than intentional spacing. A fixed
+  // gap keeps a partial row's spacing identical to a full row's while still
+  // packing it to the left.)
+  const galleryRowGap =
+    galleryColumns > 1
+      ? Math.max(gutter, (listWidth - horizontalPadding * 2 - galleryColumns * GALLERY_TILE_WIDTH) / (galleryColumns - 1))
+      : gutter;
 
   const entries = useMemo(
     () => selectLibrary(data ?? [], { filter, sort, search }),
@@ -172,7 +184,12 @@ export default function LibraryScreen() {
         data={entries}
         keyExtractor={(entry) => entry.id}
         numColumns={viewMode === 'gallery' ? Math.max(galleryColumns, 1) : 1}
-        columnWrapperStyle={viewMode === 'gallery' && galleryColumns > 1 ? { gap: gutter } : undefined}
+        // galleryRowGap (not the base gutter) — see its own comment above
+        // for why: a full row's tiles reach the row's right edge exactly
+        // (reading the same as space-between), while a partial row keeps
+        // that identical spacing and stays packed to the left instead of
+        // stretching to fill the leftover width.
+        columnWrapperStyle={viewMode === 'gallery' && galleryColumns > 1 ? { gap: galleryRowGap } : undefined}
         renderItem={({ item }) =>
           viewMode === 'gallery' ? (
             galleryColumns > 0 ? (

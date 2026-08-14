@@ -1,10 +1,11 @@
 import type { User } from '@supabase/supabase-js';
-import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button, Screen, Select, Text, TextField, Toggle } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { useI18n } from '@/lib/i18n';
+import { scrollToEndOnKeyboardShow } from '@/lib/keyboard';
 import { useUpdateProfile } from '@/lib/queries/profile';
 import { useLocationOptions } from '@/lib/queries/reference';
 import { useTheme } from '@/theme';
@@ -44,6 +45,7 @@ export default function OnboardingScreen() {
   const [showPhone, setShowPhone] = useState(profile?.show_phone ?? false);
   const [error, setError] = useState<string | null>(null);
   const [skipping, setSkipping] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   const districts = locations.districtsFor(regionId);
 
@@ -88,8 +90,12 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <Screen scroll>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+    <Screen scroll scrollRef={scrollRef}>
+      {/* See sign-in.tsx's identical structure — no KeyboardAvoidingView
+          here; it would be nested inside Screen's ScrollView, so it can't
+          affect what the ScrollView considers scrollable. Screen itself
+          handles the keyboard. */}
+      <View style={styles.flex}>
         <View style={[styles.container, { paddingTop: theme.spacing['3xl'], gap: theme.spacing.lg }]}>
           <View style={{ gap: theme.spacing.sm }}>
             <Text variant="display">{t('onboarding.title')}</Text>
@@ -133,6 +139,9 @@ export default function OnboardingScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             placeholder="username"
+            // See sign-in.tsx's identical field — Android's ScrollView
+            // doesn't reliably bring a focused field into view on its own.
+            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
           />
 
           <Toggle
@@ -150,6 +159,7 @@ export default function OnboardingScreen() {
             keyboardType="phone-pad"
             inputMode="tel"
             placeholder="+998 90 123 45 67"
+            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
           />
 
           <Toggle
@@ -183,7 +193,7 @@ export default function OnboardingScreen() {
             onPress={skip}
           />
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Screen>
   );
 }

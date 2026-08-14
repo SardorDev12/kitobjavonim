@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { isAppleSignInAvailable, signInWithApple, signInWithOAuth, signInWithTelegram } from '@/features/auth/providers';
 import { useI18n } from '@/lib/i18n';
+import { scrollToEndOnKeyboardShow } from '@/lib/keyboard';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/theme';
 import { Button, Divider, Screen, Text, TextField } from '@/components/ui';
@@ -18,6 +19,7 @@ export default function SignInScreen() {
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState<null | 'email' | 'google' | 'apple' | 'telegram'>(null);
   const [appleAvailable, setAppleAvailable] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
 
   useEffect(() => {
     isAppleSignInAvailable().then(setAppleAvailable);
@@ -45,8 +47,13 @@ export default function SignInScreen() {
     });
 
   return (
-    <Screen scroll>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
+    <Screen scroll scrollRef={scrollRef}>
+      {/* No KeyboardAvoidingView here — it would wrap this content, but it's
+          already inside Screen's ScrollView, so resizing it can't affect
+          what the ScrollView considers scrollable. The keyboard is handled
+          by Screen itself (extra bottom padding while it's open) plus
+          scrollToEndOnKeyboardShow on the password field below. */}
+      <View style={styles.flex}>
         <View style={[styles.container, { paddingTop: theme.spacing['4xl'], gap: theme.spacing.xl }]}>
           <View style={{ gap: theme.spacing.sm }}>
             <View style={[styles.mark, { backgroundColor: theme.colors.primarySoft, borderRadius: theme.radius.lg }]}>
@@ -125,6 +132,12 @@ export default function SignInScreen() {
               textContentType="password"
               onSubmitEditing={signInWithEmail}
               returnKeyType="go"
+              // Android's ScrollView doesn't reliably scroll a focused field
+              // into view on its own (see Screen's scrollRef comment) — this
+              // field sits below three provider buttons and a divider, so
+              // without this the keyboard covers it entirely rather than
+              // just partially.
+              onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
             />
 
             {error ? (
@@ -163,7 +176,7 @@ export default function SignInScreen() {
             </Link>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Screen>
   );
 }
