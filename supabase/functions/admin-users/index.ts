@@ -106,7 +106,7 @@ Deno.serve(async (request) => {
 
   switch (body.action) {
     case 'create_admin':
-      return await createAdmin(request, admin, body);
+      return await createAdmin(request, admin, callerId, body);
     case 'set_ban':
       return await setBan(request, admin, callerId, body);
     case 'delete_user':
@@ -115,6 +115,29 @@ Deno.serve(async (request) => {
       return json(request, { error: 'Unknown action' }, 400);
   }
 });
+
+/**
+ * Mirrors log_admin_action() (0014_admin_audit_log.sql) — this function's
+ * three actions can't go through that SQL helper themselves since they use
+ * the Auth Admin API, not a SQL statement, so the same row shape is written
+ * directly here with the service-role client instead. Best-effort: the
+ * privileged action above has already happened and Admin API calls aren't
+ * transactional, so a failed audit write can't undo it and shouldn't turn a
+ * successful action into an error response — it's logged to this function's
+ * own Supabase logs instead.
+ */
+async function logAction(
+  admin: ReturnType<typeof createClient>,
+  adminId: string,
+  action: string,
+  targetId: string | null,
+  details?: Record<string, unknown>
+): Promise<void> {
+  const { error } = await admin
+    .from('admin_actions')
+    .insert({ admin_id: adminId, action, target_id: targetId, details: details ?? null });
+  if (error) console.error('[admin-users] failed to write audit log:', error.message);
+}
 
 // -----------------------------------------------------------------------------
 // create_admin — a brand new account with a password, pre-confirmed and
@@ -127,6 +150,7 @@ Deno.serve(async (request) => {
 async function createAdmin(
   request: Request,
   admin: ReturnType<typeof createClient>,
+  callerId: string,
   body: Record<string, unknown>
 ): Promise<Response> {
   const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : '';
@@ -165,6 +189,8 @@ async function createAdmin(
     );
   }
 
+  await logAction(admin, callerId, 'create_admin', data.user.id, { email });
+
   return json(request, { id: data.user.id, email });
 }
 
@@ -194,6 +220,8 @@ async function setBan(
   });
   if (error) return json(request, { error: error.message }, 400);
 
+  await logAction(admin, callerId, banned ? 'ban_user' : 'unban_user', userId);
+
   return json(request, { ok: true });
 }
 
@@ -218,6 +246,8 @@ async function deleteUser(
 
   const { error } = await admin.auth.admin.deleteUser(userId);
   if (error) return json(request, { error: error.message }, 400);
+
+  await logAction(admin, callerId, 'delete_user', userId);
 
   return json(request, { ok: true });
 }

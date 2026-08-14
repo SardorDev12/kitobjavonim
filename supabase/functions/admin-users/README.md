@@ -32,6 +32,13 @@ CORS is locked to `ADMIN_ALLOWED_ORIGINS` rather than `*`: unlike
 mean a created account, a ban, or a deletion, so the response is only ever
 handed back to the admin panel's own origin.
 
+All three actions also write a row to `admin_actions`
+(`supabase/migrations/0014_admin_audit_log.sql`) — who did it, to what,
+when. Best-effort: the Admin API call has already happened by the time the
+log write runs and isn't part of a database transaction, so a failed audit
+write is logged to this function's own Supabase logs rather than turning an
+otherwise-successful action into an error response.
+
 ## Setup
 
 ```bash

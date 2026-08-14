@@ -110,3 +110,21 @@ set request.jwt.claim.sub = 'a1111111-1111-1111-1111-111111111111';
 \echo '### admin_delete_book succeeds once nobody references it (expect 0 rows left)'
 select admin_delete_book('e1111111-0000-0000-0000-000000000001');
 select count(*) from books where id = 'e1111111-0000-0000-0000-000000000001';
+
+-- ---------------------------------------------------------------------------
+-- Audit log — every mutating action above should have left a row.
+-- ---------------------------------------------------------------------------
+
+\echo '### admin_list_audit_log sees this session''s actions (expect t for each)'
+select
+  count(*) filter (where action = 'promote_admin' and target_id = 'c3333333-3333-3333-3333-333333333333') = 1,
+  count(*) filter (where action = 'demote_admin' and target_id = 'c3333333-3333-3333-3333-333333333333') = 1,
+  count(*) filter (where action = 'unlist_listing' and target_id = 'f1111111-0000-0000-0000-000000000001') = 1,
+  count(*) filter (where action = 'update_book' and target_id = 'e1111111-0000-0000-0000-000000000001') = 1,
+  count(*) filter (where action = 'delete_book' and target_id = 'e1111111-0000-0000-0000-000000000001') = 1,
+  bool_and(admin_id = 'a1111111-1111-1111-1111-111111111111' and admin_name is not null)
+from admin_list_audit_log();
+
+set request.jwt.claim.sub = 'b2222222-2222-2222-2222-222222222222';
+\echo '### non-admin admin_list_audit_log (expect 0 rows)'
+select count(*) from admin_list_audit_log();
