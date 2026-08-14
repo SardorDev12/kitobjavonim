@@ -4,6 +4,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View
 
 import { Button, EmptyState, Screen, Text, TextField } from '@/components/ui';
 import { useI18n } from '@/lib/i18n';
+import { scrollToEndOnKeyboardShow } from '@/lib/keyboard';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/theme';
 
@@ -115,7 +116,7 @@ export default function SignUpScreen() {
             returnKeyType="go"
             // See sign-in.tsx's identical field — Android's ScrollView
             // doesn't reliably bring a focused field into view on its own.
-            onFocus={() => scrollRef.current?.scrollToEnd({ animated: true })}
+            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
           />
 
           {error ? (
