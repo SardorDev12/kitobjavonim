@@ -6,15 +6,15 @@ import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useLayout, useTheme } from '@/theme';
 
 import { PullToRefreshIndicator } from '../PullToRefreshIndicator';
-import { Text } from './Text';
 
-// First attempt at this was 48 (standard Material nav-bar height), on the
-// theory that MIUI reports insets.bottom as a flat 0. Real device data
-// proved that theory wrong: it reported ~47, meaning MIUI *is* reporting a
-// real value here — it's just still shorter than this device's actual
-// 3-button nav bar. Bumped well past both numbers as a wider safety margin
-// while we get a second data point (see the debug line below) rather than
-// inching up by a few px at a time and burning another test round each try.
+// Some Android OEM skins (confirmed on MIUI, 3-button navigation) report a
+// bottom inset that's real but still shorter than the nav bar it's supposed
+// to represent — this device's own insets.bottom came back ~47 while its
+// actual 3-button bar needed more like 96 to fully clear. Flooring here
+// means a footer button stays clickable on those devices instead of
+// trusting a bottom inset that's silently too small; on devices that report
+// correctly, insets.bottom is already at or above this, so Math.max leaves
+// it untouched.
 const MIN_ANDROID_BOTTOM_INSET = 96;
 
 type ScreenProps = {
@@ -111,17 +111,6 @@ export function Screen({
             },
           ]}
         >
-          {/* TEMPORARY — diagnosing a report that this footer still sits
-              behind the on-screen nav bar on a MIUI device even with a
-              96dp floor. Kept to one short line and placed *above* the
-              button (not below) — a longer, multi-line version of this
-              last round visually collided with the button's own label
-              instead of stacking cleanly under it. Remove once resolved. */}
-          {Platform.OS === 'android' ? (
-            <Text variant="caption" color="textSubtle">
-              debug: bottom={insets.bottom} floored={bottomInset}
-            </Text>
-          ) : null}
           <View style={[styles.constrain, { maxWidth: maxContentWidth }]}>{footer}</View>
         </View>
       ) : null}
