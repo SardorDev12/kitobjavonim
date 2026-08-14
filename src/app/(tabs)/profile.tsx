@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, Linking, Platform, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar, Button, Card, Divider, ListRow, Screen, Sheet, Text } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -16,6 +17,7 @@ export default function ProfileScreen() {
   const theme = useTheme();
   const { t, locale, setLocale } = useI18n();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const { profile, user, signOut } = useAuth();
   const { data: stats } = useProfileStats(user?.id);
@@ -48,7 +50,7 @@ export default function ProfileScreen() {
 
   return (
     <Screen scroll>
-      <View style={{ gap: theme.spacing.xl, paddingTop: theme.spacing.xl }}>
+      <View style={{ gap: theme.spacing.xl, paddingTop: insets.top + theme.spacing.md }}>
         <View style={[styles.identity, { gap: theme.spacing.md }]}>
           <Avatar uri={profile?.avatar_url} name={profile?.display_name} size={72} />
 
