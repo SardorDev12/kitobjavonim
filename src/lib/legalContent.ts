@@ -18,7 +18,7 @@ export const PRIVACY_POLICY: Record<Locale, LegalDoc> = {
     title: 'Privacy Policy',
     updated: `Last updated: ${LAST_UPDATED}`,
     intro:
-      'Kitob Javonim ("we", "the app") helps you catalog the books you own and, if you choose, exchange or sell copies with other readers. This page explains what information we collect, why, and who can see it.',
+      'Kitobjavonim ("we", "the app") helps you catalog the books you own and, if you choose, exchange or sell copies with other readers. This page explains what information we collect, why, and who can see it.',
     sections: [
       {
         heading: 'Information we collect',
@@ -62,7 +62,7 @@ export const PRIVACY_POLICY: Record<Locale, LegalDoc> = {
       {
         heading: "Children's privacy",
         body: [
-          'Kitob Javonim is not directed at children under 13, and we do not knowingly collect information from them.',
+          'Kitobjavonim is not directed at children under 13, and we do not knowingly collect information from them.',
         ],
       },
       {
@@ -88,7 +88,7 @@ export const PRIVACY_POLICY: Record<Locale, LegalDoc> = {
     title: 'Политика конфиденциальности',
     updated: `Последнее обновление: ${LAST_UPDATED}`,
     intro:
-      'Kitob Javonim («мы», «приложение») помогает вести каталог ваших книг и, по желанию, обмениваться или продавать экземпляры другим читателям. Здесь описано, какие данные мы собираем, зачем и кто их видит.',
+      'Kitobjavonim («мы», «приложение») помогает вести каталог ваших книг и, по желанию, обмениваться или продавать экземпляры другим читателям. Здесь описано, какие данные мы собираем, зачем и кто их видит.',
     sections: [
       {
         heading: 'Какие данные мы собираем',
@@ -132,7 +132,7 @@ export const PRIVACY_POLICY: Record<Locale, LegalDoc> = {
       {
         heading: 'Конфиденциальность детей',
         body: [
-          'Kitob Javonim не предназначен для детей младше 13 лет, и мы сознательно не собираем данные от них.',
+          'Kitobjavonim не предназначен для детей младше 13 лет, и мы сознательно не собираем данные от них.',
         ],
       },
       {
@@ -158,7 +158,7 @@ export const PRIVACY_POLICY: Record<Locale, LegalDoc> = {
     title: 'Maxfiylik siyosati',
     updated: `Oxirgi yangilanish: ${LAST_UPDATED}`,
     intro:
-      'Kitob Javonim ("biz", "ilova") sizga oʻz kitoblaringiz katalogini yuritish va xohlasangiz, ularni boshqa oʻquvchilar bilan almashish yoki sotish imkonini beradi. Ushbu sahifada qanday maʼlumot yigʻishimiz, nima uchun va kim koʻra olishi tushuntirilgan.',
+      'Kitobjavonim ("biz", "ilova") sizga oʻz kitoblaringiz katalogini yuritish va xohlasangiz, ularni boshqa oʻquvchilar bilan almashish yoki sotish imkonini beradi. Ushbu sahifada qanday maʼlumot yigʻishimiz, nima uchun va kim koʻra olishi tushuntirilgan.',
     sections: [
       {
         heading: 'Biz qanday maʼlumot yigʻamiz',
@@ -202,7 +202,7 @@ export const PRIVACY_POLICY: Record<Locale, LegalDoc> = {
       {
         heading: 'Bolalar maxfiyligi',
         body: [
-          'Kitob Javonim 13 yoshdan kichik bolalarga moʻljallanmagan va biz ulardan ataylab maʼlumot yigʻmaymiz.',
+          'Kitobjavonim 13 yoshdan kichik bolalarga moʻljallanmagan va biz ulardan ataylab maʼlumot yigʻmaymiz.',
         ],
       },
       {
@@ -230,12 +230,12 @@ export const TERMS_OF_SERVICE: Record<Locale, LegalDoc> = {
     title: 'Terms of Service',
     updated: `Last updated: ${LAST_UPDATED}`,
     intro:
-      'These terms govern your use of Kitob Javonim. By creating an account or using the app, you agree to them.',
+      'These terms govern your use of Kitobjavonim. By creating an account or using the app, you agree to them.',
     sections: [
       {
         heading: 'The service',
         body: [
-          'Kitob Javonim lets you catalog the books you own and, if you choose, list copies for exchange or sale so other readers can find and contact you about them.',
+          'Kitobjavonim lets you catalog the books you own and, if you choose, list copies for exchange or sale so other readers can find and contact you about them.',
           'We connect readers to each other. We are not a party to any exchange, sale, or payment between users, we do not process payments, and we do not verify the condition, authenticity, or ownership of any book listed. Any transaction you make with another user is between you and them — use judgment, and meet safely.',
         ],
       },
@@ -305,12 +305,12 @@ export const TERMS_OF_SERVICE: Record<Locale, LegalDoc> = {
     title: 'Условия использования',
     updated: `Последнее обновление: ${LAST_UPDATED}`,
     intro:
-      'Эти условия регулируют использование Kitob Javonim. Создавая аккаунт или используя приложение, вы соглашаетесь с ними.',
+      'Эти условия регулируют использование Kitobjavonim. Создавая аккаунт или используя приложение, вы соглашаетесь с ними.',
     sections: [
       {
         heading: 'Сервис',
         body: [
-          'Kitob Javonim позволяет вести каталог ваших книг и, по желанию, выставлять экземпляры на обмен или продажу, чтобы другие читатели могли найти их и связаться с вами.',
+          'Kitobjavonim позволяет вести каталог ваших книг и, по желанию, выставлять экземпляры на обмен или продажу, чтобы другие читатели могли найти их и связаться с вами.',
           'Мы соединяем читателей друг с другом. Мы не являемся стороной какого-либо обмена, продажи или платежа между пользователями, не обрабатываем платежи и не проверяем состояние, подлинность или право собственности на указанные книги. Любая сделка с другим пользователем — дело между вами и им; действуйте осмотрительно и встречайтесь безопасно.',
         ],
       },
@@ -380,12 +380,12 @@ export const TERMS_OF_SERVICE: Record<Locale, LegalDoc> = {
     title: 'Foydalanish shartlari',
     updated: `Oxirgi yangilanish: ${LAST_UPDATED}`,
     intro:
-      'Ushbu shartlar Kitob Javonim\'dan foydalanishingizni tartibga soladi. Hisob yaratish yoki ilovadan foydalanish orqali siz ularga rozilik bildirasiz.',
+      'Ushbu shartlar Kitobjavonim\'dan foydalanishingizni tartibga soladi. Hisob yaratish yoki ilovadan foydalanish orqali siz ularga rozilik bildirasiz.',
     sections: [
       {
         heading: 'Xizmat',
         body: [
-          'Kitob Javonim sizga oʻz kitoblaringiz katalogini yuritish va xohlasangiz, boshqa oʻquvchilar topib, siz bilan bogʻlanishi uchun nusxalarni almashish yoki sotishga qoʻyish imkonini beradi.',
+          'Kitobjavonim sizga oʻz kitoblaringiz katalogini yuritish va xohlasangiz, boshqa oʻquvchilar topib, siz bilan bogʻlanishi uchun nusxalarni almashish yoki sotishga qoʻyish imkonini beradi.',
           'Biz oʻquvchilarni bir-biri bilan bogʻlaymiz. Biz foydalanuvchilar oʻrtasidagi hech qanday almashish, sotish yoki toʻlovning tarafi emasmiz, toʻlovlarni qayta ishlamaymiz va eʼlon qilingan kitobning holati, asliligi yoki egaligini tekshirmaymiz. Boshqa foydalanuvchi bilan qilgan har qanday bitimingiz sizlar oʻrtangizdagi ish — ehtiyot boʻling va xavfsiz joyda uchrashing.',
         ],
       },

@@ -198,7 +198,7 @@ separate SMTP-specific credential:
    | Field | Value |
    |---|---|
    | Sender email | `noreply@kitobjavonim.uz` (any address on the verified domain works — this is just the convention for transactional mail) |
-   | Sender name | `Kitob Javonim` |
+   | Sender name | `Kitobjavonim` |
    | Host | `smtp.resend.com` |
    | Port | `465` |
    | Username | `resend` (literally the word "resend", not your account name) |

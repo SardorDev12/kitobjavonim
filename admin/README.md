@@ -1,4 +1,4 @@
-# Kitob Javonim — admin panel
+# Kitobjavonim — admin panel
 
 A separate, minimal web app for moderation and account management, deployed
 to its own Cloudflare subdomain and kept deliberately apart from the

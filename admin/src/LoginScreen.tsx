@@ -28,7 +28,7 @@ export function LoginScreen({ notice }: { notice?: string }) {
     <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', padding: 24 }}>
       <form onSubmit={handleSubmit} className="card" style={{ width: 340, display: 'grid', gap: 14 }}>
         <div>
-          <h1 style={{ fontSize: 20, margin: 0 }}>Kitob Javonim admin</h1>
+          <h1 style={{ fontSize: 20, margin: 0 }}>Kitobjavonim admin</h1>
           <p className="text-muted" style={{ margin: '4px 0 0', fontSize: 13 }}>
             Sign in with an admin account.
           </p>

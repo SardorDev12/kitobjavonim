@@ -148,7 +148,7 @@ function RootNavigator() {
   useEffect(() => {
     if (Platform.OS === 'web') {
       const isStaging = window.location.hostname.includes('staging');
-      document.title = isStaging ? 'Kitob Javonim (Staging)' : 'Kitob Javonim';
+      document.title = isStaging ? 'Kitobjavonim (Staging)' : 'Kitobjavonim';
     }
   }, [pathname]);
 
