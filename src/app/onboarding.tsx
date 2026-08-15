@@ -4,6 +4,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button, Screen, Select, Text, TextField, Toggle } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { describeError } from '@/lib/errors';
 import { useI18n } from '@/lib/i18n';
 import { scrollToEndOnKeyboardShow } from '@/lib/keyboard';
 import { useUpdateProfile } from '@/lib/queries/profile';
@@ -59,7 +60,7 @@ export default function OnboardingScreen() {
         onboarded_at: new Date().toISOString(),
       });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t('error.saveFailed'));
+      setError(describeError(cause, t));
       setSkipping(false);
     }
   }
@@ -85,7 +86,7 @@ export default function OnboardingScreen() {
         onboarded_at: new Date().toISOString(),
       });
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t('error.saveFailed'));
+      setError(describeError(cause, t));
     }
   }
 

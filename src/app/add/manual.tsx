@@ -8,6 +8,7 @@ import { Button, Screen, Select, Text, TextField } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { setPendingBook } from '@/features/add/pendingBook';
 import { emptyCandidate } from '@/lib/books/metadata';
+import { describeError } from '@/lib/errors';
 import { normalizeIsbn } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
@@ -65,7 +66,7 @@ export default function ManualEntryScreen() {
       const url = await pickAndUploadBookCover(user.id);
       if (url) setCoverUrl(url);
     } catch (cause) {
-      setCoverError(cause instanceof Error ? cause.message : t('error.saveFailed'));
+      setCoverError(describeError(cause, t));
     } finally {
       setCoverUploading(false);
     }
@@ -82,7 +83,7 @@ export default function ManualEntryScreen() {
       if (url) setCoverUrl(url);
       else setCoverError(t('manual.coverNotImage'));
     } catch (cause) {
-      setCoverError(cause instanceof Error ? cause.message : t('error.saveFailed'));
+      setCoverError(describeError(cause, t));
     } finally {
       setCoverUploading(false);
     }

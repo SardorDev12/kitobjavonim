@@ -5,6 +5,7 @@ import { Alert, Platform, StyleSheet, View } from 'react-native';
 import { Avatar, Button, Card, Screen, Select, Text, TextField, Toggle } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { hasContactMethod } from '@/lib/contactMethod';
+import { describeError } from '@/lib/errors';
 import { useI18n } from '@/lib/i18n';
 import { useImageDropZone } from '@/lib/useImageDropZone';
 import { useRemoveAvatar, useUploadAvatar } from '@/lib/queries/photos';
@@ -70,7 +71,7 @@ export default function EditProfileScreen() {
       });
       router.back();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t('error.saveFailed'));
+      setError(describeError(cause, t));
     }
   }
 

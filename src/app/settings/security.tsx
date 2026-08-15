@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Button, Card, Screen, Text, TextField } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { describeError } from '@/lib/errors';
 import { useI18n } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/theme';
@@ -61,7 +62,7 @@ export default function SecurityScreen() {
       setPassword('');
       setConfirmPassword('');
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t('error.saveFailed'));
+      setError(describeError(cause, t));
     } finally {
       setSaving(false);
     }

@@ -22,8 +22,25 @@ const KNOWN_ERRORS: Record<string, MessageKey> = {
  */
 const NETWORK_FAILURE_PATTERNS = [/failed to fetch/i, /network ?error/i, /network request failed/i, /load failed/i];
 
+/**
+ * postgrest-js only wraps HTTP-level failures in a real `PostgrestError`
+ * (which extends `Error`). A failure below that — the fetch itself
+ * rejecting, e.g. no connectivity — is caught internally and returned as a
+ * plain `{ message, details, hint, code }` object instead (see its
+ * PostgrestBuilder: "JS allows throwing any value ... instanceof Error is
+ * too narrow here"). Duck-type the message so those don't fall through to
+ * the generic fallback and hide a network failure as an opaque error.
+ */
+function extractMessage(cause: unknown): string | undefined {
+  if (cause instanceof Error) return cause.message;
+  if (typeof cause === 'object' && cause !== null && typeof (cause as { message?: unknown }).message === 'string') {
+    return (cause as { message: string }).message;
+  }
+  return undefined;
+}
+
 export function describeError(cause: unknown, t: (key: MessageKey) => string): string {
-  const message = cause instanceof Error ? cause.message : undefined;
+  const message = extractMessage(cause);
   if (!message) return t('error.generic');
 
   const knownKey = KNOWN_ERRORS[message];

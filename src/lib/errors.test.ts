@@ -34,6 +34,17 @@ describe('describeError', () => {
     expect(describeError({ some: 'object' }, t)).toBe('translated:error.generic');
   });
 
+  it('maps a network failure to error.network even when postgrest-js throws it as a plain object', () => {
+    // postgrest-js only wraps HTTP-level failures in a real PostgrestError. A
+    // failure below that — the fetch call itself rejecting, e.g. no
+    // connectivity — is caught internally and rethrown as a plain
+    // { message, details, hint, code } object instead, which is not
+    // `instanceof Error`. That's exactly what testers on a bad connection hit.
+    expect(describeError({ message: 'TypeError: Network request failed', details: '', hint: '', code: '' }, t)).toBe(
+      'translated:error.network'
+    );
+  });
+
   it('falls back to error.generic for an Error with an empty message', () => {
     expect(describeError(new Error(''), t)).toBe('translated:error.generic');
   });

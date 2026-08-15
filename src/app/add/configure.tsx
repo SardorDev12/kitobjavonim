@@ -9,6 +9,7 @@ import { Button, Card, Chip, EmptyState, Screen, Select, Sheet, Text, TextField 
 import { useAuth } from '@/features/auth/AuthProvider';
 import { setPendingBook, usePendingBook } from '@/features/add/pendingBook';
 import type { BookCandidate } from '@/lib/books/metadata';
+import { describeError } from '@/lib/errors';
 import { formatAuthors, normalizeIsbn } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
@@ -111,7 +112,7 @@ export default function ConfigureScreen() {
 
       router.replace(`/book/${userBookId}`);
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : t('error.saveFailed'));
+      setError(describeError(cause, t));
     }
   }
 
@@ -329,7 +330,7 @@ function CandidateEditSheet({
       const url = await pickAndUploadBookCover(user.id);
       if (url) setCoverUrl(url);
     } catch (cause) {
-      setCoverError(cause instanceof Error ? cause.message : t('error.saveFailed'));
+      setCoverError(describeError(cause, t));
     } finally {
       setCoverUploading(false);
     }
@@ -344,7 +345,7 @@ function CandidateEditSheet({
       if (url) setCoverUrl(url);
       else setCoverError(t('manual.coverNotImage'));
     } catch (cause) {
-      setCoverError(cause instanceof Error ? cause.message : t('error.saveFailed'));
+      setCoverError(describeError(cause, t));
     } finally {
       setCoverUploading(false);
     }

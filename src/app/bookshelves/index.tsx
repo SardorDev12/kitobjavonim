@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { Button, Card, Divider, EmptyState, LoadingState, Screen, Sheet, Text, TextField } from '@/components/ui';
+import { describeError } from '@/lib/errors';
 import { formatPosition } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import {
@@ -162,7 +163,7 @@ function ShelfCard({
     } catch (cause) {
       // 23505 — this shelf/row pair already exists on this bookshelf.
       const code = (cause as { code?: string })?.code;
-      setError(code === '23505' ? t('error.generic') : t('error.saveFailed'));
+      setError(code === '23505' ? t('error.generic') : describeError(cause, t));
     }
   }
 
