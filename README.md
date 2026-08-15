@@ -174,16 +174,22 @@ an incompatible OTA update from being offered to a binary that can't run
 it — bump `version` in `app.json` when a native change ships, same as any
 other native-affecting release.
 
-Both branches publish to the same `preview` channel rather than one each —
-there's one installed test device, so there's nothing for a second channel
-to reach. What differs per branch is the Supabase project the published
-bundle points at: a `develop` push re-points the installed app at **staging**
-data to try a change against, and a `main` push re-points it at
-**production** data once that change is confirmed good — the same promotion
-step the web deploys already do, just without needing a second physical
-device to hold a separate staging install. (`eas update` doesn't read
-`eas.json`'s build-time `env` blocks — those only apply to `eas build` — so
-the workflow sets the right `EXPO_PUBLIC_*` values explicitly per branch.)
+Both branches publish to the `preview` channel — there's one installed test
+device, so there's nothing for a second channel to reach there. What differs
+per branch is the Supabase project the published bundle points at: a
+`develop` push re-points the installed app at **staging** data to try a
+change against, and a `main` push re-points it at **production** data once
+that change is confirmed good — the same promotion step the web deploys
+already do, just without needing a second physical device to hold a separate
+staging install. (`eas update` doesn't read `eas.json`'s build-time `env`
+blocks — those only apply to `eas build` — so the workflow sets the right
+`EXPO_PUBLIC_*` values explicitly per branch.)
+
+`main` additionally publishes to `production` — the channel a real Play
+Store build (the `production` profile) listens on. `develop` never touches
+it, so staging data can't reach a live install; by the time a change lands
+on `main` it's already gone through the same develop-then-main promotion as
+everything else, so this doesn't need a separate manual publish step.
 
 Requires an `EXPO_TOKEN` repository secret (GitHub → Settings → Secrets and
 variables → Actions) — generate one at
