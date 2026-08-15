@@ -8,16 +8,23 @@ name: EAS Update
 # still needs a real build through the usual EAS flow, since the installed
 # binary itself doesn't change here.
 #
-# Both branches publish to the same "preview" channel — the one channel the
-# installed testing APK actually listens on — rather than each getting its
-# own channel. There is only the one physical test device, so there is
-# nothing for a second channel to reach; a develop push re-points that
-# install at staging data to test against, and a main push re-points it at
-# production data once a change has been confirmed good. `eas update` has
-# no memory of eas.json's build-time `env` blocks (those only apply to `eas
-# build`), so the right EXPO_PUBLIC_* values have to be set explicitly here
-# per branch, or the published bundle would ship with them empty and the app
-# would fail to start.
+# Both branches publish to the "preview" channel — the one channel the
+# installed testing APK listens on. There is only the one physical test
+# device, so there is nothing for a second channel to reach there; a develop
+# push re-points that install at staging data to test against, and a main
+# push re-points it at production data once a change has been confirmed
+# good. `eas update` has no memory of eas.json's build-time `env` blocks
+# (those only apply to `eas build`), so the right EXPO_PUBLIC_* values have
+# to be set explicitly here per branch, or the published bundle would ship
+# with them empty and the app would fail to start.
+#
+# main additionally publishes to "production" — the channel a real Play
+# Store build (eas.json's production profile) listens on. develop never
+# touches it: staging data must never reach a live install. By the time a
+# change lands on main it has already been tested via the preview channel
+# on staging first, so this follows the same develop-then-main promotion
+# path as everything else in this repo rather than needing a separate
+# manual publish step.
 on:
   push:
     branches: [develop, main]
@@ -54,3 +61,12 @@ jobs:
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ github.ref_name == 'main' && 'sb_publishable_jsqMsYY3fmBTkIyrcD8E7g_ve9Ef1Ww' || 'sb_publishable_nM9zD2eA5FtbkwEG_ISdnQ_W8ae4FQ3' }}
           EXPO_PUBLIC_TELEGRAM_BOT_USERNAME: home_library_signin_bot
           EXPO_PUBLIC_WEB_ORIGIN: ${{ github.ref_name == 'main' && 'https://www.kitobjavonim.uz' || 'https://kitobjavonim-staging.sardorfarhodogli.workers.dev' }}
+
+      - name: Publish update to the production channel
+        if: github.ref_name == 'main'
+        run: eas update --channel production --message "${{ github.event.head_commit.message }}" --non-interactive
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: https://zsrhzjujoahresqfhpks.supabase.co
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_jsqMsYY3fmBTkIyrcD8E7g_ve9Ef1Ww
+          EXPO_PUBLIC_TELEGRAM_BOT_USERNAME: home_library_signin_bot
+          EXPO_PUBLIC_WEB_ORIGIN: https://www.kitobjavonim.uz
