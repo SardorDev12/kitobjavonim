@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "597008226924",
+    "project_id": "kitobjavonim",
+    "storage_bucket": "kitobjavonim.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:597008226924:android:39baeb20bc9f78a3b21649",
+        "android_client_info": {
+          "package_name": "uz.homelibrary.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAoiAySfA6QaU5rhjcL_NkrQyprERR4alI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

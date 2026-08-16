@@ -26,6 +26,7 @@
     },
     "android": {
       "package": "uz.homelibrary.app",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#172724",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -46,6 +47,8 @@
       "expo-secure-store",
       "expo-apple-authentication",
       "expo-updates",
+      "@react-native-firebase/app",
+      "@react-native-firebase/crashlytics",
       [
         "expo-splash-screen",
         {
