@@ -130,14 +130,36 @@ database side (`supabase/migrations/0013_admin_panel.sql` and
 since it's schema history that has to stay in sequence regardless of which
 frontend calls it.
 
-### Crash reporting
+### Crash reporting → Firebase Crashlytics
 
 `ErrorBoundary` (`src/components/ErrorBoundary.tsx`) catches render crashes
 and, on web, unhandled errors/rejections outside of render
 (`installGlobalErrorReporting`). Both funnel through `reportError()`, which
-currently just logs to the console — there is no external crash-reporting
-service wired up. That single function is the seam to hook one back in later
-if needed.
+always logs to the console and, on native, also forwards to Crashlytics via
+`recordCrash()` (`src/lib/crashReporting.native.ts`) — web gets the no-op
+version in `crashReporting.ts` instead, since Crashlytics has no web SDK and
+Metro resolves the platform-specific file automatically.
+
+Unlike the Sentry setup this replaced, there's no DSN env var — Crashlytics
+initializes itself from native config files that don't exist yet:
+
+1. [Firebase console](https://console.firebase.google.com) → Create project.
+2. Add an Android app with package `uz.homelibrary.app`, download the
+   `google-services.json` it gives you, place it at the repo root.
+3. Add an iOS app with bundle ID `uz.homelibrary.app`, download
+   `GoogleService-Info.plist`, place it at the repo root.
+4. In `app.json`, add `"@react-native-firebase/app"` to `plugins`, and set
+   `android.googleServicesFile` / `ios.googleServicesFile` to those two
+   filenames.
+5. Rebuild with `eas build` — this cannot ship as an OTA update. Adding a
+   native module changes the binary itself, not just the JS bundle, so a
+   plain `eas update`/git push can never deliver it to an already-installed
+   app. It needs a real build and, for the closed-testing track, a new Play
+   Store submission.
+
+Both config files identify the Firebase project (not secrets — Google's own
+guidance is they're safe to commit) but are left out of git for now since
+they don't exist yet; add them once step 2/3 above is done.
 
 ### Mobile → EAS
 

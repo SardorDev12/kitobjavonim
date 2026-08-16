@@ -1,6 +1,7 @@
 import { Component, type ReactNode } from 'react';
 import { View } from 'react-native';
 
+import { recordCrash } from '@/lib/crashReporting';
 import { useI18n } from '@/lib/i18n';
 import { useTheme } from '@/theme';
 
@@ -53,13 +54,12 @@ function CrashFallback({ onRetry }: { onRetry: () => void }) {
 
 /**
  * The one seam every crash and unhandled rejection in the app funnels
- * through, rather than scattered `console.error` calls — kept deliberately
- * this thin so wiring up a crash reporter later stays a one-line change
- * here, not a codebase-wide search.
+ * through, rather than scattered `console.error` calls.
  */
 export function reportError(error: Error, componentStack?: string) {
   // eslint-disable-next-line no-console
   console.error('[reportError]', error, componentStack);
+  recordCrash(error, componentStack);
 }
 
 /**
