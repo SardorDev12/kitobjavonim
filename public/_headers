@@ -13,14 +13,9 @@
 # book covers come from Google Books, Open Library, and user uploads to
 # Supabase storage, and Google/Open Library's own cover CDNs are not fixed,
 # stable hostnames worth pinning here.
-#
-# connect-src includes Sentry's ingest hosts (wildcarded across its three
-# data regions) whether or not EXPO_PUBLIC_SENTRY_DSN is actually set —
-# harmless either way, but means turning Sentry on later never needs this
-# file touched again.
 /*
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), microphone=(), payment=(), usb=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://telegram.org; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://www.googleapis.com https://openlibrary.org https://covers.openlibrary.org https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io; frame-src https://telegram.org https://oauth.telegram.org; base-uri 'self'; form-action 'self'; object-src 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://telegram.org; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://www.googleapis.com https://openlibrary.org https://covers.openlibrary.org; frame-src https://telegram.org https://oauth.telegram.org; base-uri 'self'; form-action 'self'; object-src 'none'

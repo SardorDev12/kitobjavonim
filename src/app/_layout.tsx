@@ -9,16 +9,12 @@ import { ActivityIndicator, AppState, Platform, View, type AppStateStatus } from
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
-import { ErrorBoundary, initErrorReporting, installGlobalErrorReporting } from '@/components/ErrorBoundary';
+import { ErrorBoundary, installGlobalErrorReporting } from '@/components/ErrorBoundary';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { EmptyState, Screen } from '@/components/ui';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { I18nProvider, useI18n } from '@/lib/i18n';
 import { ThemeProvider, useTheme } from '@/theme';
-
-// Module scope, not inside a component or effect — this needs to run before
-// the first render so a crash during that render is still caught.
-initErrorReporting();
 
 /**
  * `gcTime` has to outlive `staleTime` for persistence to be worth anything: it
