@@ -94,7 +94,8 @@
       "Bash(bash -n \"/Users/macbook_uz/Projects/Home library/scripts/deploy.sh\")",
       "Bash(env -i PATH= HOME=/Users/macbook_uz bash -c 'source \"/Users/macbook_uz/Projects/Home library/scripts/deploy.sh\"')",
       "Bash(env -i PATH= HOME=/Users/macbook_uz /bin/bash -c 'cd \"/Users/macbook_uz/Projects/Home library\" && bash scripts/deploy.sh')",
-      "Bash(env -i PATH= HOME=/Users/macbook_uz /bin/bash -c 'cd \"/Users/macbook_uz/Projects/Home library\" && /bin/bash scripts/deploy.sh')"
+      "Bash(env -i PATH= HOME=/Users/macbook_uz /bin/bash -c 'cd \"/Users/macbook_uz/Projects/Home library\" && /bin/bash scripts/deploy.sh')",
+      "mcp__Claude_Code_Remote__send_later"
     ]
   }
 }
