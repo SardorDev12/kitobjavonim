@@ -34,7 +34,7 @@ const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-/** The app's deep-link scheme, matching `scheme` in app.json. */
+/** The app's deep-link scheme, matching `scheme` in app.config.js. */
 const APP_SCHEME = Deno.env.get('APP_SCHEME') ?? 'homelibrary';
 
 /**

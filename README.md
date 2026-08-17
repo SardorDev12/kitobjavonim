@@ -148,9 +148,12 @@ initializes itself from native config files that don't exist yet:
    `google-services.json` it gives you, place it at the repo root.
 3. Add an iOS app with bundle ID `uz.homelibrary.app`, download
    `GoogleService-Info.plist`, place it at the repo root.
-4. In `app.json`, add `"@react-native-firebase/app"` to `plugins`, and set
+4. In `app.config.js`, add `"@react-native-firebase/app"` to `plugins`, and set
    `android.googleServicesFile` / `ios.googleServicesFile` to those two
-   filenames.
+   filenames. (Currently only wired for the `production`-identity build —
+   see the `IS_PREVIEW` branches in `app.config.js`. The `preview`/staging
+   app needs its own Firebase Android app registered under
+   `uz.homelibrary.app.preview` before it gets Crashlytics too.)
 5. Rebuild with `eas build` — this cannot ship as an OTA update. Adding a
    native module changes the binary itself, not just the JS bundle, so a
    plain `eas update`/git push can never deliver it to an already-installed
@@ -174,37 +177,40 @@ Two things worth knowing before you plan a launch date:
 - New personal Google Play developer accounts must run a closed test with **12
   testers for 14 days** before a production release is allowed.
 - Apple review will ask what the app does with the camera; the usage strings in
-  `app.json` already explain the ISBN scanning.
+  `app.config.js` already explain the ISBN scanning.
+
+### Two installs, side by side → `preview` vs `production`
+
+`preview` and `production` are genuinely separate apps on the device, not
+one install that gets re-pointed at different data. `app.config.js` reads
+`APP_VARIANT` (set in `eas.json`'s `preview` profile) to give the preview
+build its own Android package (`uz.homelibrary.app.preview`), app name
+("Kitobjavonim (Staging)"), and icon (a "STAGING" ribbon over the normal
+one) — distinct identifiers are what let both be installed at once instead
+of one overwriting the other. Install `production` from the Play Store/its
+`.aab`, and `preview` from the internal-distribution `.apk` EAS Build hands
+back; each then updates itself independently forever after via OTA.
 
 ### Over-the-air updates → EAS Update
 
 JS-only changes (most of them) don't need a new native build at all once a
 build with `expo-updates` installed is on the device — `.github/workflows/
-eas-update.yml` publishes one automatically on every push to `develop` or
-`main`, which the `preview` build profile's installed APK checks on launch.
+eas-update.yml` publishes one automatically on every push: a `develop` push
+goes to the `preview` channel with **staging** Supabase data, a `main` push
+goes to the `production` channel with **production** data. Each installed
+app only ever pulls from its own channel, so this is a straight 1:1
+mapping, same promotion step (`develop` first, `main` once confirmed good)
+as the web deploys already use. (`eas update` doesn't read `eas.json`'s
+build-time `env` blocks — those only apply to `eas build` — so the workflow
+sets the right `EXPO_PUBLIC_*` values explicitly per branch.)
+
 A change that touches native code (a new native dependency, a permission,
-`app.json`'s icon/splash/plugins) still needs a real build through the usual
-`eas build` flow above; `runtimeVersion`'s `appVersion` policy is what stops
-an incompatible OTA update from being offered to a binary that can't run
-it — bump `version` in `app.json` when a native change ships, same as any
-other native-affecting release.
-
-Both branches publish to the `preview` channel — there's one installed test
-device, so there's nothing for a second channel to reach there. What differs
-per branch is the Supabase project the published bundle points at: a
-`develop` push re-points the installed app at **staging** data to try a
-change against, and a `main` push re-points it at **production** data once
-that change is confirmed good — the same promotion step the web deploys
-already do, just without needing a second physical device to hold a separate
-staging install. (`eas update` doesn't read `eas.json`'s build-time `env`
-blocks — those only apply to `eas build` — so the workflow sets the right
-`EXPO_PUBLIC_*` values explicitly per branch.)
-
-`main` additionally publishes to `production` — the channel a real Play
-Store build (the `production` profile) listens on. `develop` never touches
-it, so staging data can't reach a live install; by the time a change lands
-on `main` it's already gone through the same develop-then-main promotion as
-everything else, so this doesn't need a separate manual publish step.
+`app.config.js`'s icon/splash/plugins/package name) still needs a real
+build through the usual `eas build` flow above, for whichever profile(s)
+it affects; `runtimeVersion`'s `appVersion` policy is what stops an
+incompatible OTA update from being offered to a binary that can't run
+it — bump `version` in `app.config.js` when a native change ships, same as
+any other native-affecting release.
 
 Requires an `EXPO_TOKEN` repository secret (GitHub → Settings → Secrets and
 variables → Actions) — generate one at
@@ -303,5 +309,7 @@ supabase/
 
 The app ships as "Home Library" with the bundle id `uz.homelibrary.app` and the
 scheme `homelibrary`. To change it, edit `name`, `slug`, `scheme`,
-`ios.bundleIdentifier` and `android.package` in `app.json` — do it before the
-first store submission, since bundle ids cannot be changed afterwards.
+`ios.bundleIdentifier` and `android.package` in `app.config.js` — do it
+before the first store submission, since bundle ids cannot be changed
+afterwards. (The `preview` variant's `.preview`-suffixed id lives in the
+same file, next to it.)
