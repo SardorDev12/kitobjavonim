@@ -31,4 +31,7 @@ export const queryKeys = {
   catalog: {
     similarTitles: (title: string) => ['catalog', 'similarTitles', title] as const,
   },
+  household: {
+    mine: (userId: string) => ['household', 'mine', userId] as const,
+  },
 } as const;

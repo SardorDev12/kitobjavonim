@@ -1,15 +1,18 @@
 import type { MessageKey } from '@/lib/i18n';
 
 /**
- * Maps the plain-text tokens the freemium-limit triggers raise
- * (supabase/migrations/0008_plans_and_limits.sql) to a translated,
- * user-facing message. Falls back to the raw error message, then to
- * error.generic, matching the convention every other screen already uses.
+ * Maps the plain-text tokens the freemium-limit triggers (0008) and the
+ * household RPCs (0015_households.sql) raise to a translated, user-facing
+ * message. Falls back to the raw error message, then to error.generic,
+ * matching the convention every other screen already uses.
  */
 const KNOWN_ERRORS: Record<string, MessageKey> = {
   listing_limit_reached: 'error.listingLimitReached',
   contact_limit_reached: 'error.contactLimitReached',
   report_limit_reached: 'error.reportLimitReached',
+  household_already_member: 'household.errorAlreadyMember',
+  household_invalid_code: 'household.errorInvalidCode',
+  household_owner_only: 'household.errorOwnerOnly',
 };
 
 /**

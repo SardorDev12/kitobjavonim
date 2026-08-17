@@ -44,3 +44,6 @@ psql -h "$SOCKET" -p "$PORT" -U postgres -d hl -f "$HERE/rls_test.sql"
 
 echo
 psql -h "$SOCKET" -p "$PORT" -U postgres -d hl -f "$HERE/admin_test.sql"
+
+echo
+psql -h "$SOCKET" -p "$PORT" -U postgres -d hl -f "$HERE/households_test.sql"

@@ -103,6 +103,12 @@ export default function ProfileScreen() {
           />
           <Divider inset={theme.spacing.lg} />
           <ListRow
+            icon="people-outline"
+            label={t('household.title')}
+            onPress={() => router.push('/settings/household')}
+          />
+          <Divider inset={theme.spacing.lg} />
+          <ListRow
             icon="language-outline"
             label={t('profile.language')}
             value={LOCALE_LABELS[locale]}

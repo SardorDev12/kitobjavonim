@@ -81,11 +81,11 @@ export function useCreateBookshelf() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (name: string) => {
+    mutationFn: async ({ name, householdId }: { name: string; householdId?: string | null }) => {
       if (!user) throw new Error('Not signed in');
       const { data, error } = await supabase
         .from('bookshelves')
-        .insert({ user_id: user.id, name: name.trim() })
+        .insert({ user_id: user.id, name: name.trim(), household_id: householdId ?? null })
         .select('id')
         .single();
       if (error) throw error;

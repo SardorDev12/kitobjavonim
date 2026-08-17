@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 
-import { Button, Card, Divider, EmptyState, LoadingState, Screen, Sheet, Text, TextField } from '@/components/ui';
+import { Button, Card, Divider, EmptyState, LoadingState, Screen, Sheet, Text, TextField, Toggle } from '@/components/ui';
 import { describeError } from '@/lib/errors';
 import { formatPosition } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
@@ -14,6 +14,7 @@ import {
   useDeletePosition,
   type BookshelfWithPositions,
 } from '@/lib/queries/bookshelves';
+import { useHousehold } from '@/lib/queries/household';
 import { useLibrary } from '@/lib/queries/library';
 import { useTheme } from '@/theme';
 
@@ -30,10 +31,14 @@ export default function BookshelvesScreen() {
 
   const { data: shelves, isPending } = useBookshelves();
   const { data: library } = useLibrary();
+  const { data: household } = useHousehold();
   const createShelf = useCreateBookshelf();
 
   const [addShelfOpen, setAddShelfOpen] = useState(false);
   const [shelfName, setShelfName] = useState('');
+  // Sharing is the point of being in a household, so it starts on — see
+  // 0015_households.sql's design notes on per-row opt-in sharing.
+  const [shareShelf, setShareShelf] = useState(true);
 
   // How many books sit at each position, so deleting one can say what it affects.
   const booksPerPosition = useMemo(() => {
@@ -48,7 +53,10 @@ export default function BookshelvesScreen() {
   async function submitShelf() {
     const name = shelfName.trim();
     if (!name) return;
-    await createShelf.mutateAsync(name);
+    await createShelf.mutateAsync({
+      name,
+      householdId: household && shareShelf ? household.household.id : null,
+    });
     setShelfName('');
     setAddShelfOpen(false);
   }
@@ -94,6 +102,9 @@ export default function BookshelvesScreen() {
             onSubmitEditing={submitShelf}
             returnKeyType="done"
           />
+          {household ? (
+            <Toggle label={t('household.share')} hint={household.household.name} value={shareShelf} onChange={setShareShelf} />
+          ) : null}
           <Button
             title={t('common.add')}
             fullWidth

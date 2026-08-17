@@ -141,6 +141,8 @@ export type AddBookInput = {
   bookshelfPositionId?: string | null;
   readingStatus?: UserBook['reading_status'];
   condition?: UserBook['condition'];
+  /** Set to share this copy with the signed-in user's household (0015_households.sql). */
+  householdId?: string | null;
 };
 
 export function useAddBook() {
@@ -148,7 +150,14 @@ export function useAddBook() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ candidate, existingBookId, bookshelfPositionId, readingStatus, condition }: AddBookInput) => {
+    mutationFn: async ({
+      candidate,
+      existingBookId,
+      bookshelfPositionId,
+      readingStatus,
+      condition,
+      householdId,
+    }: AddBookInput) => {
       if (!user) throw new Error('Not signed in');
 
       const bookId = existingBookId ?? (await ensureBook(candidate, user.id));
@@ -161,6 +170,7 @@ export function useAddBook() {
           bookshelf_position_id: bookshelfPositionId ?? null,
           reading_status: readingStatus ?? 'want_to_read',
           condition: condition ?? null,
+          household_id: householdId ?? null,
         })
         .select('id')
         .single();

@@ -5,7 +5,7 @@ import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 
 import { BookCover } from '@/components/BookCover';
 import { CategoryPicker } from '@/components/CategoryPicker';
-import { Button, Card, Chip, EmptyState, Screen, Select, Sheet, Text, TextField } from '@/components/ui';
+import { Button, Card, Chip, EmptyState, Screen, Select, Sheet, Text, TextField, Toggle } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { setPendingBook, usePendingBook } from '@/features/add/pendingBook';
 import type { BookCandidate } from '@/lib/books/metadata';
@@ -18,6 +18,7 @@ import { scrollToEndOnKeyboardShow } from '@/lib/keyboard';
 import { useImageDropZone } from '@/lib/useImageDropZone';
 import { usePositionOptions } from '@/lib/queries/bookshelves';
 import { useSetBookCategories } from '@/lib/queries/categories';
+import { useHousehold } from '@/lib/queries/household';
 import { useAddBook, useLibrary, useSimilarBooks } from '@/lib/queries/library';
 import { useLayout, useTheme } from '@/theme';
 import { BOOK_CONDITIONS, READING_STATUSES, type Book, type BookCondition, type ReadingStatus } from '@/types/database';
@@ -46,6 +47,7 @@ export default function ConfigureScreen() {
   const candidate = usePendingBook();
   const positions = usePositionOptions();
   const { data: library } = useLibrary();
+  const { data: household } = useHousehold();
   const similar = useSimilarBooks(candidate?.title ?? '');
   const addBook = useAddBook();
   const setCategories = useSetBookCategories();
@@ -54,6 +56,9 @@ export default function ConfigureScreen() {
   const [status, setStatus] = useState<ReadingStatus>('want_to_read');
   const [condition, setCondition] = useState<BookCondition | null>(null);
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
+  // Sharing is the point of being in a household, so it starts on — see
+  // 0015_households.sql's design notes on per-row opt-in sharing.
+  const [shareBook, setShareBook] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -107,6 +112,7 @@ export default function ConfigureScreen() {
         bookshelfPositionId: positionId,
         readingStatus: status,
         condition,
+        householdId: household && shareBook ? household.household.id : null,
       });
 
       // Categories are secondary to getting the book onto the shelf, so a
@@ -282,6 +288,10 @@ export default function ConfigureScreen() {
             />
           </Card>
         )}
+
+        {household ? (
+          <Toggle label={t('household.share')} hint={household.household.name} value={shareBook} onChange={setShareBook} />
+        ) : null}
 
         {error ? (
           <Text variant="caption" color="danger">

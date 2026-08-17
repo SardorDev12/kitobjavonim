@@ -105,6 +105,8 @@ export type Bookshelf = {
   name: string;
   sort_order: number;
   created_at: string;
+  /** Set when shared with a household — every member can then see and edit it. */
+  household_id: string | null;
 };
 
 export type BookshelfPosition = {
@@ -137,6 +139,8 @@ export type UserBook = {
   price_negotiable: boolean;
   sale_description: string | null;
   updated_at: string;
+  /** Set when shared with a household — every member can then see and edit it. */
+  household_id: string | null;
 };
 
 /** A row of the `library_entries` view — a copy joined to its book and shelf. */
@@ -181,6 +185,29 @@ export type LibraryEntry = {
 
   /** Whether the signed-in user may edit this book's shared metadata — set only when they created it. */
   book_created_by: string | null;
+
+  /** Set when this copy is shared with a household. */
+  household_id: string | null;
+  /** Who added it — null for the signed-in user's own entries. */
+  added_by_name: string | null;
+  added_by_avatar_url: string | null;
+};
+
+export type HouseholdRole = 'owner' | 'member';
+
+export type Household = {
+  id: string;
+  name: string;
+  invite_code: string;
+  created_by: string;
+  created_at: string;
+};
+
+export type HouseholdMember = {
+  household_id: string;
+  user_id: string;
+  role: HouseholdRole;
+  joined_at: string;
 };
 
 /** A row of the `listings` view — deliberately carries no private columns. */
