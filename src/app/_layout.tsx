@@ -4,7 +4,6 @@ import { QueryClient, focusManager } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { Stack, useRouter, usePathname, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import * as NavigationBar from 'expo-navigation-bar';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, Platform, View, type AppStateStatus } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -137,9 +136,20 @@ function RootNavigator() {
   // current theme's background is — 'auto' doesn't track this app's own
   // scheme, only the OS's, which can disagree with it. Same light/dark
   // inversion as the StatusBar below.
+  //
+  // Imported dynamically, not with a top-level `import` — this native
+  // module ships in the JS bundle immediately (OTA), but the currently
+  // installed binary won't have it linked until the next native build goes
+  // out. A static import evaluates unconditionally the moment this file
+  // loads and would crash every install still on the old binary the
+  // instant this update reaches them; a dynamic import's module evaluation
+  // failure rejects the returned promise instead, so the catch below just
+  // no-ops there and the icons stay whatever they already were.
   useEffect(() => {
     if (Platform.OS !== 'android') return;
-    NavigationBar.setStyle(theme.scheme === 'dark' ? 'light' : 'dark');
+    import('expo-navigation-bar')
+      .then((NavigationBar) => NavigationBar.setStyle(theme.scheme === 'dark' ? 'light' : 'dark'))
+      .catch(() => {});
   }, [theme.scheme]);
 
   // Expo Router's web integration syncs document.title to whatever the
