@@ -47,6 +47,7 @@
       "expo-secure-store",
       "expo-apple-authentication",
       "expo-updates",
+      "expo-navigation-bar",
       "@react-native-firebase/app",
       "@react-native-firebase/crashlytics",
       [

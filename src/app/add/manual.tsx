@@ -12,7 +12,7 @@ import { describeError } from '@/lib/errors';
 import { normalizeIsbn } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
-import { scrollToEndOnKeyboardShow } from '@/lib/keyboard';
+import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
 import { scanCoverText } from '@/lib/ocr';
 import { useImageDropZone } from '@/lib/useImageDropZone';
 import { useLayout, useTheme } from '@/theme';
@@ -250,7 +250,7 @@ export default function ManualEntryScreen() {
           hint={t('manual.authorsHint')}
           value={authors}
           onChangeText={setAuthors}
-          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <TextField
@@ -260,14 +260,14 @@ export default function ManualEntryScreen() {
           keyboardType="numbers-and-punctuation"
           autoCapitalize="none"
           autoCorrect={false}
-          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <TextField
           label={t('manual.publisher')}
           value={publisher}
           onChangeText={setPublisher}
-          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <View style={[styles.pair, { gap: theme.spacing.md }]}>
@@ -279,7 +279,7 @@ export default function ManualEntryScreen() {
             inputMode="numeric"
             maxLength={4}
             containerStyle={styles.pairItem}
-            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
           />
           <TextField
             label={t('manual.pages')}
@@ -289,7 +289,7 @@ export default function ManualEntryScreen() {
             inputMode="numeric"
             maxLength={5}
             containerStyle={styles.pairItem}
-            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
           />
         </View>
 

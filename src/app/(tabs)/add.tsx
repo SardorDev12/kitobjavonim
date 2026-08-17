@@ -12,6 +12,7 @@ import { searchBooks, type BookCandidate } from '@/lib/books/metadata';
 import { formatAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { queryKeys } from '@/lib/queries/keys';
+import { useAndroidKeyboardHeight } from '@/lib/useAndroidKeyboardHeight';
 import { useTheme } from '@/theme';
 
 export default function AddScreen() {
@@ -19,6 +20,12 @@ export default function AddScreen() {
   const { t } = useI18n();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  // This screen doesn't use the shared Screen component (it owns a
+  // FlatList, not a ScrollView), so it needs its own keyboard-height
+  // padding — without it, the "Qo'shish" manual-entry button rendered as
+  // the empty/footer state stays wherever the FlatList's un-shrunk (under
+  // edge-to-edge) layout put it, which the keyboard then just draws over.
+  const keyboardHeight = useAndroidKeyboardHeight();
   // Carried over from the Library tab's "not found, add it" empty state —
   // tabs stay mounted across switches, so this can't be initial state alone,
   // it has to react to the param changing on an already-mounted screen too.
@@ -99,7 +106,7 @@ export default function AddScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[
           results.length === 0 && styles.fill,
-          { paddingTop: theme.spacing.md, paddingBottom: theme.spacing['2xl'] },
+          { paddingTop: theme.spacing.md, paddingBottom: theme.spacing['2xl'] + keyboardHeight },
         ]}
         renderItem={({ item }) => <CandidateRow candidate={item} onPress={() => choose(item)} />}
         ListFooterComponent={

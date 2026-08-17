@@ -30,7 +30,7 @@ import { describeError } from '@/lib/errors';
 import { formatAuthors, formatDate, formatPosition, formatPrice, normalizeIsbn } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
-import { scrollToEndOnKeyboardShow } from '@/lib/keyboard';
+import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
 import { useImageDropZone } from '@/lib/useImageDropZone';
 import { usePositionOptions } from '@/lib/queries/bookshelves';
 import { useBookCategories, useSetBookCategories } from '@/lib/queries/categories';
@@ -653,14 +653,14 @@ function EditBookSheet({
             if (titleError) setTitleError(null);
           }}
           error={titleError}
-          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <TextField
           label={t('book.subtitle')}
           value={subtitle}
           onChangeText={setSubtitle}
-          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <TextField
@@ -668,7 +668,7 @@ function EditBookSheet({
           hint={t('manual.authorsHint')}
           value={authors}
           onChangeText={setAuthors}
-          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <TextField
@@ -678,14 +678,14 @@ function EditBookSheet({
           keyboardType="numbers-and-punctuation"
           autoCapitalize="none"
           autoCorrect={false}
-          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <TextField
           label={t('manual.publisher')}
           value={publisher}
           onChangeText={setPublisher}
-          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <View style={[styles.pair, { gap: theme.spacing.md }]}>
@@ -697,7 +697,7 @@ function EditBookSheet({
             inputMode="numeric"
             maxLength={4}
             containerStyle={styles.pairItem}
-            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
           />
           <TextField
             label={t('manual.pages')}
@@ -707,7 +707,7 @@ function EditBookSheet({
             inputMode="numeric"
             maxLength={5}
             containerStyle={styles.pairItem}
-            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
           />
         </View>
 

@@ -121,6 +121,12 @@ export function Screen({
               paddingTop: theme.spacing.md,
               paddingBottom: theme.spacing.md + bottomInset,
             },
+            // The footer sits below the ScrollView in normal flex flow, at
+            // the true bottom of the (keyboard-unaware, edge-to-edge) screen
+            // — without this, opening the keyboard just draws it over the
+            // footer instead of moving anything. keyboardHeight is always 0
+            // on iOS/web, so this is a no-op there.
+            keyboardHeight > 0 && { transform: [{ translateY: -keyboardHeight }] },
           ]}
         >
           <View style={[styles.constrain, { maxWidth: maxContentWidth }]}>{footer}</View>

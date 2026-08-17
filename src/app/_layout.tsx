@@ -4,6 +4,7 @@ import { QueryClient, focusManager } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { Stack, useRouter, usePathname, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as NavigationBar from 'expo-navigation-bar';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, Platform, View, type AppStateStatus } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -129,6 +130,17 @@ function RootNavigator() {
   useEffect(() => {
     setNavigationReady(true);
   }, []);
+
+  // Mandatory edge-to-edge (Expo SDK 54+) draws Android's system navigation
+  // bar transparently over the app's own background, so its button/gesture-
+  // pill color has to be set explicitly to stay visible against whatever the
+  // current theme's background is — 'auto' doesn't track this app's own
+  // scheme, only the OS's, which can disagree with it. Same light/dark
+  // inversion as the StatusBar below.
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    NavigationBar.setStyle(theme.scheme === 'dark' ? 'light' : 'dark');
+  }, [theme.scheme]);
 
   // Expo Router's web integration syncs document.title to whatever the
   // focused screen's/tab's `options.title` is, which makes the browser tab
