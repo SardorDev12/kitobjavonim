@@ -52,8 +52,15 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Publish update to the preview channel
-        run: eas update --channel preview --message "[${{ github.ref_name }}] ${{ github.event.head_commit.message }}" --non-interactive
+        # The commit message is passed via env, not interpolated straight into
+        # `run:` — a multi-line message containing its own quotes (as one
+        # eventually will) breaks out of the shell string GitHub Actions
+        # builds and gets split into extra positional args, failing the
+        # command. Routing it through $UPDATE_MESSAGE and letting bash quote
+        # it once avoids that regardless of what the message contains.
+        run: eas update --channel preview --message "$UPDATE_MESSAGE" --non-interactive
         env:
+          UPDATE_MESSAGE: "[${{ github.ref_name }}] ${{ github.event.head_commit.message }}"
           # develop -> staging Supabase, matching eas.json's "development"
           # profile; main -> production Supabase, matching "preview"/
           # "production" — same split used everywhere else in this repo.
@@ -64,8 +71,9 @@ jobs:
 
       - name: Publish update to the production channel
         if: github.ref_name == 'main'
-        run: eas update --channel production --message "${{ github.event.head_commit.message }}" --non-interactive
+        run: eas update --channel production --message "$UPDATE_MESSAGE" --non-interactive
         env:
+          UPDATE_MESSAGE: ${{ github.event.head_commit.message }}
           EXPO_PUBLIC_SUPABASE_URL: https://zsrhzjujoahresqfhpks.supabase.co
           EXPO_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_jsqMsYY3fmBTkIyrcD8E7g_ve9Ef1Ww
           EXPO_PUBLIC_TELEGRAM_BOT_USERNAME: home_library_signin_bot
