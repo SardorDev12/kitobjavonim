@@ -1,6 +1,7 @@
 import { memo, useCallback } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { useAuth } from '@/features/auth/AuthProvider';
 import { formatAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { useTheme } from '@/theme';
@@ -31,6 +32,8 @@ export const BookGridCard = memo(function BookGridCard({
 }) {
   const theme = useTheme();
   const { t } = useI18n();
+  const { user } = useAuth();
+  const addedByOther = entry.user_id !== user?.id ? entry.added_by_name : null;
   const handlePress = useCallback(() => onPress(entry.id), [onPress, entry.id]);
 
   return (
@@ -53,6 +56,12 @@ export const BookGridCard = memo(function BookGridCard({
         ) : null}
 
         <Chip readOnly label={t(`status.${entry.reading_status}`)} tone={STATUS_TONE[entry.reading_status]} />
+
+        {addedByOther ? (
+          <Text variant="caption" color="textSubtle" numberOfLines={1}>
+            {t('household.addedBy', { name: addedByOther })}
+          </Text>
+        ) : null}
       </View>
     </Pressable>
   );

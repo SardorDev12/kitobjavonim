@@ -107,6 +107,29 @@ export function useRenameBookshelf() {
   });
 }
 
+/**
+ * Flips an existing shelf between personal and shared. Un-sharing is
+ * restricted to the shelf's own creator at the database level (0015's
+ * assert_user_id_immutable + the household RLS branch only covers rows
+ * whose household_id is already set) — a caller who isn't the creator gets
+ * a permission error here, which is why the toggle in the UI is disabled
+ * for anyone else.
+ */
+export function useSetBookshelfHousehold() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, householdId }: { id: string; householdId: string | null }) => {
+      const { error } = await supabase.from('bookshelves').update({ household_id: householdId }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.bookshelves.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
+    },
+  });
+}
+
 export function useDeleteBookshelf() {
   const queryClient = useQueryClient();
 

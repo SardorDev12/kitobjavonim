@@ -205,6 +205,7 @@ export type UpdateUserBookInput = {
       | 'sale_price'
       | 'price_negotiable'
       | 'sale_description'
+      | 'household_id'
     >
   >;
 };

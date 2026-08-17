@@ -292,6 +292,8 @@ export const uz: LocaleCatalogue = {
   'household.errorAlreadyMember': 'Siz allaqachon oilada turibsiz — boshqasini yaratish yoki qoʻshilish uchun avval undan chiqing.',
   'household.errorInvalidCode': 'Bu taklif kodi hech qaysi oilaga mos kelmadi.',
   'household.errorOwnerOnly': 'Buni faqat oila egasi bajara oladi.',
+  'household.addedBy': 'Qoʻshdi: {{name}}',
+  'household.shareHint': '«{{name}}»dagi hamma koʻradi va tahrirlay oladi.',
 
   'discover.title': 'Almashuv',
   'discover.subtitle': 'Boshqa kitobxonlar bermoqchi boʻlgan kitoblar.',

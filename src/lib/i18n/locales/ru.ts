@@ -290,6 +290,8 @@ export const ru: LocaleCatalogue = {
   'household.errorAlreadyMember': 'Вы уже состоите в семье — сначала покиньте её, чтобы создать или присоединиться к другой.',
   'household.errorInvalidCode': 'Этот код приглашения не подходит ни к одной семье.',
   'household.errorOwnerOnly': 'Это может сделать только владелец семьи.',
+  'household.addedBy': 'Добавил(а) {{name}}',
+  'household.shareHint': 'Видно и доступно для редактирования всем в «{{name}}».',
 
   'discover.title': 'Обмен',
   'discover.subtitle': 'Книги, которые другие читатели отдают.',

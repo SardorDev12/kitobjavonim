@@ -130,6 +130,35 @@ update user_books set user_id = 'e5555555-5555-5555-5555-555555555555'
 where id = 'd0000000-0000-0000-0000-000000000006';
 \set ON_ERROR_STOP on
 
+-- The "share with household" toggle in the app is only enabled for a row's
+-- own creator (src/app/book/[id].tsx, src/app/bookshelves/index.tsx) —
+-- this is why: only dave, who added it, can actually un-share his own copy.
+\echo '### erin cannot un-share dave''s copy — she didn''t add it (expect error)'
+\set ON_ERROR_STOP off
+update user_books set household_id = null
+where id = 'd0000000-0000-0000-0000-000000000006';
+\set ON_ERROR_STOP on
+
+\echo '### the copy is still shared after erin''s attempt (expect t)'
+select household_id is not null as still_shared
+  from user_books where id = 'd0000000-0000-0000-0000-000000000006';
+
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = 'd4444444-4444-4444-4444-444444444444';
+
+\echo '### dave (the creator) can un-share his own copy (expect success)'
+update user_books set household_id = null
+where id = 'd0000000-0000-0000-0000-000000000006';
+
+\echo '### it''s private again, and dave still sees it via ownership (expect f, t)'
+select household_id is not null as shared, user_id = 'd4444444-4444-4444-4444-444444444444' as owned_by_dave
+  from user_books where id = 'd0000000-0000-0000-0000-000000000006';
+
+reset role;
+set role authenticated;
+set request.jwt.claim.sub = 'e5555555-5555-5555-5555-555555555555';
+
 \echo '### erin still cannot see dave''s personal (unshared) shelf (expect 0)'
 select count(*) from bookshelves where id = 'd0000000-0000-0000-0000-000000000002';
 

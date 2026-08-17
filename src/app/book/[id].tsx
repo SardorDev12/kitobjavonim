@@ -22,6 +22,7 @@ import {
   Sheet,
   Text,
   TextField,
+  Toggle,
 } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { hasContactMethod } from '@/lib/contactMethod';
@@ -33,6 +34,7 @@ import { scrollToEndOnKeyboardShow } from '@/lib/keyboard';
 import { useImageDropZone } from '@/lib/useImageDropZone';
 import { usePositionOptions } from '@/lib/queries/bookshelves';
 import { useBookCategories, useSetBookCategories } from '@/lib/queries/categories';
+import { useHousehold } from '@/lib/queries/household';
 import {
   useDeleteUserBook,
   useLibraryEntry,
@@ -53,6 +55,7 @@ export default function BookDetailScreen() {
 
   const { data: entry, isPending, isError, refetch, isRefetching } = useLibraryEntry(id);
   const positions = usePositionOptions();
+  const { data: household } = useHousehold();
   const updateBook = useUpdateUserBook();
   const updateBookDetails = useUpdateBook();
   const deleteBook = useDeleteUserBook();
@@ -191,6 +194,11 @@ export default function BookDetailScreen() {
             <Text variant="caption" color="textSubtle" style={{ marginTop: 4 }}>
               {t('book.addedOn', { date: formatDate(entry.date_added, locale) })}
             </Text>
+            {entry.user_id !== user?.id && entry.added_by_name ? (
+              <Text variant="caption" color="textSubtle">
+                {t('household.addedBy', { name: entry.added_by_name })}
+              </Text>
+            ) : null}
           </View>
         </View>
 
@@ -291,6 +299,22 @@ export default function BookDetailScreen() {
             </View>
           ) : null}
         </View>
+
+        {/* Household sharing -------------------------------------------------
+            Only the copy's own creator may un-share it (0015's RLS: a
+            non-creator's UPDATE only passes WITH CHECK while household_id
+            stays set to a household they're in — setting it to null fails).
+            Disabling the toggle for anyone else avoids a confusing failed
+            attempt rather than relying on the error message alone. */}
+        {household ? (
+          <Toggle
+            label={t('household.share')}
+            hint={t('household.shareHint', { name: household.household.name })}
+            value={Boolean(entry.household_id)}
+            disabled={entry.user_id !== user?.id}
+            onChange={(value) => patch({ household_id: value ? household.household.id : null })}
+          />
+        ) : null}
 
         {/* Listing ---------------------------------------------------------- */}
         <Card>

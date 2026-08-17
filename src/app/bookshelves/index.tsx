@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { Button, Card, Divider, EmptyState, LoadingState, Screen, Sheet, Text, TextField, Toggle } from '@/components/ui';
+import { useAuth } from '@/features/auth/AuthProvider';
 import { describeError } from '@/lib/errors';
 import { formatPosition } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
@@ -12,6 +13,7 @@ import {
   useCreatePosition,
   useDeleteBookshelf,
   useDeletePosition,
+  useSetBookshelfHousehold,
   type BookshelfWithPositions,
 } from '@/lib/queries/bookshelves';
 import { useHousehold } from '@/lib/queries/household';
@@ -127,10 +129,19 @@ function ShelfCard({
 }) {
   const theme = useTheme();
   const { t } = useI18n();
+  const { user } = useAuth();
 
+  const { data: household } = useHousehold();
   const createPosition = useCreatePosition();
   const deletePosition = useDeletePosition();
   const deleteShelf = useDeleteBookshelf();
+  const setShelfHousehold = useSetBookshelfHousehold();
+
+  const isShared = Boolean(shelf.household_id);
+  // Un-sharing is restricted to the shelf's creator at the database level
+  // (0015's RLS + assert_user_id_immutable) — only offer the toggle where
+  // it would actually succeed.
+  const canToggleShare = Boolean(household) && shelf.user_id === user?.id;
 
   const [addOpen, setAddOpen] = useState(false);
   const [shelfNumber, setShelfNumber] = useState('1');
@@ -184,6 +195,30 @@ function ShelfCard({
         <Text variant="heading" style={styles.flex}>
           {shelf.name}
         </Text>
+        {isShared || canToggleShare ? (
+          <Pressable
+            onPress={
+              canToggleShare
+                ? () =>
+                    setShelfHousehold.mutate({
+                      id: shelf.id,
+                      householdId: isShared ? null : (household?.household.id ?? null),
+                    })
+                : undefined
+            }
+            disabled={!canToggleShare}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={t('household.share')}
+            style={{ marginRight: theme.spacing.sm, opacity: canToggleShare ? 1 : 0.6 }}
+          >
+            <Ionicons
+              name={isShared ? 'people' : 'people-outline'}
+              size={18}
+              color={isShared ? theme.colors.primary : theme.colors.textSubtle}
+            />
+          </Pressable>
+        ) : null}
         <Pressable
           onPress={() =>
             confirm(t('shelves.deleteShelfConfirm', { name: shelf.name }), () =>

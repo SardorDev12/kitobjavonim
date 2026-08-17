@@ -286,6 +286,8 @@ export const en = {
   'household.errorAlreadyMember': 'You’re already in a household — leave it first to join or create another.',
   'household.errorInvalidCode': 'That invite code doesn’t match any household.',
   'household.errorOwnerOnly': 'Only the household owner can do that.',
+  'household.addedBy': 'Added by {{name}}',
+  'household.shareHint': 'Visible and editable by everyone in {{name}}.',
 
   'discover.title': 'Exchange',
   'discover.subtitle': 'Books other readers are passing on.',

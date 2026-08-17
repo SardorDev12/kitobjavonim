@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { memo, useCallback } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
+import { useAuth } from '@/features/auth/AuthProvider';
 import { formatAuthors, formatPosition } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { useTheme } from '@/theme';
@@ -36,9 +37,11 @@ export const BookCard = memo(function BookCard({
 }) {
   const theme = useTheme();
   const { t } = useI18n();
+  const { user } = useAuth();
 
   const position = formatPosition(entry, t, { includeBookshelf: true });
   const isListed = entry.availability_type !== 'private';
+  const addedByOther = entry.user_id !== user?.id ? entry.added_by_name : null;
   const handlePress = useCallback(() => onPress(entry.id), [onPress, entry.id]);
 
   return (
@@ -78,6 +81,10 @@ export const BookCard = memo(function BookCard({
               icon={entry.availability_type === 'exchange' ? 'swap-horizontal' : 'pricetag'}
               label={t(`availability.${entry.availability_type}`)}
             />
+          ) : null}
+
+          {addedByOther ? (
+            <Chip readOnly icon="people-outline" label={t('household.addedBy', { name: addedByOther })} />
           ) : null}
         </View>
 
