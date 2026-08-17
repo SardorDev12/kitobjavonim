@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { BookCover } from '@/components/BookCover';
 import { Button, Screen, Select, Text, TextField } from '@/components/ui';
@@ -12,6 +12,7 @@ import { describeError } from '@/lib/errors';
 import { normalizeIsbn } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
+import { scrollToEndOnKeyboardShow } from '@/lib/keyboard';
 import { scanCoverText } from '@/lib/ocr';
 import { useImageDropZone } from '@/lib/useImageDropZone';
 import { useLayout, useTheme } from '@/theme';
@@ -55,6 +56,7 @@ export default function ManualEntryScreen() {
   const [coverError, setCoverError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   async function pickCover() {
     if (!user || coverUploading) return;
@@ -155,6 +157,7 @@ export default function ManualEntryScreen() {
   return (
     <Screen
       scroll
+      scrollRef={scrollRef}
       footer={<Button title={t('common.next')} fullWidth onPress={next} disabled={!title.trim()} />}
     >
       <View style={[styles.container, { gap: theme.spacing.lg, paddingTop: theme.spacing.md }]}>
@@ -247,6 +250,7 @@ export default function ManualEntryScreen() {
           hint={t('manual.authorsHint')}
           value={authors}
           onChangeText={setAuthors}
+          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
         />
 
         <TextField
@@ -256,9 +260,15 @@ export default function ManualEntryScreen() {
           keyboardType="numbers-and-punctuation"
           autoCapitalize="none"
           autoCorrect={false}
+          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
         />
 
-        <TextField label={t('manual.publisher')} value={publisher} onChangeText={setPublisher} />
+        <TextField
+          label={t('manual.publisher')}
+          value={publisher}
+          onChangeText={setPublisher}
+          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+        />
 
         <View style={[styles.pair, { gap: theme.spacing.md }]}>
           <TextField
@@ -269,6 +279,7 @@ export default function ManualEntryScreen() {
             inputMode="numeric"
             maxLength={4}
             containerStyle={styles.pairItem}
+            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
           />
           <TextField
             label={t('manual.pages')}
@@ -278,6 +289,7 @@ export default function ManualEntryScreen() {
             inputMode="numeric"
             maxLength={5}
             containerStyle={styles.pairItem}
+            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
           />
         </View>
 

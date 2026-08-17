@@ -1,17 +1,8 @@
 import type { ReactNode, RefObject } from 'react';
-import { useEffect, useState } from 'react';
-import {
-  Keyboard,
-  Platform,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { Platform, RefreshControl, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useAndroidKeyboardHeight } from '@/lib/useAndroidKeyboardHeight';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useLayout, useTheme } from '@/theme';
 
@@ -26,41 +17,6 @@ import { PullToRefreshIndicator } from '../PullToRefreshIndicator';
 // correctly, insets.bottom is already at or above this, so Math.max leaves
 // it untouched.
 const MIN_ANDROID_BOTTOM_INSET = 96;
-
-/**
- * Tracks the on-screen keyboard's height on Android so it can be added as
- * extra bottom padding to the ScrollView below.
- *
- * Under edge-to-edge (mandatory since Expo SDK 54), the OS no longer shrinks
- * the window for the keyboard on its own, and nothing else in this file
- * accounts for it either — a form screen's KeyboardAvoidingView, if it has
- * one, wraps its *own* content inside this ScrollView, not the ScrollView
- * itself, so resizing it has no effect on what the ScrollView considers
- * scrollable. Without this, a field below the fold has no scroll room to be
- * revealed into at all: the ScrollView's content is exactly screen-height
- * tall (keyboard or not), so it isn't scrollable in the first place.
- */
-function useAndroidKeyboardHeight(): number {
-  const [height, setHeight] = useState(0);
-
-  useEffect(() => {
-    if (Platform.OS !== 'android') return;
-
-    const showSubscription = Keyboard.addListener('keyboardDidShow', (event) => {
-      setHeight(event.endCoordinates.height);
-    });
-    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
-      setHeight(0);
-    });
-
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
-
-  return height;
-}
 
 type ScreenProps = {
   children: ReactNode;

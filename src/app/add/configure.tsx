@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { BookCover } from '@/components/BookCover';
 import { CategoryPicker } from '@/components/CategoryPicker';
@@ -9,10 +9,12 @@ import { Button, Card, Chip, EmptyState, Screen, Select, Sheet, Text, TextField 
 import { useAuth } from '@/features/auth/AuthProvider';
 import { setPendingBook, usePendingBook } from '@/features/add/pendingBook';
 import type { BookCandidate } from '@/lib/books/metadata';
+import { bookToCandidate } from '@/lib/books/metadata';
 import { describeError } from '@/lib/errors';
 import { formatAuthors, normalizeIsbn } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
+import { scrollToEndOnKeyboardShow } from '@/lib/keyboard';
 import { useImageDropZone } from '@/lib/useImageDropZone';
 import { usePositionOptions } from '@/lib/queries/bookshelves';
 import { useSetBookCategories } from '@/lib/queries/categories';
@@ -87,6 +89,13 @@ export default function ConfigureScreen() {
     );
   }
 
+  // What's actually about to be saved: the referenced catalog entry when one
+  // is chosen, otherwise the searched/manual candidate. Editing always
+  // starts from this, so the edit sheet (and what it shows before editing)
+  // never disagrees with the "Using existing" card below it.
+  const display = existingBook ?? candidate;
+  const editCandidate = existingBook ? bookToCandidate(existingBook) : candidate;
+
   async function save() {
     if (!candidate) return;
     setError(null);
@@ -132,24 +141,28 @@ export default function ConfigureScreen() {
     >
       <View style={{ gap: theme.spacing.xl, paddingTop: theme.spacing.md }}>
         <View style={[styles.book, { gap: theme.spacing.lg }]}>
-          <BookCover uri={candidate.cover_url} title={candidate.title} width={92} radius={theme.radius.md} />
+          <BookCover uri={display.cover_url} title={display.title} width={92} radius={theme.radius.md} />
 
           <View style={styles.bookText}>
-            <Text variant="title">{candidate.title}</Text>
-            {candidate.authors.length > 0 ? (
+            <Text variant="title">{display.title}</Text>
+            {display.authors.length > 0 ? (
               <Text variant="body" color="textMuted">
-                {formatAuthors(candidate.authors)}
+                {formatAuthors(display.authors)}
               </Text>
             ) : null}
-            {candidate.publisher || candidate.publication_year ? (
+            {display.publisher || display.publication_year ? (
               <Text variant="caption" color="textSubtle">
-                {[candidate.publisher, candidate.publication_year].filter(Boolean).join(' · ')}
+                {[display.publisher, display.publication_year].filter(Boolean).join(' · ')}
               </Text>
             ) : null}
 
-            {/* External metadata (Google Books/OpenLibrary) is often wrong for
-                regional or translated editions — this is the chance to fix it
-                before it becomes the shared catalogue entry. */}
+            {/* External metadata (Google Books/OpenLibrary) — and, same idea,
+                a catalog match from "similar titles" — is often wrong for
+                regional or translated editions. Editing here always adds
+                (or keeps) this as the user's own entry rather than rewriting
+                someone else's shared catalog row, which RLS wouldn't allow
+                anyway (0003_rls.sql: books can only be updated by their
+                creator). */}
             <Pressable onPress={() => setEditOpen(true)} hitSlop={8} style={{ marginTop: 4 }}>
               <Text variant="label" color="primary">
                 {t('add.editDetails')}
@@ -167,16 +180,10 @@ export default function ConfigureScreen() {
           </Card>
         ) : existingBook ? (
           <Card style={{ backgroundColor: theme.colors.primarySoft, borderColor: 'transparent' }}>
-            <View style={[styles.similarRow, { gap: theme.spacing.md }]}>
-              <BookCover uri={existingBook.cover_url} title={existingBook.title} width={44} radius={theme.radius.sm} />
-              <View style={styles.bookText}>
-                <Text variant="label" color="primaryOnSoft">
-                  {t('add.usingExisting')}
-                </Text>
-                <Text variant="bodyStrong" numberOfLines={1}>
-                  {existingBook.title}
-                </Text>
-              </View>
+            <View style={[styles.similarRow, { justifyContent: 'space-between' }]}>
+              <Text variant="label" color="primaryOnSoft">
+                {t('add.usingExisting')}
+              </Text>
               <Pressable onPress={() => setExistingBook(null)} hitSlop={8}>
                 <Text variant="label" color="primary">
                   {t('common.cancel')}
@@ -284,11 +291,16 @@ export default function ConfigureScreen() {
       </View>
 
       <CandidateEditSheet
-        key={candidate.key}
+        key={editCandidate.key}
         visible={editOpen}
         onClose={() => setEditOpen(false)}
-        candidate={candidate}
-        onSave={(patch) => setPendingBook({ ...candidate, ...patch })}
+        candidate={editCandidate}
+        onSave={(patch) => {
+          setPendingBook({ ...editCandidate, ...patch });
+          // Saved edits always become the user's own entry, never a rewrite
+          // of the shared catalog row this started from.
+          if (existingBook) setExistingBook(null);
+        }}
       />
     </Screen>
   );
@@ -321,6 +333,7 @@ function CandidateEditSheet({
   const [coverUploading, setCoverUploading] = useState(false);
   const [coverError, setCoverError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   async function pickCover() {
     if (!user || coverUploading) return;
@@ -387,7 +400,7 @@ function CandidateEditSheet({
   }
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={t('add.editDetails')}>
+    <Sheet visible={visible} onClose={onClose} title={t('add.editDetails')} scrollRef={scrollRef}>
       <View style={{ gap: theme.spacing.lg }}>
         {/* The drop target is this outer View, not the Pressable inside it —
             react-native-web's Pressable wires its own pointer/hover handling
@@ -449,9 +462,16 @@ function CandidateEditSheet({
             if (titleError) setTitleError(null);
           }}
           error={titleError}
+          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
         />
 
-        <TextField label={t('manual.authors')} hint={t('manual.authorsHint')} value={authors} onChangeText={setAuthors} />
+        <TextField
+          label={t('manual.authors')}
+          hint={t('manual.authorsHint')}
+          value={authors}
+          onChangeText={setAuthors}
+          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+        />
 
         <TextField
           label={t('manual.isbn')}
@@ -460,9 +480,15 @@ function CandidateEditSheet({
           keyboardType="numbers-and-punctuation"
           autoCapitalize="none"
           autoCorrect={false}
+          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
         />
 
-        <TextField label={t('manual.publisher')} value={publisher} onChangeText={setPublisher} />
+        <TextField
+          label={t('manual.publisher')}
+          value={publisher}
+          onChangeText={setPublisher}
+          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+        />
 
         <View style={[styles.pair, { gap: theme.spacing.md }]}>
           <TextField
@@ -473,6 +499,7 @@ function CandidateEditSheet({
             inputMode="numeric"
             maxLength={4}
             containerStyle={styles.pairItem}
+            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
           />
           <TextField
             label={t('manual.pages')}
@@ -482,6 +509,7 @@ function CandidateEditSheet({
             inputMode="numeric"
             maxLength={5}
             containerStyle={styles.pairItem}
+            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
           />
         </View>
 

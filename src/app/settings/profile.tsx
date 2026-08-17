@@ -1,12 +1,13 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Alert, Platform, StyleSheet, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Alert, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Avatar, Button, Card, Screen, Select, Text, TextField, Toggle } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { hasContactMethod } from '@/lib/contactMethod';
 import { describeError } from '@/lib/errors';
 import { useI18n } from '@/lib/i18n';
+import { scrollToEndOnKeyboardShow } from '@/lib/keyboard';
 import { useImageDropZone } from '@/lib/useImageDropZone';
 import { useRemoveAvatar, useUploadAvatar } from '@/lib/queries/photos';
 import { useUpdateProfile } from '@/lib/queries/profile';
@@ -33,6 +34,7 @@ export default function EditProfileScreen() {
   const [phone, setPhone] = useState(profile?.phone ?? '');
   const [showPhone, setShowPhone] = useState(profile?.show_phone ?? false);
   const [error, setError] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   const districts = locations.districtsFor(regionId);
 
@@ -78,6 +80,7 @@ export default function EditProfileScreen() {
   return (
     <Screen
       scroll
+      scrollRef={scrollRef}
       footer={
         <Button title={t('common.save')} fullWidth loading={updateProfile.isPending} onPress={save} />
       }
@@ -140,7 +143,13 @@ export default function EditProfileScreen() {
 
         <TextField label={t('auth.displayName')} value={name} onChangeText={setName} autoComplete="name" />
 
-        <TextField label={t('profile.title')} value={bio} onChangeText={setBio} multiline />
+        <TextField
+          label={t('profile.title')}
+          value={bio}
+          onChangeText={setBio}
+          multiline
+          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+        />
 
         <Select
           label={t('onboarding.region')}
@@ -177,6 +186,7 @@ export default function EditProfileScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             placeholder="username"
+            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
           />
 
           <Toggle
@@ -194,6 +204,7 @@ export default function EditProfileScreen() {
             keyboardType="phone-pad"
             inputMode="tel"
             placeholder="+998 90 123 45 67"
+            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
           />
 
           <Toggle

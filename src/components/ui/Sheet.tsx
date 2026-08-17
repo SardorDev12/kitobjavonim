@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import type { ReactNode } from 'react';
+import type { ReactNode, RefObject } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useAndroidKeyboardHeight } from '@/lib/useAndroidKeyboardHeight';
 import { useLayout, useTheme } from '@/theme';
 
 import { Text } from './Text';
@@ -14,6 +15,14 @@ export type SheetProps = {
   children: ReactNode;
   /** Caps the sheet height as a fraction of the window. */
   maxHeightRatio?: number;
+  /**
+   * Exposes the internal ScrollView so a caller can scroll a focused field
+   * into view by hand — same reasoning as Screen's identical prop. A sheet's
+   * form fields are especially at risk of this: the sheet itself is already
+   * height-capped (`maxHeightRatio`), so there is even less room than a full
+   * screen for a field near the bottom to stay visible above the keyboard.
+   */
+  scrollRef?: RefObject<ScrollView | null>;
 };
 
 /**
@@ -23,10 +32,16 @@ export type SheetProps = {
  * centred dialog, because a full-width sheet pinned to the bottom of a 27-inch
  * monitor reads as a mistake.
  */
-export function Sheet({ visible, onClose, title, children, maxHeightRatio = 0.85 }: SheetProps) {
+export function Sheet({ visible, onClose, title, children, maxHeightRatio = 0.85, scrollRef }: SheetProps) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { isWide, height } = useLayout();
+  // Same problem Screen solves and the same reason: under edge-to-edge, the
+  // OS no longer shrinks the window for the keyboard, so without this a
+  // field below the fold has no scroll room to be revealed into — the
+  // ScrollView's content is exactly as tall as the (keyboard-capped) sheet,
+  // keyboard or not.
+  const keyboardHeight = useAndroidKeyboardHeight();
 
   return (
     <Modal visible={visible} transparent animationType={isWide ? 'fade' : 'slide'} onRequestClose={onClose}>
@@ -80,7 +95,11 @@ export function Sheet({ visible, onClose, title, children, maxHeightRatio = 0.85
           ) : null}
 
           <ScrollView
-            contentContainerStyle={{ paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.lg }}
+            ref={scrollRef}
+            contentContainerStyle={{
+              paddingHorizontal: theme.spacing.lg,
+              paddingBottom: theme.spacing.lg + keyboardHeight,
+            }}
             keyboardShouldPersistTaps="handled"
           >
             {children}

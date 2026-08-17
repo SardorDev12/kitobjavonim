@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useRef, useState } from 'react';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/BookCover';
@@ -29,6 +29,7 @@ import { describeError } from '@/lib/errors';
 import { formatAuthors, formatDate, formatPosition, formatPrice, normalizeIsbn } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
+import { scrollToEndOnKeyboardShow } from '@/lib/keyboard';
 import { useImageDropZone } from '@/lib/useImageDropZone';
 import { usePositionOptions } from '@/lib/queries/bookshelves';
 import { useBookCategories, useSetBookCategories } from '@/lib/queries/categories';
@@ -499,6 +500,7 @@ function EditBookSheet({
   const [coverUploading, setCoverUploading] = useState(false);
   const [coverError, setCoverError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   async function pickCover() {
     if (!user || coverUploading) return;
@@ -565,7 +567,7 @@ function EditBookSheet({
   }
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={t('book.editDetails')}>
+    <Sheet visible={visible} onClose={onClose} title={t('book.editDetails')} scrollRef={scrollRef}>
       <View style={{ gap: theme.spacing.lg }}>
         {/* The drop target is this outer View, not the Pressable inside it —
             react-native-web's Pressable wires its own pointer/hover handling
@@ -627,15 +629,22 @@ function EditBookSheet({
             if (titleError) setTitleError(null);
           }}
           error={titleError}
+          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
         />
 
-        <TextField label={t('book.subtitle')} value={subtitle} onChangeText={setSubtitle} />
+        <TextField
+          label={t('book.subtitle')}
+          value={subtitle}
+          onChangeText={setSubtitle}
+          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+        />
 
         <TextField
           label={t('manual.authors')}
           hint={t('manual.authorsHint')}
           value={authors}
           onChangeText={setAuthors}
+          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
         />
 
         <TextField
@@ -645,9 +654,15 @@ function EditBookSheet({
           keyboardType="numbers-and-punctuation"
           autoCapitalize="none"
           autoCorrect={false}
+          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
         />
 
-        <TextField label={t('manual.publisher')} value={publisher} onChangeText={setPublisher} />
+        <TextField
+          label={t('manual.publisher')}
+          value={publisher}
+          onChangeText={setPublisher}
+          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+        />
 
         <View style={[styles.pair, { gap: theme.spacing.md }]}>
           <TextField
@@ -658,6 +673,7 @@ function EditBookSheet({
             inputMode="numeric"
             maxLength={4}
             containerStyle={styles.pairItem}
+            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
           />
           <TextField
             label={t('manual.pages')}
@@ -667,6 +683,7 @@ function EditBookSheet({
             inputMode="numeric"
             maxLength={5}
             containerStyle={styles.pairItem}
+            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
           />
         </View>
 
