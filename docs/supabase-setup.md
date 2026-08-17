@@ -219,7 +219,7 @@ https://www.kitobjavonim.uz/**
 ```
 
 Add the staging Worker's URL too if you want confirmation emails to work
-there for testing (`https://kitobjavonim-staging.sardorfarhodogli.workers.dev/**`
+there for testing (`https://test.kitobjavonim.uz/**`
 at the time of writing — staging Workers can get redeployed under a new URL,
 so confirm this is still current before pasting it in).
 

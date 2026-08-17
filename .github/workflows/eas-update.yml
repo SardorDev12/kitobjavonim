@@ -58,4 +58,4 @@ jobs:
           EXPO_PUBLIC_SUPABASE_URL: ${{ github.ref_name == 'main' && 'https://zsrhzjujoahresqfhpks.supabase.co' || 'https://ahpsnvxpduaqrkvmpfck.supabase.co' }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ github.ref_name == 'main' && 'sb_publishable_jsqMsYY3fmBTkIyrcD8E7g_ve9Ef1Ww' || 'sb_publishable_nM9zD2eA5FtbkwEG_ISdnQ_W8ae4FQ3' }}
           EXPO_PUBLIC_TELEGRAM_BOT_USERNAME: home_library_signin_bot
-          EXPO_PUBLIC_WEB_ORIGIN: ${{ github.ref_name == 'main' && 'https://www.kitobjavonim.uz' || 'https://kitobjavonim-staging.sardorfarhodogli.workers.dev' }}
+          EXPO_PUBLIC_WEB_ORIGIN: ${{ github.ref_name == 'main' && 'https://www.kitobjavonim.uz' || 'https://test.kitobjavonim.uz' }}

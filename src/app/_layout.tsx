@@ -9,6 +9,12 @@ import { ActivityIndicator, AppState, Platform, View, type AppStateStatus } from
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+// Web-only: swapped in for the staging tab's favicon at runtime (see the
+// hostname check below) — imported unconditionally so Metro bundles it into
+// every web build regardless of which one actually ends up using it, since
+// production and staging are built by two separate Cloudflare Workers this
+// repo has no control over the build env vars of.
+import stagingFaviconAsset from '@/assets/images/favicon-preview.png';
 import { ErrorBoundary, installGlobalErrorReporting } from '@/components/ErrorBoundary';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { EmptyState, Screen } from '@/components/ui';
@@ -162,11 +168,19 @@ function RootNavigator() {
   // Read from the actual hostname the page loaded from, not an env var —
   // that way it's right regardless of which .env the build happened to be
   // made with, and it's what actually lets a staging and a production tab
-  // sit side by side without looking identical.
+  // sit side by side without looking identical. `test.` covers the current
+  // staging domain (test.kitobjavonim.uz); `staging` is kept too for the
+  // Worker's old *.workers.dev URL, in case that's ever opened directly.
   useEffect(() => {
     if (Platform.OS === 'web') {
-      const isStaging = window.location.hostname.includes('staging');
-      document.title = isStaging ? 'Kitobjavonim (Staging)' : 'Kitobjavonim';
+      const hostname = window.location.hostname;
+      const isStaging = hostname.startsWith('test.') || hostname.includes('staging');
+      document.title = isStaging ? 'Kitobjavonim (Test)' : 'Kitobjavonim';
+
+      if (isStaging) {
+        const favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+        if (favicon) favicon.href = stagingFaviconAsset as unknown as string;
+      }
     }
   }, [pathname]);
 

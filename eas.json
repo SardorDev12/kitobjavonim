@@ -12,7 +12,7 @@
         "EXPO_PUBLIC_SUPABASE_URL": "https://ahpsnvxpduaqrkvmpfck.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_nM9zD2eA5FtbkwEG_ISdnQ_W8ae4FQ3",
         "EXPO_PUBLIC_TELEGRAM_BOT_USERNAME": "home_library_signin_bot",
-        "EXPO_PUBLIC_WEB_ORIGIN": "https://kitobjavonim-staging.sardorfarhodogli.workers.dev"
+        "EXPO_PUBLIC_WEB_ORIGIN": "https://test.kitobjavonim.uz"
       }
     },
     "preview": {
@@ -24,7 +24,7 @@
         "EXPO_PUBLIC_SUPABASE_URL": "https://ahpsnvxpduaqrkvmpfck.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_nM9zD2eA5FtbkwEG_ISdnQ_W8ae4FQ3",
         "EXPO_PUBLIC_TELEGRAM_BOT_USERNAME": "home_library_signin_bot",
-        "EXPO_PUBLIC_WEB_ORIGIN": "https://kitobjavonim-staging.sardorfarhodogli.workers.dev"
+        "EXPO_PUBLIC_WEB_ORIGIN": "https://test.kitobjavonim.uz"
       }
     },
     "production": {
