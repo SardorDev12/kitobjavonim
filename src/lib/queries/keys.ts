@@ -27,6 +27,7 @@ export const queryKeys = {
   },
   search: {
     books: (query: string) => ['search', 'books', query] as const,
+    authors: (query: string) => ['search', 'authors', query] as const,
   },
   household: {
     mine: (userId: string) => ['household', 'mine', userId] as const,

@@ -1,4 +1,5 @@
 export { Avatar } from './Avatar';
+export { AuthorsField } from './AuthorsField';
 export { Button, type ButtonProps } from './Button';
 export { Card, Divider, ListRow, SectionHeader } from './Card';
 export { Chip, ChipRow, type ChipProps } from './Chip';

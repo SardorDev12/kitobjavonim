@@ -5,12 +5,12 @@ import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 
 import { BookCover } from '@/components/BookCover';
 import { CategoryPicker } from '@/components/CategoryPicker';
-import { Button, Card, Chip, EmptyState, Screen, Select, Sheet, Text, TextField, Toggle } from '@/components/ui';
+import { AuthorsField, Button, Card, Chip, EmptyState, Screen, Select, Sheet, Text, TextField, Toggle } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { setPendingBook, usePendingBook } from '@/features/add/pendingBook';
 import type { BookCandidate } from '@/lib/books/metadata';
 import { describeError } from '@/lib/errors';
-import { formatAuthors, normalizeIsbn } from '@/lib/format';
+import { formatAuthors, normalizeIsbn, parseAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
 import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
@@ -320,10 +320,7 @@ function CandidateEditSheet({
 
     onSave({
       title: title.trim(),
-      authors: authors
-        .split(',')
-        .map((author) => author.trim())
-        .filter(Boolean),
+      authors: parseAuthors(authors),
       isbn13: normalizedIsbn.length === 13 ? normalizedIsbn : null,
       isbn10: normalizedIsbn.length === 10 ? normalizedIsbn : null,
       publisher: publisher.trim() || null,
@@ -403,7 +400,7 @@ function CandidateEditSheet({
           onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
-        <TextField
+        <AuthorsField
           label={t('manual.authors')}
           hint={t('manual.authorsHint')}
           value={authors}

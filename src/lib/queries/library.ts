@@ -51,6 +51,27 @@ export function useLibraryEntry(id: string | undefined) {
 }
 
 /**
+ * Existing author spellings in the shared catalogue matching a partial name
+ * — lets the add-book form nudge someone toward the spelling already in use
+ * instead of every contributor re-typing (and re-spelling) the same author
+ * independently. See 0016_search_authors.sql for why this is a search
+ * function rather than a normalized authors table.
+ */
+export function useAuthorSuggestions(query: string) {
+  const trimmed = query.trim();
+
+  return useQuery({
+    queryKey: queryKeys.search.authors(trimmed),
+    enabled: trimmed.length >= 2,
+    queryFn: async (): Promise<string[]> => {
+      const { data, error } = await supabase.rpc('search_authors', { query: trimmed });
+      if (error) throw error;
+      return (data ?? []).map((row: { name: string }) => row.name);
+    },
+  });
+}
+
+/**
  * Finds the canonical book row for a candidate, creating it if this is the first
  * time anyone has catalogued it.
  *

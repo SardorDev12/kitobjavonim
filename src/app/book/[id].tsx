@@ -8,6 +8,7 @@ import { BookCover } from '@/components/BookCover';
 import { CategoryPicker } from '@/components/CategoryPicker';
 import { ListingSheet } from '@/components/ListingSheet';
 import {
+  AuthorsField,
   Button,
   Card,
   Chip,
@@ -27,7 +28,7 @@ import {
 import { useAuth } from '@/features/auth/AuthProvider';
 import { hasContactMethod } from '@/lib/contactMethod';
 import { describeError } from '@/lib/errors';
-import { formatAuthors, formatDate, formatPosition, formatPrice, normalizeIsbn } from '@/lib/format';
+import { formatAuthors, formatDate, formatPosition, formatPrice, normalizeIsbn, parseAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
 import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
@@ -590,10 +591,7 @@ function EditBookSheet({
     onSave({
       title: title.trim(),
       subtitle: subtitle.trim() || null,
-      authors: authors
-        .split(',')
-        .map((author) => author.trim())
-        .filter(Boolean),
+      authors: parseAuthors(authors),
       isbn13: normalizedIsbn.length === 13 ? normalizedIsbn : entry.isbn13,
       publisher: publisher.trim() || null,
       publication_year:
@@ -679,7 +677,7 @@ function EditBookSheet({
           onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
-        <TextField
+        <AuthorsField
           label={t('manual.authors')}
           hint={t('manual.authorsHint')}
           value={authors}

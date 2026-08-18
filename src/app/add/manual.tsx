@@ -4,12 +4,12 @@ import { useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { BookCover } from '@/components/BookCover';
-import { Button, Screen, Select, Text, TextField } from '@/components/ui';
+import { AuthorsField, Button, Screen, Select, Text, TextField } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { setPendingBook } from '@/features/add/pendingBook';
 import { emptyCandidate } from '@/lib/books/metadata';
 import { describeError } from '@/lib/errors';
-import { normalizeIsbn } from '@/lib/format';
+import { normalizeIsbn, parseAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
 import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
@@ -144,10 +144,7 @@ export default function ManualEntryScreen() {
     setPendingBook({
       ...emptyCandidate(),
       title: title.trim(),
-      authors: authors
-        .split(',')
-        .map((author) => author.trim())
-        .filter(Boolean),
+      authors: parseAuthors(authors),
       isbn13: normalizedIsbn.length === 13 ? normalizedIsbn : null,
       isbn10: normalizedIsbn.length === 10 ? normalizedIsbn : null,
       publisher: publisher.trim() || null,
@@ -252,7 +249,7 @@ export default function ManualEntryScreen() {
           autoFocus={!params.title}
         />
 
-        <TextField
+        <AuthorsField
           label={t('manual.authors')}
           hint={t('manual.authorsHint')}
           value={authors}

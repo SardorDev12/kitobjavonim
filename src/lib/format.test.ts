@@ -5,6 +5,7 @@ import {
   formatPrice,
   isValidIsbn,
   normalizeIsbn,
+  parseAuthors,
   parsePriceInput,
 } from './format';
 
@@ -95,6 +96,29 @@ describe('isValidIsbn', () => {
   it('rejects the wrong length entirely', () => {
     expect(isValidIsbn('12345')).toBe(false);
     expect(isValidIsbn('')).toBe(false);
+  });
+});
+
+describe('parseAuthors', () => {
+  it('splits and trims comma-separated names', () => {
+    expect(parseAuthors('Chingiz Aytmatov, Erkin Vohidov')).toEqual(['Chingiz Aytmatov', 'Erkin Vohidov']);
+  });
+
+  it('collapses internal runs of whitespace to one space', () => {
+    expect(parseAuthors('Chingiz    Aytmatov')).toEqual(['Chingiz Aytmatov']);
+  });
+
+  it('drops empty segments from stray or trailing commas', () => {
+    expect(parseAuthors('A. Author, , B. Author,')).toEqual(['A. Author', 'B. Author']);
+  });
+
+  it('removes case-insensitive duplicates, keeping the first spelling seen', () => {
+    expect(parseAuthors('J.K. Rowling, j.k. rowling')).toEqual(['J.K. Rowling']);
+  });
+
+  it('returns an empty array for blank input', () => {
+    expect(parseAuthors('')).toEqual([]);
+    expect(parseAuthors('   ')).toEqual([]);
   });
 });
 

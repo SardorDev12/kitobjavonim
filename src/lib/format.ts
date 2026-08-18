@@ -114,6 +114,31 @@ export function normalizeIsbn(raw: string): string {
   return raw.replace(/[^0-9Xx]/g, '').toUpperCase();
 }
 
+/**
+ * Turns the comma-separated Authors field into a clean list: each name
+ * trimmed, internal runs of whitespace collapsed to one space (stray
+ * double-spacing is the one formatting slip AuthorsField's suggestions
+ * can't prevent, since it can't see what someone free-types), empty
+ * segments dropped, and exact case-insensitive repeats removed — picking
+ * the same suggested name twice, or typing one that only differs from an
+ * earlier segment by case, shouldn't produce two entries on one book.
+ */
+export function parseAuthors(raw: string): string[] {
+  const seen = new Set<string>();
+  const authors: string[] = [];
+
+  for (const segment of raw.split(',')) {
+    const name = segment.trim().replace(/\s+/g, ' ');
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    authors.push(name);
+  }
+
+  return authors;
+}
+
 export function isValidIsbn(raw: string): boolean {
   const isbn = normalizeIsbn(raw);
 
