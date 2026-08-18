@@ -91,11 +91,7 @@ export default function ManualEntryScreen() {
     }
   }
 
-  const { ref: coverDropRef, isDragOver: coverDragOver } = useImageDropZone(
-    dropCover,
-    !coverUploading,
-    'add-manual-cover'
-  );
+  const { ref: coverDropRef, isDragOver: coverDragOver } = useImageDropZone(dropCover, !coverUploading);
 
   // Overwrites title/authors with whatever the current cover reads as — the
   // user pressed "scan" for this exact cover, so that result should win over

@@ -31,8 +31,7 @@ export function PhotoManager({ userBookId }: { userBookId: string }) {
 
   const { ref: dropZoneRef, isDragOver } = useImageDropZone(
     (file) => addPhoto.mutate({ userBookId, sortOrder: list.length, file }),
-    canAddMore,
-    'photo-manager'
+    canAddMore
   );
 
   return (
