@@ -117,8 +117,15 @@ export default function ManualEntryScreen() {
     } catch (cause) {
       // Surfaces the Edge Function's own message (e.g. a Gemini quota/model
       // error) when there is one, rather than a generic failure notice that
-      // looks identical whether the service is down or just misconfigured.
-      setScanMessage(cause instanceof Error && cause.message ? cause.message : t('manual.scanFailed'));
+      // looks identical whether the service is down or just misconfigured —
+      // routed through describeError so a plain connectivity failure still
+      // gets the app's normal friendly wording instead of the raw "Failed to
+      // fetch"/"Network request failed" a browser or RN's fetch throws.
+      // describeError's own fallback (no message at all on the thrown value)
+      // is the generic error copy; manual.scanFailed says the same thing
+      // more usefully here, since it also points at what to do next.
+      const description = describeError(cause, t);
+      setScanMessage(description === t('error.generic') ? t('manual.scanFailed') : description);
     } finally {
       setScanning(false);
     }

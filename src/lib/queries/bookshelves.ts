@@ -163,13 +163,18 @@ export function useCreatePosition() {
     }) => {
       // user_id is filled in by a trigger from the parent shelf, so it is
       // deliberately absent here.
-      const { error } = await supabase.from('bookshelf_positions').insert({
-        bookshelf_id: bookshelfId,
-        shelf_number: shelfNumber,
-        row_number: rowNumber,
-        label: label?.trim() || null,
-      });
+      const { data, error } = await supabase
+        .from('bookshelf_positions')
+        .insert({
+          bookshelf_id: bookshelfId,
+          shelf_number: shelfNumber,
+          row_number: rowNumber,
+          label: label?.trim() || null,
+        })
+        .select('id')
+        .single();
       if (error) throw error;
+      return data.id as string;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.bookshelves.all }),
   });

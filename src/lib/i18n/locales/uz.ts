@@ -214,10 +214,6 @@ export const uz: LocaleCatalogue = {
   'add.added': 'Kutubxonangizga qoʻshildi',
   'add.addToLibrary': 'Kutubxonaga qoʻshish',
   'add.editDetails': 'Maʼlumotlarni tahrirlash',
-  'add.similarTitles': 'Katalogda oʻxshash kitoblar bor',
-  'add.similarTitlesBody': 'Bu kitobni allaqachon boshqa foydalanuvchi qoʻshgan boʻlishi mumkin — bogʻlanmaydigan nusxa qoʻshish oʻrniga shuni tanlang.',
-  'add.useThis': 'Shuni tanlash',
-  'add.usingExisting': 'Katalogdagi mavjud yozuv ishlatilmoqda',
 
   'manual.title': 'Kitob maʼlumotlari',
   'manual.bookTitle': 'Nomi',
@@ -236,7 +232,8 @@ export const uz: LocaleCatalogue = {
   'manual.scanCover': 'Muqovadan nom va muallifni aniqlash',
   'manual.scanning': 'Muqova oʻqilmoqda…',
   'manual.scanFilled': 'Muqovadan toʻldirildi — tekshirib chiqing.',
-  'manual.scanEmpty': 'Aniq matn topilmadi — qoʻlda toʻldiring.',  'manual.scanFailed': 'Aniqlab boʻlmadi — qoʻlda toʻldiring.',
+  'manual.scanEmpty': 'Aniq matn topilmadi — qoʻlda toʻldiring.',
+  'manual.scanFailed': 'Aniqlab boʻlmadi — qoʻlda toʻldiring.',
 
   'manual.titleRequired': 'Kitob nomi kerak',
 

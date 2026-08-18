@@ -212,10 +212,6 @@ export const ru: LocaleCatalogue = {
   'add.added': 'Добавлено в библиотеку',
   'add.addToLibrary': 'Добавить в библиотеку',
   'add.editDetails': 'Изменить сведения',
-  'add.similarTitles': 'Похожие книги уже есть в каталоге',
-  'add.similarTitlesBody': 'Возможно, эту книгу уже добавил кто-то другой — выберите её, а не создавайте несвязанную копию.',
-  'add.useThis': 'Выбрать',
-  'add.usingExisting': 'Используется запись из каталога',
 
   'manual.title': 'Данные книги',
   'manual.bookTitle': 'Название',
@@ -234,7 +230,8 @@ export const ru: LocaleCatalogue = {
   'manual.scanCover': 'Распознать название и автора с обложки',
   'manual.scanning': 'Читаем обложку…',
   'manual.scanFilled': 'Заполнено по обложке — проверьте.',
-  'manual.scanEmpty': 'Не удалось разобрать текст — заполните вручную.',  'manual.scanFailed': 'Не удалось распознать — заполните вручную.',
+  'manual.scanEmpty': 'Не удалось разобрать текст — заполните вручную.',
+  'manual.scanFailed': 'Не удалось распознать — заполните вручную.',
 
   'manual.titleRequired': 'Укажите название',
 

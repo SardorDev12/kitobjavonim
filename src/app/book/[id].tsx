@@ -32,7 +32,7 @@ import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
 import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
 import { useImageDropZone } from '@/lib/useImageDropZone';
-import { usePositionOptions } from '@/lib/queries/bookshelves';
+import { useCreateBookshelf, useCreatePosition, usePositionOptions } from '@/lib/queries/bookshelves';
 import { useBookCategories, useSetBookCategories } from '@/lib/queries/categories';
 import { useHousehold } from '@/lib/queries/household';
 import {
@@ -67,6 +67,7 @@ export default function BookDetailScreen() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [listingOpen, setListingOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [addShelfOpen, setAddShelfOpen] = useState(false);
 
   // A page loaded directly (a deep link, or a browser refresh — both routine
   // on web) has no in-app navigation history to pop, so router.back() alone
@@ -262,9 +263,18 @@ export default function BookDetailScreen() {
 
         {/* Location --------------------------------------------------------- */}
         <View style={{ gap: theme.spacing.sm }}>
-          <Text variant="label" color="textMuted">
-            {t('book.location')}
-          </Text>
+          <View style={styles.locationHeader}>
+            <Text variant="label" color="textMuted" style={styles.flex}>
+              {t('book.location')}
+            </Text>
+            {positions.length > 0 ? (
+              <Pressable onPress={() => setAddShelfOpen(true)} hitSlop={8}>
+                <Text variant="label" color="primary">
+                  {t('shelves.addShelf')}
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
 
           {positions.length > 0 ? (
             <Select
@@ -285,7 +295,7 @@ export default function BookDetailScreen() {
                 variant="secondary"
                 size="sm"
                 style={{ marginTop: theme.spacing.md }}
-                onPress={() => router.push('/bookshelves')}
+                onPress={() => setAddShelfOpen(true)}
               />
             </Card>
           )}
@@ -444,6 +454,12 @@ export default function BookDetailScreen() {
             previousCoverUrl: entry.cover_url,
           })
         }
+      />
+
+      <AddShelfSheet
+        visible={addShelfOpen}
+        onClose={() => setAddShelfOpen(false)}
+        onCreated={(positionId) => patch({ bookshelf_position_id: positionId })}
       />
       </Screen>
 
@@ -799,12 +815,124 @@ function ReviewSheet({
   );
 }
 
+/**
+ * Lets a new shelf (and its first position) be created without leaving the
+ * book detail page — the only other way in was navigating to /bookshelves
+ * and losing whatever else was being edited here. Bundles the two-step
+ * shelf-then-position flow bookshelves/index.tsx normally spreads across
+ * separate actions into one submit, since the point here is getting back to
+ * "this book has a location" as directly as possible.
+ */
+function AddShelfSheet({
+  visible,
+  onClose,
+  onCreated,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  onCreated: (positionId: string) => void;
+}) {
+  const theme = useTheme();
+  const { t } = useI18n();
+  const { data: household } = useHousehold();
+  const createShelf = useCreateBookshelf();
+  const createPosition = useCreatePosition();
+
+  const [name, setName] = useState('');
+  const [shelfNumber, setShelfNumber] = useState('1');
+  const [rowNumber, setRowNumber] = useState('1');
+  const [shareShelf, setShareShelf] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const saving = createShelf.isPending || createPosition.isPending;
+
+  async function submit() {
+    const trimmedName = name.trim();
+    const shelf_number = Number(shelfNumber);
+    const row_number = Number(rowNumber);
+
+    if (!trimmedName) {
+      setError(t('shelves.shelfName'));
+      return;
+    }
+    if (!Number.isInteger(shelf_number) || shelf_number < 1 || !Number.isInteger(row_number) || row_number < 1) {
+      setError(t('error.generic'));
+      return;
+    }
+
+    setError(null);
+    try {
+      const bookshelfId = await createShelf.mutateAsync({
+        name: trimmedName,
+        householdId: household && shareShelf ? household.household.id : null,
+      });
+      const positionId = await createPosition.mutateAsync({ bookshelfId, shelfNumber: shelf_number, rowNumber: row_number });
+      setName('');
+      setShelfNumber('1');
+      setRowNumber('1');
+      onCreated(positionId);
+      onClose();
+    } catch (cause) {
+      setError(describeError(cause, t));
+    }
+  }
+
+  return (
+    <Sheet visible={visible} onClose={onClose} title={t('shelves.addShelf')}>
+      <View style={{ gap: theme.spacing.lg }}>
+        <TextField
+          label={t('shelves.shelfName')}
+          placeholder={t('shelves.shelfNamePlaceholder')}
+          value={name}
+          onChangeText={setName}
+          autoFocus
+        />
+
+        <View style={[styles.pair, { gap: theme.spacing.md }]}>
+          <TextField
+            label={t('shelves.shelfNumber')}
+            value={shelfNumber}
+            onChangeText={setShelfNumber}
+            keyboardType="number-pad"
+            inputMode="numeric"
+            maxLength={2}
+            containerStyle={styles.pairItem}
+          />
+          <TextField
+            label={t('shelves.rowNumber')}
+            value={rowNumber}
+            onChangeText={setRowNumber}
+            keyboardType="number-pad"
+            inputMode="numeric"
+            maxLength={2}
+            containerStyle={styles.pairItem}
+          />
+        </View>
+
+        {household ? (
+          <Toggle label={t('household.share')} hint={household.household.name} value={shareShelf} onChange={setShareShelf} />
+        ) : null}
+
+        {error ? (
+          <Text variant="caption" color="danger">
+            {error}
+          </Text>
+        ) : null}
+
+        <Button title={t('common.add')} fullWidth loading={saving} disabled={!name.trim()} onPress={submit} />
+      </View>
+    </Sheet>
+  );
+}
+
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   hero: { flexDirection: 'row', alignItems: 'flex-start', paddingTop: 8 },
   heroText: { flex: 1, gap: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  flex: { flex: 1 },
+  locationHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
   metaValue: { flex: 1, textAlign: 'right' },

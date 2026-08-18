@@ -51,33 +51,6 @@ export function useLibraryEntry(id: string | undefined) {
 }
 
 /**
- * Titles already in the shared catalogue that look like the one being added.
- *
- * `ensureBook` only dedupes on an exact ISBN match, which misses every book
- * that has no ISBN at all (routine for older or Uzbek/Russian-language
- * editions) or where the search result's ISBN just doesn't match what is
- * already catalogued. A loose title match catches those before they become a
- * second, near-identical `books` row.
- */
-export function useSimilarBooks(title: string) {
-  const trimmed = title.trim();
-
-  return useQuery({
-    queryKey: queryKeys.catalog.similarTitles(trimmed),
-    enabled: trimmed.length >= 3,
-    queryFn: async (): Promise<Book[]> => {
-      const { data, error } = await supabase
-        .from('books')
-        .select('*')
-        .ilike('title', `%${trimmed}%`)
-        .limit(5);
-      if (error) throw error;
-      return data as Book[];
-    },
-  });
-}
-
-/**
  * Finds the canonical book row for a candidate, creating it if this is the first
  * time anyone has catalogued it.
  *

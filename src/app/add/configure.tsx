@@ -9,7 +9,6 @@ import { Button, Card, Chip, EmptyState, Screen, Select, Sheet, Text, TextField,
 import { useAuth } from '@/features/auth/AuthProvider';
 import { setPendingBook, usePendingBook } from '@/features/add/pendingBook';
 import type { BookCandidate } from '@/lib/books/metadata';
-import { bookToCandidate } from '@/lib/books/metadata';
 import { describeError } from '@/lib/errors';
 import { formatAuthors, normalizeIsbn } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
@@ -19,9 +18,9 @@ import { useImageDropZone } from '@/lib/useImageDropZone';
 import { usePositionOptions } from '@/lib/queries/bookshelves';
 import { useSetBookCategories } from '@/lib/queries/categories';
 import { useHousehold } from '@/lib/queries/household';
-import { useAddBook, useLibrary, useSimilarBooks } from '@/lib/queries/library';
+import { useAddBook, useLibrary } from '@/lib/queries/library';
 import { useLayout, useTheme } from '@/theme';
-import { BOOK_CONDITIONS, READING_STATUSES, type Book, type BookCondition, type ReadingStatus } from '@/types/database';
+import { BOOK_CONDITIONS, READING_STATUSES, type BookCondition, type ReadingStatus } from '@/types/database';
 
 const LANGUAGE_OPTIONS = [
   { value: 'uz', label: 'Oʻzbekcha' },
@@ -48,7 +47,6 @@ export default function ConfigureScreen() {
   const positions = usePositionOptions();
   const { data: library } = useLibrary();
   const { data: household } = useHousehold();
-  const similar = useSimilarBooks(candidate?.title ?? '');
   const addBook = useAddBook();
   const setCategories = useSetBookCategories();
 
@@ -62,7 +60,6 @@ export default function ConfigureScreen() {
   const [error, setError] = useState<string | null>(null);
   const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
-  const [existingBook, setExistingBook] = useState<Book | null>(null);
 
   // A hard refresh on web clears the in-memory selection; send the user back
   // rather than showing an empty form.
@@ -75,17 +72,6 @@ export default function ConfigureScreen() {
     return library.find((entry) => entry.isbn13 === candidate.isbn13) ?? null;
   }, [candidate, library]);
 
-  // ensureBook only dedupes on an exact ISBN match, which misses every book
-  // with no ISBN at all — routine for older or Uzbek/Russian-language
-  // editions — so a loose title match against the shared catalogue catches
-  // those before they become a second, near-identical `books` row.
-  const similarBooks = useMemo(() => {
-    if (duplicate || existingBook) return [];
-    return (similar.data ?? []).filter(
-      (book) => !candidate?.isbn13 || book.isbn13 !== candidate.isbn13
-    );
-  }, [similar.data, duplicate, existingBook, candidate?.isbn13]);
-
   if (!candidate) {
     return (
       <Screen>
@@ -94,13 +80,6 @@ export default function ConfigureScreen() {
     );
   }
 
-  // What's actually about to be saved: the referenced catalog entry when one
-  // is chosen, otherwise the searched/manual candidate. Editing always
-  // starts from this, so the edit sheet (and what it shows before editing)
-  // never disagrees with the "Using existing" card below it.
-  const display = existingBook ?? candidate;
-  const editCandidate = existingBook ? bookToCandidate(existingBook) : candidate;
-
   async function save() {
     if (!candidate) return;
     setError(null);
@@ -108,7 +87,6 @@ export default function ConfigureScreen() {
     try {
       const { userBookId, bookId } = await addBook.mutateAsync({
         candidate,
-        existingBookId: existingBook?.id,
         bookshelfPositionId: positionId,
         readingStatus: status,
         condition,
@@ -147,24 +125,23 @@ export default function ConfigureScreen() {
     >
       <View style={{ gap: theme.spacing.xl, paddingTop: theme.spacing.md }}>
         <View style={[styles.book, { gap: theme.spacing.lg }]}>
-          <BookCover uri={display.cover_url} title={display.title} width={92} radius={theme.radius.md} />
+          <BookCover uri={candidate.cover_url} title={candidate.title} width={92} radius={theme.radius.md} />
 
           <View style={styles.bookText}>
-            <Text variant="title">{display.title}</Text>
-            {display.authors.length > 0 ? (
+            <Text variant="title">{candidate.title}</Text>
+            {candidate.authors.length > 0 ? (
               <Text variant="body" color="textMuted">
-                {formatAuthors(display.authors)}
+                {formatAuthors(candidate.authors)}
               </Text>
             ) : null}
-            {display.publisher || display.publication_year ? (
+            {candidate.publisher || candidate.publication_year ? (
               <Text variant="caption" color="textSubtle">
-                {[display.publisher, display.publication_year].filter(Boolean).join(' · ')}
+                {[candidate.publisher, candidate.publication_year].filter(Boolean).join(' · ')}
               </Text>
             ) : null}
 
-            {/* External metadata (Google Books/OpenLibrary) — and, same idea,
-                a catalog match from "similar titles" — is often wrong for
-                regional or translated editions. Editing here always adds
+            {/* External metadata (Google Books/OpenLibrary) is often wrong
+                for regional or translated editions. Editing here always adds
                 (or keeps) this as the user's own entry rather than rewriting
                 someone else's shared catalog row, which RLS wouldn't allow
                 anyway (0003_rls.sql: books can only be updated by their
@@ -183,50 +160,6 @@ export default function ConfigureScreen() {
             <Text variant="caption" color="textMuted" style={{ marginTop: 4 }}>
               {t('add.duplicateBody', { title: duplicate.title })}
             </Text>
-          </Card>
-        ) : existingBook ? (
-          <Card style={{ backgroundColor: theme.colors.primarySoft, borderColor: 'transparent' }}>
-            <View style={[styles.similarRow, { justifyContent: 'space-between' }]}>
-              <Text variant="label" color="primaryOnSoft">
-                {t('add.usingExisting')}
-              </Text>
-              <Pressable onPress={() => setExistingBook(null)} hitSlop={8}>
-                <Text variant="label" color="primary">
-                  {t('common.cancel')}
-                </Text>
-              </Pressable>
-            </View>
-          </Card>
-        ) : similarBooks.length > 0 ? (
-          <Card>
-            <Text variant="bodyStrong">{t('add.similarTitles')}</Text>
-            <Text variant="caption" color="textMuted" style={{ marginTop: 4, marginBottom: theme.spacing.sm }}>
-              {t('add.similarTitlesBody')}
-            </Text>
-            <View style={{ gap: theme.spacing.sm }}>
-              {similarBooks.map((book) => (
-                <Pressable
-                  key={book.id}
-                  onPress={() => setExistingBook(book)}
-                  style={({ pressed }) => [styles.similarRow, { gap: theme.spacing.md, opacity: pressed ? 0.7 : 1 }]}
-                >
-                  <BookCover uri={book.cover_url} title={book.title} width={40} radius={theme.radius.sm} />
-                  <View style={styles.bookText}>
-                    <Text variant="body" numberOfLines={1}>
-                      {book.title}
-                    </Text>
-                    {book.authors.length > 0 ? (
-                      <Text variant="caption" color="textMuted" numberOfLines={1}>
-                        {formatAuthors(book.authors)}
-                      </Text>
-                    ) : null}
-                  </View>
-                  <Text variant="label" color="primary">
-                    {t('add.useThis')}
-                  </Text>
-                </Pressable>
-              ))}
-            </View>
           </Card>
         ) : null}
 
@@ -301,16 +234,11 @@ export default function ConfigureScreen() {
       </View>
 
       <CandidateEditSheet
-        key={editCandidate.key}
+        key={candidate.key}
         visible={editOpen}
         onClose={() => setEditOpen(false)}
-        candidate={editCandidate}
-        onSave={(patch) => {
-          setPendingBook({ ...editCandidate, ...patch });
-          // Saved edits always become the user's own entry, never a rewrite
-          // of the shared catalog row this started from.
-          if (existingBook) setExistingBook(null);
-        }}
+        candidate={candidate}
+        onSave={(patch) => setPendingBook({ ...candidate, ...patch })}
       />
     </Screen>
   );
@@ -542,7 +470,6 @@ function CandidateEditSheet({
 const styles = StyleSheet.create({
   book: { flexDirection: 'row', alignItems: 'flex-start' },
   bookText: { flex: 1, gap: 4 },
-  similarRow: { flexDirection: 'row', alignItems: 'center' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   editCoverRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   editCoverAction: { flexDirection: 'row', alignItems: 'center', gap: 6 },
