@@ -10,6 +10,7 @@ import { GALLERY_TILE_WIDTH } from '@/components/BookCover';
 import { PullToRefreshIndicator } from '@/components/PullToRefreshIndicator';
 import { Chip, ChipRow, EmptyState, LoadingState, Sheet, Text, TextField } from '@/components/ui';
 import { useI18n } from '@/lib/i18n';
+import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 import { selectLibrary, useLibrary, type LibraryFilter, type LibrarySort } from '@/lib/queries/library';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useTheme } from '@/theme';
@@ -26,6 +27,11 @@ export default function LibraryScreen() {
 
   const { data, isPending, isError, refetch, isRefetching } = useLibrary();
   const { pullDistance, handlers: pullHandlers } = usePullToRefresh(refetch, isRefetching);
+  // The "not found, add it" empty state's button is the whole point of
+  // searching here with nothing in your library yet — without this, the
+  // keyboard that's necessarily still open (it's what you just searched
+  // with) covers it, same problem add.tsx's catalog search has and fixes.
+  const keyboardHeight = useKeyboardHeight();
 
   // Stable across renders so memo on BookCard/BookGridCard has something to
   // compare — see their own comments for why that matters in a virtualized
@@ -202,7 +208,7 @@ export default function LibraryScreen() {
         contentContainerStyle={[
           entries.length === 0 && styles.fill,
           viewMode === 'gallery' && { paddingHorizontal: horizontalPadding },
-          { paddingBottom: theme.spacing['2xl'], gap: viewMode === 'gallery' ? theme.spacing.xl : 0 },
+          { paddingBottom: theme.spacing['2xl'] + keyboardHeight, gap: viewMode === 'gallery' ? theme.spacing.xl : 0 },
         ]}
         scrollEventThrottle={16}
         {...pullHandlers}
