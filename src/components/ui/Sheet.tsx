@@ -3,7 +3,7 @@ import type { ReactNode, RefObject } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAndroidKeyboardHeight } from '@/lib/useAndroidKeyboardHeight';
+import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 import { useLayout, useTheme } from '@/theme';
 
 import { Text } from './Text';
@@ -41,7 +41,7 @@ export function Sheet({ visible, onClose, title, children, maxHeightRatio = 0.85
   // field below the fold has no scroll room to be revealed into — the
   // ScrollView's content is exactly as tall as the (keyboard-capped) sheet,
   // keyboard or not.
-  const keyboardHeight = useAndroidKeyboardHeight();
+  const keyboardHeight = useKeyboardHeight();
 
   return (
     <Modal visible={visible} transparent animationType={isWide ? 'fade' : 'slide'} onRequestClose={onClose}>

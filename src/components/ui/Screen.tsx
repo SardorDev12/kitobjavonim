@@ -2,7 +2,7 @@ import type { ReactNode, RefObject } from 'react';
 import { Platform, RefreshControl, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { useAndroidKeyboardHeight } from '@/lib/useAndroidKeyboardHeight';
+import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useLayout, useTheme } from '@/theme';
 
@@ -63,7 +63,7 @@ export function Screen({
   const insets = useSafeAreaInsets();
   const bottomInset =
     Platform.OS === 'android' ? Math.max(insets.bottom, MIN_ANDROID_BOTTOM_INSET) : insets.bottom;
-  const keyboardHeight = useAndroidKeyboardHeight();
+  const keyboardHeight = useKeyboardHeight();
   const { pullDistance, handlers: pullHandlers } = usePullToRefresh(onRefresh ?? noop, refreshing);
 
   const inner = (

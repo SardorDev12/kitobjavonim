@@ -12,7 +12,7 @@ import { searchBooks, type BookCandidate } from '@/lib/books/metadata';
 import { formatAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { queryKeys } from '@/lib/queries/keys';
-import { useAndroidKeyboardHeight } from '@/lib/useAndroidKeyboardHeight';
+import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 import { useTheme } from '@/theme';
 
 export default function AddScreen() {
@@ -25,7 +25,7 @@ export default function AddScreen() {
   // padding — without it, the "Qo'shish" manual-entry button rendered as
   // the empty/footer state stays wherever the FlatList's un-shrunk (under
   // edge-to-edge) layout put it, which the keyboard then just draws over.
-  const keyboardHeight = useAndroidKeyboardHeight();
+  const keyboardHeight = useKeyboardHeight();
   // Carried over from the Library tab's "not found, add it" empty state —
   // tabs stay mounted across switches, so this can't be initial state alone,
   // it has to react to the param changing on an already-mounted screen too.

@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
 import { useI18n } from '@/lib/i18n';
-import { useAndroidKeyboardHeight } from '@/lib/useAndroidKeyboardHeight';
+import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 import { useTheme } from '@/theme';
 
 export default function TabsLayout() {
@@ -13,7 +13,7 @@ export default function TabsLayout() {
   // rendered at its usual spot at the true bottom of the screen, which the
   // keyboard then just draws over. Lifting it by the keyboard's height keeps
   // it reachable instead of hidden underneath.
-  const keyboardHeight = useAndroidKeyboardHeight();
+  const keyboardHeight = useKeyboardHeight();
 
   return (
     <Tabs
