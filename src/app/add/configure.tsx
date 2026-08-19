@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { AddShelfSheet } from '@/components/AddShelfSheet';
 import { BookCover } from '@/components/BookCover';
 import { CategoryPicker } from '@/components/CategoryPicker';
 import { AuthorsField, Button, Card, Chip, EmptyState, Screen, Select, Sheet, Text, TextField, Toggle } from '@/components/ui';
@@ -51,6 +52,7 @@ export default function ConfigureScreen() {
   const setCategories = useSetBookCategories();
 
   const [positionId, setPositionId] = useState<string | null>(null);
+  const [addShelfOpen, setAddShelfOpen] = useState(false);
   const [status, setStatus] = useState<ReadingStatus>('want_to_read');
   const [condition, setCondition] = useState<BookCondition | null>(null);
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
@@ -206,6 +208,8 @@ export default function ConfigureScreen() {
             onChange={setPositionId}
             clearable
             clearLabel={t('book.noLocation')}
+            onAddNew={() => setAddShelfOpen(true)}
+            addNewLabel={t('shelves.addShelf')}
           />
         ) : (
           <Card>
@@ -217,10 +221,16 @@ export default function ConfigureScreen() {
               title={t('shelves.addShelf')}
               variant="secondary"
               size="sm"
-              onPress={() => router.push('/bookshelves')}
+              onPress={() => setAddShelfOpen(true)}
             />
           </Card>
         )}
+
+        <AddShelfSheet
+          visible={addShelfOpen}
+          onClose={() => setAddShelfOpen(false)}
+          onCreated={(newPositionId) => setPositionId(newPositionId)}
+        />
 
         {household ? (
           <Toggle label={t('household.share')} hint={household.household.name} value={shareBook} onChange={setShareBook} />
