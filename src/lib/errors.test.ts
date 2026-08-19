@@ -48,4 +48,25 @@ describe('describeError', () => {
   it('falls back to error.generic for an Error with an empty message', () => {
     expect(describeError(new Error(''), t)).toBe('translated:error.generic');
   });
+
+  it('maps Android native fetch failures to error.network regardless of the underlying Java exception', () => {
+    // React Native's Android fetch (OkHttp under the JS polyfill) doesn't use
+    // any of the JS-engine wording above — it prefixes the exception's own
+    // message with "fetch failed:", and the exception class varies by what
+    // actually went wrong (DNS, refused connection, timeout, TLS).
+    expect(
+      describeError(
+        new Error(
+          'fetch failed: java.net.UnknownHostException: Unable to resolve host "ahpsnvxpduaqrkvmpfck.supabase.co": No address associated with hostname'
+        ),
+        t
+      )
+    ).toBe('translated:error.network');
+    expect(describeError(new Error('fetch failed: java.net.ConnectException: Failed to connect'), t)).toBe(
+      'translated:error.network'
+    );
+    expect(describeError(new Error('fetch failed: java.net.SocketTimeoutException: timeout'), t)).toBe(
+      'translated:error.network'
+    );
+  });
 });
