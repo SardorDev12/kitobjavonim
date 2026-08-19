@@ -249,6 +249,7 @@ export type ProfileStats = {
   reading_books: number;
   exchange_count: number;
   sale_count: number;
+  unread_books: number;
 };
 
 export type UserBookPhoto = {

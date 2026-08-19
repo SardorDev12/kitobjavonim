@@ -164,8 +164,8 @@ select count(*) from books where search_vector @@ websearch_to_tsquery('simple',
 \echo '### author search via trigram (expect 1)'
 select count(*) from books where authors_text(authors) ilike '%clear%';
 
-\echo '### profile_stats (expect 1 book, 1 for sale)'
-select total_books, finished_books, exchange_count, sale_count
+\echo '### profile_stats (expect 1 book, 1 for sale, 0 unread)'
+select total_books, finished_books, unread_books, exchange_count, sale_count
   from profile_stats where user_id = '11111111-1111-1111-1111-111111111111';
 
 \echo '### reference data seeded'

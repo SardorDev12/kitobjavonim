@@ -79,7 +79,7 @@ export default function ProfileScreen() {
           <View style={[styles.stats, { marginTop: theme.spacing.lg }]}>
             <Stat label={t('profile.forExchange')} value={stats?.exchange_count ?? 0} />
             <Stat label={t('profile.forSale')} value={stats?.sale_count ?? 0} />
-            <View style={styles.stat} />
+            <Stat label={t('library.filter.want_to_read')} value={stats?.unread_books ?? 0} />
           </View>
         </Card>
 
