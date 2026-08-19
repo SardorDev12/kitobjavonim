@@ -51,28 +51,22 @@ export function useLibraryEntry(id: string | undefined) {
 }
 
 /**
- * Titles already in the shared catalogue that look like the one being added.
- *
- * `ensureBook` only dedupes on an exact ISBN match, which misses every book
- * that has no ISBN at all (routine for older or Uzbek/Russian-language
- * editions) or where the search result's ISBN just doesn't match what is
- * already catalogued. A loose title match catches those before they become a
- * second, near-identical `books` row.
+ * Existing author spellings in the shared catalogue matching a partial name
+ * — lets the add-book form nudge someone toward the spelling already in use
+ * instead of every contributor re-typing (and re-spelling) the same author
+ * independently. See 0016_search_authors.sql for why this is a search
+ * function rather than a normalized authors table.
  */
-export function useSimilarBooks(title: string) {
-  const trimmed = title.trim();
+export function useAuthorSuggestions(query: string) {
+  const trimmed = query.trim();
 
   return useQuery({
-    queryKey: queryKeys.catalog.similarTitles(trimmed),
-    enabled: trimmed.length >= 3,
-    queryFn: async (): Promise<Book[]> => {
-      const { data, error } = await supabase
-        .from('books')
-        .select('*')
-        .ilike('title', `%${trimmed}%`)
-        .limit(5);
+    queryKey: queryKeys.search.authors(trimmed),
+    enabled: trimmed.length >= 2,
+    queryFn: async (): Promise<string[]> => {
+      const { data, error } = await supabase.rpc('search_authors', { query: trimmed });
       if (error) throw error;
-      return data as Book[];
+      return (data ?? []).map((row: { name: string }) => row.name);
     },
   });
 }

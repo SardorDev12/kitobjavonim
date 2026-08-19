@@ -4,15 +4,15 @@ import { useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { BookCover } from '@/components/BookCover';
-import { Button, Screen, Select, Text, TextField } from '@/components/ui';
+import { AuthorsField, Button, Screen, Select, Text, TextField } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { setPendingBook } from '@/features/add/pendingBook';
 import { emptyCandidate } from '@/lib/books/metadata';
 import { describeError } from '@/lib/errors';
-import { normalizeIsbn } from '@/lib/format';
+import { normalizeIsbn, parseAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
-import { scrollToEndOnKeyboardShow } from '@/lib/keyboard';
+import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
 import { scanCoverText } from '@/lib/ocr';
 import { useImageDropZone } from '@/lib/useImageDropZone';
 import { useLayout, useTheme } from '@/theme';
@@ -65,7 +65,7 @@ export default function ManualEntryScreen() {
     setCoverError(null);
     setScanMessage(null);
     try {
-      const url = await pickAndUploadBookCover(user.id);
+      const url = await pickAndUploadBookCover(user.id, t);
       if (url) setCoverUrl(url);
     } catch (cause) {
       setCoverError(describeError(cause, t));
@@ -91,11 +91,7 @@ export default function ManualEntryScreen() {
     }
   }
 
-  const { ref: coverDropRef, isDragOver: coverDragOver } = useImageDropZone(
-    dropCover,
-    !coverUploading,
-    'add-manual-cover'
-  );
+  const { ref: coverDropRef, isDragOver: coverDragOver } = useImageDropZone(dropCover, !coverUploading);
 
   // Overwrites title/authors with whatever the current cover reads as — the
   // user pressed "scan" for this exact cover, so that result should win over
@@ -117,8 +113,15 @@ export default function ManualEntryScreen() {
     } catch (cause) {
       // Surfaces the Edge Function's own message (e.g. a Gemini quota/model
       // error) when there is one, rather than a generic failure notice that
-      // looks identical whether the service is down or just misconfigured.
-      setScanMessage(cause instanceof Error && cause.message ? cause.message : t('manual.scanFailed'));
+      // looks identical whether the service is down or just misconfigured —
+      // routed through describeError so a plain connectivity failure still
+      // gets the app's normal friendly wording instead of the raw "Failed to
+      // fetch"/"Network request failed" a browser or RN's fetch throws.
+      // describeError's own fallback (no message at all on the thrown value)
+      // is the generic error copy; manual.scanFailed says the same thing
+      // more usefully here, since it also points at what to do next.
+      const description = describeError(cause, t);
+      setScanMessage(description === t('error.generic') ? t('manual.scanFailed') : description);
     } finally {
       setScanning(false);
     }
@@ -137,10 +140,7 @@ export default function ManualEntryScreen() {
     setPendingBook({
       ...emptyCandidate(),
       title: title.trim(),
-      authors: authors
-        .split(',')
-        .map((author) => author.trim())
-        .filter(Boolean),
+      authors: parseAuthors(authors),
       isbn13: normalizedIsbn.length === 13 ? normalizedIsbn : null,
       isbn10: normalizedIsbn.length === 10 ? normalizedIsbn : null,
       publisher: publisher.trim() || null,
@@ -245,12 +245,12 @@ export default function ManualEntryScreen() {
           autoFocus={!params.title}
         />
 
-        <TextField
+        <AuthorsField
           label={t('manual.authors')}
           hint={t('manual.authorsHint')}
           value={authors}
           onChangeText={setAuthors}
-          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <TextField
@@ -260,14 +260,14 @@ export default function ManualEntryScreen() {
           keyboardType="numbers-and-punctuation"
           autoCapitalize="none"
           autoCorrect={false}
-          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <TextField
           label={t('manual.publisher')}
           value={publisher}
           onChangeText={setPublisher}
-          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <View style={[styles.pair, { gap: theme.spacing.md }]}>
@@ -279,7 +279,7 @@ export default function ManualEntryScreen() {
             inputMode="numeric"
             maxLength={4}
             containerStyle={styles.pairItem}
-            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
           />
           <TextField
             label={t('manual.pages')}
@@ -289,7 +289,7 @@ export default function ManualEntryScreen() {
             inputMode="numeric"
             maxLength={5}
             containerStyle={styles.pairItem}
-            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
           />
         </View>
 

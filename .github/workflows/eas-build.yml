@@ -1,7 +1,7 @@
 name: EAS Build
 
 # Manual, unlike eas-update.yml — building a new native binary is a
-# deliberate, occasional action (a new native dependency, an app.json
+# deliberate, occasional action (a new native dependency, an app.config.js
 # change), not something that should fire on every push. Triggered from the
 # GitHub Actions tab: this repo → Actions → "EAS Build" → Run workflow, pick
 # the branch/profile/platform there. Runs entirely on GitHub's and Expo's

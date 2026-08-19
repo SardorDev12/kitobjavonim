@@ -1,5 +1,5 @@
 import { normalizeIsbn } from '@/lib/format';
-import type { Book, MetadataSource } from '@/types/database';
+import type { MetadataSource } from '@/types/database';
 
 /**
  * Book metadata lookup.
@@ -226,33 +226,6 @@ export function emptyCandidate(): BookCandidate {
     description: null,
     source: 'manual',
     source_id: null,
-  };
-}
-
-/**
- * Lets an already-catalogued book (e.g. a "similar titles" match) be opened
- * in the same edit form a fresh search result gets. RLS restricts updates on
- * `books` to the row's creator (see 0003_rls.sql), so this is never used to
- * edit that row in place — the configure screen uses it to seed the edit
- * sheet, then detaches from the existing book and saves the edits as a new
- * one instead.
- */
-export function bookToCandidate(book: Book): BookCandidate {
-  return {
-    key: book.id,
-    title: book.title,
-    subtitle: book.subtitle,
-    authors: book.authors,
-    isbn13: book.isbn13,
-    isbn10: book.isbn10,
-    publisher: book.publisher,
-    publication_year: book.publication_year,
-    language: book.language,
-    cover_url: book.cover_url,
-    page_count: book.page_count,
-    description: book.description,
-    source: book.source,
-    source_id: book.source_id,
   };
 }
 

@@ -4,10 +4,12 @@ import { useRef, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AddShelfSheet } from '@/components/AddShelfSheet';
 import { BookCover } from '@/components/BookCover';
 import { CategoryPicker } from '@/components/CategoryPicker';
 import { ListingSheet } from '@/components/ListingSheet';
 import {
+  AuthorsField,
   Button,
   Card,
   Chip,
@@ -27,10 +29,10 @@ import {
 import { useAuth } from '@/features/auth/AuthProvider';
 import { hasContactMethod } from '@/lib/contactMethod';
 import { describeError } from '@/lib/errors';
-import { formatAuthors, formatDate, formatPosition, formatPrice, normalizeIsbn } from '@/lib/format';
+import { formatAuthors, formatDate, formatPosition, formatPrice, normalizeIsbn, parseAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
-import { scrollToEndOnKeyboardShow } from '@/lib/keyboard';
+import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
 import { useImageDropZone } from '@/lib/useImageDropZone';
 import { usePositionOptions } from '@/lib/queries/bookshelves';
 import { useBookCategories, useSetBookCategories } from '@/lib/queries/categories';
@@ -67,6 +69,7 @@ export default function BookDetailScreen() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [listingOpen, setListingOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [addShelfOpen, setAddShelfOpen] = useState(false);
 
   // A page loaded directly (a deep link, or a browser refresh — both routine
   // on web) has no in-app navigation history to pop, so router.back() alone
@@ -274,6 +277,8 @@ export default function BookDetailScreen() {
               onChange={(value) => patch({ bookshelf_position_id: value })}
               clearable
               clearLabel={t('book.noLocation')}
+              onAddNew={() => setAddShelfOpen(true)}
+              addNewLabel={t('shelves.addShelf')}
             />
           ) : (
             <Card>
@@ -285,7 +290,7 @@ export default function BookDetailScreen() {
                 variant="secondary"
                 size="sm"
                 style={{ marginTop: theme.spacing.md }}
-                onPress={() => router.push('/bookshelves')}
+                onPress={() => setAddShelfOpen(true)}
               />
             </Card>
           )}
@@ -445,6 +450,12 @@ export default function BookDetailScreen() {
           })
         }
       />
+
+      <AddShelfSheet
+        visible={addShelfOpen}
+        onClose={() => setAddShelfOpen(false)}
+        onCreated={(positionId) => patch({ bookshelf_position_id: positionId })}
+      />
       </Screen>
 
       <Sheet visible={menuOpen} onClose={() => setMenuOpen(false)}>
@@ -531,7 +542,7 @@ function EditBookSheet({
     setCoverUploading(true);
     setCoverError(null);
     try {
-      const url = await pickAndUploadBookCover(user.id);
+      const url = await pickAndUploadBookCover(user.id, t);
       if (url) setCoverUrl(url);
     } catch (cause) {
       setCoverError(describeError(cause, t));
@@ -555,11 +566,7 @@ function EditBookSheet({
     }
   }
 
-  const { ref: coverDropRef, isDragOver: coverDragOver } = useImageDropZone(
-    dropCover,
-    !coverUploading,
-    'book-edit-cover'
-  );
+  const { ref: coverDropRef, isDragOver: coverDragOver } = useImageDropZone(dropCover, !coverUploading);
 
   function save() {
     if (!title.trim()) {
@@ -574,10 +581,7 @@ function EditBookSheet({
     onSave({
       title: title.trim(),
       subtitle: subtitle.trim() || null,
-      authors: authors
-        .split(',')
-        .map((author) => author.trim())
-        .filter(Boolean),
+      authors: parseAuthors(authors),
       isbn13: normalizedIsbn.length === 13 ? normalizedIsbn : entry.isbn13,
       publisher: publisher.trim() || null,
       publication_year:
@@ -653,22 +657,22 @@ function EditBookSheet({
             if (titleError) setTitleError(null);
           }}
           error={titleError}
-          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <TextField
           label={t('book.subtitle')}
           value={subtitle}
           onChangeText={setSubtitle}
-          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
-        <TextField
+        <AuthorsField
           label={t('manual.authors')}
           hint={t('manual.authorsHint')}
           value={authors}
           onChangeText={setAuthors}
-          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <TextField
@@ -678,14 +682,14 @@ function EditBookSheet({
           keyboardType="numbers-and-punctuation"
           autoCapitalize="none"
           autoCorrect={false}
-          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <TextField
           label={t('manual.publisher')}
           value={publisher}
           onChangeText={setPublisher}
-          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <View style={[styles.pair, { gap: theme.spacing.md }]}>
@@ -697,7 +701,7 @@ function EditBookSheet({
             inputMode="numeric"
             maxLength={4}
             containerStyle={styles.pairItem}
-            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
           />
           <TextField
             label={t('manual.pages')}
@@ -707,7 +711,7 @@ function EditBookSheet({
             inputMode="numeric"
             maxLength={5}
             containerStyle={styles.pairItem}
-            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
           />
         </View>
 
@@ -798,6 +802,7 @@ function ReviewSheet({
     </Sheet>
   );
 }
+
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },

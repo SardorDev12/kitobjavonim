@@ -7,7 +7,7 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { hasContactMethod } from '@/lib/contactMethod';
 import { describeError } from '@/lib/errors';
 import { useI18n } from '@/lib/i18n';
-import { scrollToEndOnKeyboardShow } from '@/lib/keyboard';
+import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
 import { useImageDropZone } from '@/lib/useImageDropZone';
 import { useRemoveAvatar, useUploadAvatar } from '@/lib/queries/photos';
 import { useUpdateProfile } from '@/lib/queries/profile';
@@ -40,8 +40,7 @@ export default function EditProfileScreen() {
 
   const { ref: avatarDropRef, isDragOver: avatarDragOver } = useImageDropZone(
     (file) => uploadAvatar.mutate({ file, currentAvatarUrl: profile?.avatar_url ?? null }),
-    !uploadAvatar.isPending,
-    'avatar'
+    !uploadAvatar.isPending
   );
 
   const draftHasContact = hasContactMethod({
@@ -148,7 +147,7 @@ export default function EditProfileScreen() {
           value={bio}
           onChangeText={setBio}
           multiline
-          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <Select
@@ -186,7 +185,7 @@ export default function EditProfileScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             placeholder="username"
-            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
           />
 
           <Toggle
@@ -204,7 +203,7 @@ export default function EditProfileScreen() {
             keyboardType="phone-pad"
             inputMode="tel"
             placeholder="+998 90 123 45 67"
-            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
           />
 
           <Toggle

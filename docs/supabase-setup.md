@@ -134,9 +134,10 @@ launch.
   ```
   Add your production domain the same way when you deploy.
 
-The `homelibrary://` entry is the app's deep-link scheme (`app.json` → `scheme`).
-Without it, sign-in on a real phone completes in the browser and never returns
-to the app.
+The `homelibrary://` entry is the app's deep-link scheme (`app.config.js` →
+`scheme`) — shared by both the `production` and `preview` installs, so this
+redirect URL covers sign-in on either. Without it, sign-in on a real phone
+completes in the browser and never returns to the app.
 
 ### Try it
 
@@ -218,7 +219,7 @@ https://www.kitobjavonim.uz/**
 ```
 
 Add the staging Worker's URL too if you want confirmation emails to work
-there for testing (`https://kitobjavonim-staging.sardorfarhodogli.workers.dev/**`
+there for testing (`https://test.kitobjavonim.uz/**`
 at the time of writing — staging Workers can get redeployed under a new URL,
 so confirm this is still current before pasting it in).
 

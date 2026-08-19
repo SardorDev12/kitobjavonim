@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/AuthProvider';
+import { useI18n } from '@/lib/i18n';
 import {
   pickAndUploadAvatar,
   pickAndUploadListingPhoto,
@@ -40,6 +41,7 @@ export function useOwnListingPhotos(userBookId: string | undefined) {
 export function useAddListingPhoto() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { t } = useI18n();
 
   return useMutation({
     mutationFn: async ({
@@ -56,7 +58,7 @@ export function useAddListingPhoto() {
 
       const path = file
         ? await uploadDroppedListingPhoto(user.id, userBookId, file)
-        : await pickAndUploadListingPhoto(user.id, userBookId);
+        : await pickAndUploadListingPhoto(user.id, userBookId, t);
       // Null means the user backed out of the picker, declined the permission
       // prompt, or dropped a non-image file — none of it worth surfacing as
       // an error.
@@ -103,6 +105,7 @@ export function useDeleteListingPhoto() {
 export function useUploadAvatar() {
   const { user, refreshProfile } = useAuth();
   const queryClient = useQueryClient();
+  const { t } = useI18n();
 
   return useMutation({
     // The current avatar_url is passed in rather than read from cache, same
@@ -111,7 +114,7 @@ export function useUploadAvatar() {
     mutationFn: async ({ file, currentAvatarUrl }: { file?: File; currentAvatarUrl: string | null }) => {
       if (!user) throw new Error('Not signed in');
 
-      const url = file ? await uploadDroppedAvatar(user.id, file) : await pickAndUploadAvatar(user.id);
+      const url = file ? await uploadDroppedAvatar(user.id, file) : await pickAndUploadAvatar(user.id, t);
       if (!url) return null;
 
       const { error } = await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id);

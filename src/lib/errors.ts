@@ -19,11 +19,26 @@ const KNOWN_ERRORS: Record<string, MessageKey> = {
  * The browser/RN fetch implementation's own wording for "the request never
  * reached anywhere" — Chrome says "Failed to fetch", Firefox "NetworkError
  * when attempting to fetch resource", Safari "Load failed", React Native's
- * polyfill "Network request failed". None of these are a token this app
- * raises itself, so they can't join KNOWN_ERRORS' exact-match lookup —
- * matched by substring instead, case-insensitively.
+ * JS-level polyfill "Network request failed". None of these are a token
+ * this app raises itself, so they can't join KNOWN_ERRORS' exact-match
+ * lookup — matched by substring instead, case-insensitively.
+ *
+ * Android's native fetch (OkHttp, under the JS polyfill) doesn't use that
+ * wording at all — it prefixes the underlying Java exception's own message,
+ * e.g. `fetch failed: java.net.UnknownHostException: Unable to resolve
+ * host "…": No address associated with hostname` for no connectivity/DNS,
+ * or ConnectException/SocketTimeoutException/SSLException for the others.
+ * The exact exception class varies by failure; the `fetch failed:` prefix
+ * doesn't, so matching on that instead of enumerating every class name is
+ * both simpler and catches ones not seen yet.
  */
-const NETWORK_FAILURE_PATTERNS = [/failed to fetch/i, /network ?error/i, /network request failed/i, /load failed/i];
+const NETWORK_FAILURE_PATTERNS = [
+  /failed to fetch/i,
+  /network ?error/i,
+  /network request failed/i,
+  /load failed/i,
+  /^fetch failed:/i,
+];
 
 /**
  * postgrest-js only wraps HTTP-level failures in a real `PostgrestError`

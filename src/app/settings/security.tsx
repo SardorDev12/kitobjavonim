@@ -5,7 +5,7 @@ import { Button, Card, Screen, Text, TextField } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { describeError } from '@/lib/errors';
 import { useI18n } from '@/lib/i18n';
-import { scrollToEndOnKeyboardShow } from '@/lib/keyboard';
+import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/theme';
 
@@ -101,7 +101,7 @@ export default function SecurityScreen() {
             inputMode="email"
             textContentType="emailAddress"
             error={fieldErrors.email}
-            onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
           />
         )}
 
@@ -113,7 +113,7 @@ export default function SecurityScreen() {
           autoComplete="new-password"
           textContentType="newPassword"
           error={fieldErrors.password}
-          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <TextField
@@ -126,7 +126,7 @@ export default function SecurityScreen() {
           error={fieldErrors.confirm}
           onSubmitEditing={save}
           returnKeyType="go"
-          onFocus={() => scrollToEndOnKeyboardShow(scrollRef)}
+          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         {!hasRealEmail ? (

@@ -126,8 +126,17 @@ Deno.serve(async (request) => {
   );
 
   if (!geminiResponse.ok) {
+    // Logged here, not returned: Gemini's raw error body is meant for a
+    // developer, not this function's caller — any signed-in app user could
+    // otherwise pull it on demand, and it's undocumented what Google puts in
+    // there (a quota/billing detail, a project identifier, potentially a
+    // reflected fragment of the request). This app's own client already
+    // treats scan-cover failures as a generic "couldn't read the cover"
+    // message (src/app/add/manual.tsx's scanCover), so nothing is lost by
+    // not forwarding the specifics.
     const detail = await geminiResponse.text();
-    return json({ error: `Gemini request failed (${geminiResponse.status}): ${detail}` }, 502);
+    console.error(`[scan-cover] Gemini request failed (${geminiResponse.status}):`, detail);
+    return json({ error: 'Gemini request failed' }, 502);
   }
 
   const geminiData = await geminiResponse.json();

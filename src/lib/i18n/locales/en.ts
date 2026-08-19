@@ -35,6 +35,9 @@ export const en = {
   'common.none': 'None',
   'common.saving': 'Saving…',
   'common.confirmDelete': 'This cannot be undone.',
+  'common.addPhoto': 'Add a photo',
+  'common.takePhoto': 'Take a photo',
+  'common.chooseFromLibrary': 'Choose from library',
 
   'auth.welcomeTitle': 'Your library, in your pocket',
   'auth.welcomeSubtitle':
@@ -211,10 +214,6 @@ export const en = {
   'add.added': 'Added to your library',
   'add.addToLibrary': 'Add to library',
   'add.editDetails': 'Edit details',
-  'add.similarTitles': 'Similar titles already exist',
-  'add.similarTitlesBody': "Someone else may have already catalogued this one — pick it instead of adding a copy that doesn't link up.",
-  'add.useThis': 'Use this',
-  'add.usingExisting': 'Using existing catalogue entry',
 
   'manual.title': 'Book details',
   'manual.bookTitle': 'Title',
@@ -233,7 +232,8 @@ export const en = {
   'manual.scanCover': 'Scan cover for title & author',
   'manual.scanning': 'Reading cover…',
   'manual.scanFilled': 'Filled in from the cover — check it over.',
-  'manual.scanEmpty': "Couldn't make out clear text — fill in manually.",  'manual.scanFailed': 'Scan failed — fill in manually.',
+  'manual.scanEmpty': "Couldn't make out clear text — fill in manually.",
+  'manual.scanFailed': 'Scan failed — fill in manually.',
 
   'manual.titleRequired': 'A title is required',
 
