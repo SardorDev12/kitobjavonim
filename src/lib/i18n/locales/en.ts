@@ -35,6 +35,9 @@ export const en = {
   'common.none': 'None',
   'common.saving': 'Saving…',
   'common.confirmDelete': 'This cannot be undone.',
+  'common.addPhoto': 'Add a photo',
+  'common.takePhoto': 'Take a photo',
+  'common.chooseFromLibrary': 'Choose from library',
 
   'auth.welcomeTitle': 'Your library, in your pocket',
   'auth.welcomeSubtitle':

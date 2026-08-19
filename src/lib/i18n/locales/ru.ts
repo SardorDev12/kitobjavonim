@@ -34,6 +34,9 @@ export const ru: LocaleCatalogue = {
   'common.none': 'Нет',
   'common.saving': 'Сохранение…',
   'common.confirmDelete': 'Это действие нельзя отменить.',
+  'common.addPhoto': 'Добавить фото',
+  'common.takePhoto': 'Сделать фото',
+  'common.chooseFromLibrary': 'Выбрать из галереи',
 
   'auth.welcomeTitle': 'Ваша библиотека в кармане',
   'auth.welcomeSubtitle':

@@ -38,6 +38,9 @@ export const uz: LocaleCatalogue = {
   'common.none': 'Yoʻq',
   'common.saving': 'Saqlanmoqda…',
   'common.confirmDelete': 'Buni qaytarib boʻlmaydi.',
+  'common.addPhoto': 'Rasm qoʻshish',
+  'common.takePhoto': 'Suratga olish',
+  'common.chooseFromLibrary': 'Galereyadan tanlash',
 
   'auth.welcomeTitle': 'Kutubxonangiz choʻntagingizda',
   'auth.welcomeSubtitle':

@@ -542,7 +542,7 @@ function EditBookSheet({
     setCoverUploading(true);
     setCoverError(null);
     try {
-      const url = await pickAndUploadBookCover(user.id);
+      const url = await pickAndUploadBookCover(user.id, t);
       if (url) setCoverUrl(url);
     } catch (cause) {
       setCoverError(describeError(cause, t));

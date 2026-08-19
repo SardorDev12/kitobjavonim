@@ -65,7 +65,7 @@ export default function ManualEntryScreen() {
     setCoverError(null);
     setScanMessage(null);
     try {
-      const url = await pickAndUploadBookCover(user.id);
+      const url = await pickAndUploadBookCover(user.id, t);
       if (url) setCoverUrl(url);
     } catch (cause) {
       setCoverError(describeError(cause, t));

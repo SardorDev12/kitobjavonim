@@ -1,7 +1,9 @@
 import { decode } from 'base64-arraybuffer';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
+import { Alert, Platform } from 'react-native';
 
+import type { MessageKey } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 
 /**
@@ -28,22 +30,44 @@ export type PickedImage = {
   extension: string;
 };
 
-async function pickAndCompress(maxEdge: number): Promise<PickedImage | null> {
-  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!permission.granted) return null;
+export type ImageSource = 'camera' | 'library';
 
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ['images'],
-    allowsEditing: maxEdge === AVATAR_EDGE,
-    aspect: maxEdge === AVATAR_EDGE ? [1, 1] : undefined,
-    quality: 1,
+/**
+ * Asks whether a photo should come from the camera or the library, native
+ * only — resolves straight to 'library' on web with no prompt, same
+ * reasoning as the barcode scanner staying native-only: there is no camera
+ * capture on web worth building a picker around.
+ *
+ * Resolves `null` if the user backs out (the "Cancel" button, or dismissing
+ * the dialog itself), which every caller treats the same as declining the
+ * permission prompt or cancelling the picker itself further down the flow.
+ */
+function chooseImageSource(t: (key: MessageKey) => string): Promise<ImageSource | null> {
+  if (Platform.OS === 'web') return Promise.resolve('library');
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const resolveOnce = (value: ImageSource | null) => {
+      if (settled) return;
+      settled = true;
+      resolve(value);
+    };
+
+    Alert.alert(
+      t('common.addPhoto'),
+      undefined,
+      [
+        { text: t('common.takePhoto'), onPress: () => resolveOnce('camera') },
+        { text: t('common.chooseFromLibrary'), onPress: () => resolveOnce('library') },
+        { text: t('common.cancel'), style: 'cancel', onPress: () => resolveOnce(null) },
+      ],
+      { cancelable: true, onDismiss: () => resolveOnce(null) }
+    );
   });
+}
 
-  if (result.canceled || !result.assets[0]) return null;
-
-  const asset = result.assets[0];
-
-  // Only downscale — enlarging a small photo just wastes bytes.
+/** Only downscale — enlarging a small photo just wastes bytes. */
+async function compressAsset(asset: ImagePicker.ImagePickerAsset, maxEdge: number): Promise<PickedImage | null> {
   const longestEdge = Math.max(asset.width ?? 0, asset.height ?? 0);
   const actions: ImageManipulator.Action[] =
     longestEdge > maxEdge
@@ -59,6 +83,30 @@ async function pickAndCompress(maxEdge: number): Promise<PickedImage | null> {
   if (!manipulated.base64) return null;
 
   return { base64: manipulated.base64, contentType: 'image/jpeg', extension: 'jpg' };
+}
+
+async function pickAndCompress(maxEdge: number, source: ImageSource): Promise<PickedImage | null> {
+  const pickerOptions = {
+    allowsEditing: maxEdge === AVATAR_EDGE,
+    aspect: (maxEdge === AVATAR_EDGE ? [1, 1] : undefined) as [number, number] | undefined,
+    quality: 1,
+  };
+
+  if (source === 'camera') {
+    const permission = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permission.granted) return null;
+
+    const result = await ImagePicker.launchCameraAsync(pickerOptions);
+    if (result.canceled || !result.assets[0]) return null;
+    return compressAsset(result.assets[0], maxEdge);
+  }
+
+  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  if (!permission.granted) return null;
+
+  const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], ...pickerOptions });
+  if (result.canceled || !result.assets[0]) return null;
+  return compressAsset(result.assets[0], maxEdge);
 }
 
 async function upload(bucket: string, path: string, image: PickedImage): Promise<string> {
@@ -124,9 +172,13 @@ async function fileToPickedImage(file: File, maxEdge: number): Promise<PickedIma
  */
 export async function pickAndUploadListingPhoto(
   userId: string,
-  userBookId: string
+  userBookId: string,
+  t: (key: MessageKey) => string
 ): Promise<string | null> {
-  const image = await pickAndCompress(MAX_EDGE);
+  const source = await chooseImageSource(t);
+  if (!source) return null;
+
+  const image = await pickAndCompress(MAX_EDGE, source);
   if (!image) return null;
 
   const path = `${userId}/${userBookId}/${Date.now()}.${image.extension}`;
@@ -155,8 +207,11 @@ export async function uploadDroppedListingPhoto(
  * for no real gain. Uncropped, unlike the avatar picker: covers are not square,
  * and forcing one would distort every photographed cover.
  */
-export async function pickAndUploadBookCover(userId: string): Promise<string | null> {
-  const image = await pickAndCompress(MAX_EDGE);
+export async function pickAndUploadBookCover(userId: string, t: (key: MessageKey) => string): Promise<string | null> {
+  const source = await chooseImageSource(t);
+  if (!source) return null;
+
+  const image = await pickAndCompress(MAX_EDGE, source);
   if (!image) return null;
 
   const path = `${userId}/covers/${Date.now()}.${image.extension}`;
@@ -176,8 +231,11 @@ export async function uploadDroppedBookCover(userId: string, file: File): Promis
   return publicUrlFor('book-photos', path);
 }
 
-export async function pickAndUploadAvatar(userId: string): Promise<string | null> {
-  const image = await pickAndCompress(AVATAR_EDGE);
+export async function pickAndUploadAvatar(userId: string, t: (key: MessageKey) => string): Promise<string | null> {
+  const source = await chooseImageSource(t);
+  if (!source) return null;
+
+  const image = await pickAndCompress(AVATAR_EDGE, source);
   if (!image) return null;
 
   const path = `${userId}/avatar-${Date.now()}.${image.extension}`;
