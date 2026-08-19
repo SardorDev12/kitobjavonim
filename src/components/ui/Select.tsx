@@ -27,6 +27,15 @@ export type SelectProps<T extends string> = {
   disabled?: boolean;
   hint?: string;
   error?: string | null;
+  /**
+   * Offers a way to create a new option from inside the picker itself.
+   * The sheet the options live in fully covers the page behind it, so a
+   * trigger for this placed outside the sheet (e.g. next to the field's own
+   * label) is unreachable for as long as the picker is open — this is the
+   * only place a "create new" action is actually reachable mid-pick.
+   */
+  onAddNew?: () => void;
+  addNewLabel?: string;
 };
 
 /**
@@ -47,6 +56,8 @@ export function Select<T extends string>({
   disabled = false,
   hint,
   error,
+  onAddNew,
+  addNewLabel,
 }: SelectProps<T>) {
   const theme = useTheme();
   const [open, setOpen] = useState(false);
@@ -99,6 +110,29 @@ export function Select<T extends string>({
       ) : null}
 
       <Sheet visible={open} onClose={() => setOpen(false)} title={label ?? placeholder}>
+        {onAddNew ? (
+          <>
+            <Pressable
+              onPress={() => {
+                setOpen(false);
+                onAddNew();
+              }}
+              accessibilityRole="button"
+              style={({ pressed }) => [
+                styles.option,
+                { paddingVertical: theme.spacing.md },
+                pressed && { backgroundColor: theme.colors.surfaceSunken },
+              ]}
+            >
+              <Ionicons name="add-circle-outline" size={20} color={theme.colors.primary} />
+              <Text variant="bodyStrong" color="primary" style={styles.optionText}>
+                {addNewLabel}
+              </Text>
+            </Pressable>
+            <Divider />
+          </>
+        ) : null}
+
         {clearable ? (
           <>
             <Option

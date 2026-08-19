@@ -264,18 +264,9 @@ export default function BookDetailScreen() {
 
         {/* Location --------------------------------------------------------- */}
         <View style={{ gap: theme.spacing.sm }}>
-          <View style={styles.locationHeader}>
-            <Text variant="label" color="textMuted" style={styles.flex}>
-              {t('book.location')}
-            </Text>
-            {positions.length > 0 ? (
-              <Pressable onPress={() => setAddShelfOpen(true)} hitSlop={8}>
-                <Text variant="label" color="primary">
-                  {t('shelves.addShelf')}
-                </Text>
-              </Pressable>
-            ) : null}
-          </View>
+          <Text variant="label" color="textMuted">
+            {t('book.location')}
+          </Text>
 
           {positions.length > 0 ? (
             <Select
@@ -285,6 +276,8 @@ export default function BookDetailScreen() {
               onChange={(value) => patch({ bookshelf_position_id: value })}
               clearable
               clearLabel={t('book.noLocation')}
+              onAddNew={() => setAddShelfOpen(true)}
+              addNewLabel={t('shelves.addShelf')}
             />
           ) : (
             <Card>
@@ -925,8 +918,6 @@ const styles = StyleSheet.create({
   hero: { flexDirection: 'row', alignItems: 'flex-start', paddingTop: 8 },
   heroText: { flex: 1, gap: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  flex: { flex: 1 },
-  locationHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   locationRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
   metaValue: { flex: 1, textAlign: 'right' },
