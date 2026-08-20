@@ -395,4 +395,9 @@ export const ru: LocaleCatalogue = {
   'plan.activeListings': 'Активные объявления',
   'plan.contactsThisMonth': 'Контакты с владельцами в этом месяце',
   'plan.unlimited': 'Без ограничений',
+
+  'update.available': 'Доступно обновление',
+  'update.availableBody': 'Доступна новая версия Kitobjavonim с исправлениями и улучшениями.',
+  'update.updateNow': 'Обновить сейчас',
+  'update.notNow': 'Не сейчас',
 };

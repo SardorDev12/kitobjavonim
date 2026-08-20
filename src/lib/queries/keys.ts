@@ -32,4 +32,7 @@ export const queryKeys = {
   household: {
     mine: (userId: string) => ['household', 'mine', userId] as const,
   },
+  appConfig: {
+    latestAndroidVersion: ['appConfig', 'latestAndroidVersion'] as const,
+  },
 } as const;

@@ -396,4 +396,9 @@ export const uz: LocaleCatalogue = {
   'plan.activeListings': 'Faol eʼlonlar',
   'plan.contactsThisMonth': 'Shu oydagi egasi bilan aloqalar',
   'plan.unlimited': 'Cheksiz',
+
+  'update.available': 'Yangilanish mavjud',
+  'update.availableBody': 'Kitobjavonimning tuzatishlar va yaxshilanishlar bilan yangi versiyasi mavjud.',
+  'update.updateNow': 'Hozir yangilash',
+  'update.notNow': 'Hozir emas',
 };

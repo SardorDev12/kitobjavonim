@@ -389,6 +389,11 @@ export const en = {
   'plan.activeListings': 'Active listings',
   'plan.contactsThisMonth': 'Owner contacts this month',
   'plan.unlimited': 'Unlimited',
+
+  'update.available': 'Update available',
+  'update.availableBody': 'A newer version of Kitobjavonim is available with fixes and improvements.',
+  'update.updateNow': 'Update now',
+  'update.notNow': 'Not now',
 } as const;
 
 export type MessageKey = keyof typeof en;

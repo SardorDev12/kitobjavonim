@@ -18,6 +18,7 @@ import stagingFaviconAsset from '@/assets/images/favicon-preview.png';
 import { ErrorBoundary, installGlobalErrorReporting } from '@/components/ErrorBoundary';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { EmptyState, Screen } from '@/components/ui';
+import { UpdateAvailableModal } from '@/components/UpdateAvailableModal';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { I18nProvider, useI18n } from '@/lib/i18n';
 import { ThemeProvider, useTheme } from '@/theme';
@@ -276,6 +277,7 @@ function RootNavigator() {
     <>
       <StatusBar style={theme.scheme === 'dark' ? 'light' : 'dark'} />
       <OfflineBanner />
+      <UpdateAvailableModal />
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: theme.colors.background },
