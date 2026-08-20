@@ -41,6 +41,12 @@ export type ImageSource = 'camera' | 'library';
  * Resolves `null` if the user backs out (the "Cancel" button, or dismissing
  * the dialog itself), which every caller treats the same as declining the
  * permission prompt or cancelling the picker itself further down the flow.
+ *
+ * Briefly disabled while a production crash was investigated (turned out to
+ * be unrelated — expo-navigation-bar's dynamic import in _layout.tsx,
+ * confirmed via Crashlytics; see that file's comment). expo-image-picker's
+ * camera launch is part of the same already-linked package the library
+ * picker uses, so it carries none of that risk.
  */
 function chooseImageSource(t: (key: MessageKey) => string): Promise<ImageSource | null> {
   if (Platform.OS === 'web') return Promise.resolve('library');

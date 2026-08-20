@@ -148,14 +148,27 @@ function RootNavigator() {
   // installed binary won't have it linked until the next native build goes
   // out. A static import evaluates unconditionally the moment this file
   // loads and would crash every install still on the old binary the
-  // instant this update reaches them; a dynamic import's module evaluation
-  // failure rejects the returned promise instead, so the catch below just
-  // no-ops there and the icons stay whatever they already were.
+  // instant this update reaches them.
+  //
+  // A dynamic import alone isn't enough, despite looking async: Metro's
+  // module loader (guardedLoadModule, underneath its asyncRequire) throws
+  // synchronously the moment a genuinely-missing native module is required,
+  // before the returned value is even a pending promise a `.then().catch()`
+  // chain could attach to — confirmed in production via Crashlytics
+  // (`Cannot find native module 'ExpoNavigationBar'`, uncaught, on old
+  // installs mid-rollout) even with that chain in place. Only a real
+  // try/await/catch around the import call itself absorbs both the
+  // synchronous throw and an ordinary async rejection the same way.
   useEffect(() => {
     if (Platform.OS !== 'android') return;
-    import('expo-navigation-bar')
-      .then((NavigationBar) => NavigationBar.setStyle(theme.scheme === 'dark' ? 'light' : 'dark'))
-      .catch(() => {});
+    (async () => {
+      try {
+        const NavigationBar = await import('expo-navigation-bar');
+        NavigationBar.setStyle(theme.scheme === 'dark' ? 'light' : 'dark');
+      } catch {
+        // Not linked into this binary yet — icons stay whatever they were.
+      }
+    })();
   }, [theme.scheme]);
 
   // Expo Router's web integration syncs document.title to whatever the
