@@ -100,7 +100,7 @@ export default function RootLayout() {
                       // keeping on disk for offline reading.
                       const root = query.queryKey[0];
                       const isOfflineWorthy =
-                        root === 'library' || root === 'bookshelves' || root === 'reference';
+                        root === 'library' || root === 'bookshelves' || root === 'wishlist' || root === 'reference';
 
                       // The status check is not optional. React Query will happily
                       // dehydrate a query that is still pending, and its in-flight
@@ -303,6 +303,8 @@ function RootNavigator() {
         <Stack.Screen name="add/manual" options={{ title: '' }} />
         <Stack.Screen name="add/configure" options={{ title: '' }} />
         <Stack.Screen name="bookshelves/index" options={{ title: '' }} />
+        <Stack.Screen name="wishlist/index" options={{ title: '' }} />
+        <Stack.Screen name="wishlist/add" options={{ title: '' }} />
         <Stack.Screen name="settings/profile" options={{ title: '' }} />
         <Stack.Screen name="settings/security" options={{ title: '' }} />
         <Stack.Screen name="settings/household" options={{ title: '' }} />

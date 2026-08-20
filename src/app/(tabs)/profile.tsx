@@ -103,6 +103,12 @@ export default function ProfileScreen() {
           />
           <Divider inset={theme.spacing.lg} />
           <ListRow
+            icon="heart-outline"
+            label={t('wishlist.title')}
+            onPress={() => router.push('/wishlist')}
+          />
+          <Divider inset={theme.spacing.lg} />
+          <ListRow
             icon="people-outline"
             label={t('household.title')}
             onPress={() => router.push('/settings/household')}

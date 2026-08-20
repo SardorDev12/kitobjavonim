@@ -261,6 +261,18 @@ export const en = {
   'shelves.positionFormat': 'Shelf {{shelf}} → Row {{row}}',
   'shelves.fullPositionFormat': '{{bookshelf}} → Shelf {{shelf}} → Row {{row}}',
 
+  'wishlist.title': 'Wishlist',
+  'wishlist.subtitle': 'Books you want, but don’t have yet.',
+  'wishlist.empty': 'Your wishlist is empty',
+  'wishlist.emptyBody': 'Add a book you’d like to get your hands on.',
+  'wishlist.add': 'Add to wishlist',
+  'wishlist.addSubtitle': 'Search for a book you want to acquire.',
+  'wishlist.gotIt': 'I got it',
+  'wishlist.removeConfirm': 'Remove "{{title}}" from your wishlist?',
+  'wishlist.alreadyOwned': 'Already in your library',
+  'wishlist.alreadyListed': 'Already on your wishlist',
+  'wishlist.addToWishlist': 'Add to wishlist instead',
+
   'household.title': 'Family',
   'household.subtitle': 'Share your shelves with the people you live with.',
   'household.create': 'Create a household',

@@ -35,4 +35,8 @@ export const queryKeys = {
   appConfig: {
     latestAndroidVersion: ['appConfig', 'latestAndroidVersion'] as const,
   },
+  wishlist: {
+    all: ['wishlist'] as const,
+    list: (userId: string) => ['wishlist', 'list', userId] as const,
+  },
 } as const;

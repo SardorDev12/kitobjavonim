@@ -266,6 +266,18 @@ export const uz: LocaleCatalogue = {
   'shelves.positionFormat': 'Tokcha {{shelf}} → Qator {{row}}',
   'shelves.fullPositionFormat': '{{bookshelf}} → Tokcha {{shelf}} → Qator {{row}}',
 
+  'wishlist.title': 'Istaklar roʻyxati',
+  'wishlist.subtitle': 'Xohlagan, lekin hali sizda yoʻq kitoblar.',
+  'wishlist.empty': 'Istaklar roʻyxati boʻsh',
+  'wishlist.emptyBody': 'Qoʻlga kiritmoqchi boʻlgan kitobni qoʻshing.',
+  'wishlist.add': 'Istaklar roʻyxatiga qoʻshish',
+  'wishlist.addSubtitle': 'Sotib olmoqchi boʻlgan kitobni qidiring.',
+  'wishlist.gotIt': 'Bu kitob mendan bor',
+  'wishlist.removeConfirm': '"{{title}}" istaklar roʻyxatidan olib tashlansinmi?',
+  'wishlist.alreadyOwned': 'Allaqachon kutubxonangizda bor',
+  'wishlist.alreadyListed': 'Allaqachon istaklar roʻyxatida bor',
+  'wishlist.addToWishlist': 'Buning oʻrniga istaklar roʻyxatiga qoʻshish',
+
   'household.title': 'Oila',
   'household.subtitle': 'Birga yashaydigan odamlar bilan javonlaringizni baham koʻring.',
   'household.create': 'Oila yaratish',

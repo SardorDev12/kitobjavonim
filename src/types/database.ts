@@ -193,6 +193,34 @@ export type LibraryEntry = {
   added_by_avatar_url: string | null;
 };
 
+export type WishlistItem = {
+  id: string;
+  user_id: string;
+  household_id: string | null;
+  title: string;
+  subtitle: string | null;
+  authors: string[];
+  isbn13: string | null;
+  isbn10: string | null;
+  publisher: string | null;
+  publication_year: number | null;
+  language: string | null;
+  cover_url: string | null;
+  page_count: number | null;
+  description: string | null;
+  source: MetadataSource;
+  source_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/** A row of the `wishlist_entries` view — a wishlist item with who-added-it attribution. */
+export type WishlistEntry = WishlistItem & {
+  /** Who added it — null for the signed-in user's own entries. */
+  added_by_name: string | null;
+  added_by_avatar_url: string | null;
+};
+
 export type HouseholdRole = 'owner' | 'member';
 
 export type Household = {

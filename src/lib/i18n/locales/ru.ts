@@ -264,6 +264,18 @@ export const ru: LocaleCatalogue = {
   'shelves.positionFormat': 'Полка {{shelf}} → Ряд {{row}}',
   'shelves.fullPositionFormat': '{{bookshelf}} → Полка {{shelf}} → Ряд {{row}}',
 
+  'wishlist.title': 'Список желаний',
+  'wishlist.subtitle': 'Книги, которые вы хотите, но пока у вас нет.',
+  'wishlist.empty': 'Список желаний пуст',
+  'wishlist.emptyBody': 'Добавьте книгу, которую хотели бы получить.',
+  'wishlist.add': 'Добавить в список желаний',
+  'wishlist.addSubtitle': 'Найдите книгу, которую хотите приобрести.',
+  'wishlist.gotIt': 'Уже есть у меня',
+  'wishlist.removeConfirm': 'Удалить «{{title}}» из списка желаний?',
+  'wishlist.alreadyOwned': 'Уже в вашей библиотеке',
+  'wishlist.alreadyListed': 'Уже в списке желаний',
+  'wishlist.addToWishlist': 'Добавить в список желаний',
+
   'household.title': 'Семья',
   'household.subtitle': 'Делитесь полками с теми, с кем живёте.',
   'household.create': 'Создать семью',

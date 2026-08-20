@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -20,6 +20,7 @@ import { usePositionOptions } from '@/lib/queries/bookshelves';
 import { useSetBookCategories } from '@/lib/queries/categories';
 import { useHousehold } from '@/lib/queries/household';
 import { useAddBook, useLibrary } from '@/lib/queries/library';
+import { useAddWishlistItem, useDeleteWishlistItem } from '@/lib/queries/wishlist';
 import { useLayout, useTheme } from '@/theme';
 import { BOOK_CONDITIONS, READING_STATUSES, type BookCondition, type ReadingStatus } from '@/types/database';
 
@@ -43,6 +44,7 @@ export default function ConfigureScreen() {
   const theme = useTheme();
   const { t } = useI18n();
   const router = useRouter();
+  const { fromWishlistId } = useLocalSearchParams<{ fromWishlistId?: string }>();
 
   const candidate = usePendingBook();
   const positions = usePositionOptions();
@@ -50,6 +52,8 @@ export default function ConfigureScreen() {
   const { data: household } = useHousehold();
   const addBook = useAddBook();
   const setCategories = useSetBookCategories();
+  const deleteWishlistItem = useDeleteWishlistItem();
+  const addToWishlist = useAddWishlistItem();
 
   const [positionId, setPositionId] = useState<string | null>(null);
   const [addShelfOpen, setAddShelfOpen] = useState(false);
@@ -105,7 +109,32 @@ export default function ConfigureScreen() {
         }
       }
 
+      // Same tolerance as categories above: the book is saved either way,
+      // so a failure clearing the source wishlist row must not undo that —
+      // it's recoverable from the wishlist screen itself.
+      if (fromWishlistId) {
+        try {
+          await deleteWishlistItem.mutateAsync(fromWishlistId);
+        } catch {
+          // Recoverable from the wishlist screen itself.
+        }
+      }
+
       router.replace(`/book/${userBookId}`);
+    } catch (cause) {
+      setError(describeError(cause, t));
+    }
+  }
+
+  async function addToWishlistInstead() {
+    if (!candidate) return;
+    setError(null);
+    try {
+      await addToWishlist.mutateAsync({
+        candidate,
+        householdId: household && shareBook ? household.household.id : null,
+      });
+      router.back();
     } catch (cause) {
       setError(describeError(cause, t));
     }
@@ -117,12 +146,23 @@ export default function ConfigureScreen() {
     <Screen
       scroll
       footer={
-        <Button
-          title={showDuplicateGate ? t('add.addAnyway') : t('add.addToLibrary')}
-          fullWidth
-          loading={addBook.isPending}
-          onPress={showDuplicateGate ? () => setDuplicateAcknowledged(true) : save}
-        />
+        <View style={{ gap: theme.spacing.sm }}>
+          <Button
+            title={showDuplicateGate ? t('add.addAnyway') : t('add.addToLibrary')}
+            fullWidth
+            loading={addBook.isPending}
+            onPress={showDuplicateGate ? () => setDuplicateAcknowledged(true) : save}
+          />
+          {!fromWishlistId ? (
+            <Button
+              title={t('wishlist.addToWishlist')}
+              variant="ghost"
+              fullWidth
+              loading={addToWishlist.isPending}
+              onPress={addToWishlistInstead}
+            />
+          ) : null}
+        </View>
       }
     >
       <View style={{ gap: theme.spacing.xl, paddingTop: theme.spacing.md }}>
