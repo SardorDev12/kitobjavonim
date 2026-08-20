@@ -305,6 +305,7 @@ function RootNavigator() {
         <Stack.Screen name="bookshelves/index" options={{ title: '' }} />
         <Stack.Screen name="settings/profile" options={{ title: '' }} />
         <Stack.Screen name="settings/security" options={{ title: '' }} />
+        <Stack.Screen name="settings/household" options={{ title: '' }} />
       </Stack>
     </>
   );
