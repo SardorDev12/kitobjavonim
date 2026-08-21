@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import type { BookCandidate } from '@/lib/books/metadata';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import type { WishlistEntry } from '@/types/database';
@@ -8,10 +7,10 @@ import type { WishlistEntry } from '@/types/database';
 import { queryKeys } from './keys';
 
 /**
- * Books the signed-in user (and their household, if any) wants to acquire
- * but doesn't own yet — deliberately separate from the library, which is
- * copies actually owned. See 0019_wishlist.sql for why wishlist rows carry
- * their own book fields rather than pointing at the shared `books` catalog.
+ * Books the signed-in user wants but doesn't own yet — just a title and
+ * author, deliberately separate from the library, which is copies actually
+ * owned. See 0019_wishlist.sql for why the row supports far more columns
+ * than the app currently fills in (title/authors only, for now).
  */
 export function useWishlist() {
   const { user } = useAuth();
@@ -35,34 +34,12 @@ export function useAddWishlistItem() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({
-      candidate,
-      householdId,
-    }: {
-      candidate: BookCandidate;
-      householdId?: string | null;
-    }) => {
+    mutationFn: async ({ title, authors }: { title: string; authors: string[] }) => {
       if (!user) throw new Error('Not signed in');
 
       const { data, error } = await supabase
         .from('wishlist_items')
-        .insert({
-          user_id: user.id,
-          household_id: householdId ?? null,
-          title: candidate.title.trim(),
-          subtitle: candidate.subtitle,
-          authors: candidate.authors,
-          isbn13: candidate.isbn13,
-          isbn10: candidate.isbn10,
-          publisher: candidate.publisher,
-          publication_year: candidate.publication_year,
-          language: candidate.language,
-          cover_url: candidate.cover_url,
-          page_count: candidate.page_count,
-          description: candidate.description,
-          source: candidate.source,
-          source_id: candidate.source_id,
-        })
+        .insert({ user_id: user.id, title: title.trim(), authors })
         .select('id')
         .single();
       if (error) throw error;
@@ -95,4 +72,35 @@ export function useDeleteWishlistItem() {
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.wishlist.all }),
   });
+}
+
+function normalize(text: string): string {
+  return text.trim().toLowerCase();
+}
+
+function authorsKey(authors: string[]): string {
+  return authors
+    .map(normalize)
+    .filter(Boolean)
+    .sort()
+    .join('|');
+}
+
+/** Title and authors both match, case-insensitively — the bar for "this is the same book". */
+export function isSameWishlistBook(item: WishlistEntry, title: string, authors: string[]): boolean {
+  return normalize(item.title) === normalize(title) && authorsKey(item.authors) === authorsKey(authors);
+}
+
+/**
+ * The wishlist entry a newly-picked book matches, if any — used to suggest
+ * clearing it (add.tsx, add/manual.tsx) and, unconditionally, to actually
+ * clear it once the book is saved (add/configure.tsx), regardless of
+ * whether the suggestion was acted on.
+ */
+export function findWishlistMatch(
+  wishlist: WishlistEntry[] | undefined,
+  title: string,
+  authors: string[]
+): WishlistEntry | null {
+  return wishlist?.find((item) => isSameWishlistBook(item, title, authors)) ?? null;
 }

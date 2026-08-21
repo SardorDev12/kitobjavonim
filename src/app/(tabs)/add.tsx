@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/BookCover';
@@ -12,6 +12,7 @@ import { searchBooks, type BookCandidate } from '@/lib/books/metadata';
 import { formatAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { queryKeys } from '@/lib/queries/keys';
+import { findWishlistMatch, useWishlist } from '@/lib/queries/wishlist';
 import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 import { useTheme } from '@/theme';
 
@@ -54,9 +55,32 @@ export default function AddScreen() {
 
   const results = useMemo(() => data ?? [], [data]);
 
-  function choose(candidate: BookCandidate) {
+  const { data: wishlist } = useWishlist();
+
+  function proceed(candidate: BookCandidate) {
     setPendingBook(candidate);
     router.push('/add/configure');
+  }
+
+  // Even when the user skips or dismisses this, add/configure.tsx clears the
+  // matching wishlist entry unconditionally once the book is actually saved
+  // — this prompt is just an earlier, optional heads-up.
+  function choose(candidate: BookCandidate) {
+    const match = findWishlistMatch(wishlist, candidate.title, candidate.authors);
+    if (!match) {
+      proceed(candidate);
+      return;
+    }
+
+    const message = t('wishlist.matchBody', { title: match.title });
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm(message)) proceed(candidate);
+      return;
+    }
+    Alert.alert(t('wishlist.matchTitle'), message, [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('wishlist.matchContinue'), onPress: () => proceed(candidate) },
+    ]);
   }
 
   function enterManually() {

@@ -2,10 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 
-import { BookCover } from '@/components/BookCover';
 import { Button, Card, EmptyState, LoadingState, Screen, Text } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { setPendingBook } from '@/features/add/pendingBook';
 import { formatAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { useHousehold } from '@/lib/queries/household';
@@ -64,7 +62,6 @@ export default function WishlistScreen() {
 function WishlistRow({ entry }: { entry: WishlistEntry }) {
   const theme = useTheme();
   const { t } = useI18n();
-  const router = useRouter();
   const { user } = useAuth();
 
   const { data: household } = useHousehold();
@@ -78,8 +75,6 @@ function WishlistRow({ entry }: { entry: WishlistEntry }) {
   const canToggleShare = Boolean(household) && entry.user_id === user?.id;
   const addedByOther = entry.user_id !== user?.id ? entry.added_by_name : null;
 
-  const meta = [entry.publisher, entry.publication_year?.toString()].filter(Boolean).join(' · ');
-
   function confirmRemove() {
     const message = t('wishlist.removeConfirm', { title: entry.title });
     if (Platform.OS === 'web') {
@@ -92,31 +87,9 @@ function WishlistRow({ entry }: { entry: WishlistEntry }) {
     ]);
   }
 
-  function gotIt() {
-    setPendingBook({
-      key: `wishlist-${entry.id}`,
-      title: entry.title,
-      subtitle: entry.subtitle,
-      authors: entry.authors,
-      isbn13: entry.isbn13,
-      isbn10: entry.isbn10,
-      publisher: entry.publisher,
-      publication_year: entry.publication_year,
-      language: entry.language,
-      cover_url: entry.cover_url,
-      page_count: entry.page_count,
-      description: entry.description,
-      source: entry.source,
-      source_id: entry.source_id,
-    });
-    router.push({ pathname: '/add/configure', params: { fromWishlistId: entry.id } });
-  }
-
   return (
     <Card padded={false}>
       <View style={[styles.row, { padding: theme.spacing.lg, gap: theme.spacing.md }]}>
-        <BookCover uri={entry.cover_url} title={entry.title} width={56} radius={theme.radius.sm} />
-
         <View style={styles.body}>
           <Text variant="bodyStrong" numberOfLines={2}>
             {entry.title}
@@ -124,11 +97,6 @@ function WishlistRow({ entry }: { entry: WishlistEntry }) {
           {entry.authors.length > 0 ? (
             <Text variant="caption" color="textMuted" numberOfLines={1}>
               {formatAuthors(entry.authors)}
-            </Text>
-          ) : null}
-          {meta ? (
-            <Text variant="caption" color="textSubtle" numberOfLines={1}>
-              {meta}
             </Text>
           ) : null}
           {addedByOther ? (
@@ -163,9 +131,6 @@ function WishlistRow({ entry }: { entry: WishlistEntry }) {
               />
             </Pressable>
           ) : null}
-          <Pressable onPress={gotIt} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('wishlist.gotIt')}>
-            <Ionicons name="checkmark-circle-outline" size={20} color={theme.colors.primary} />
-          </Pressable>
           <Pressable
             onPress={confirmRemove}
             hitSlop={10}

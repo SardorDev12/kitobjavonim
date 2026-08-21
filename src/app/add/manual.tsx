@@ -1,19 +1,20 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { BookCover } from '@/components/BookCover';
 import { AuthorsField, Button, Screen, Select, Text, TextField } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { setPendingBook } from '@/features/add/pendingBook';
-import { emptyCandidate } from '@/lib/books/metadata';
+import { emptyCandidate, type BookCandidate } from '@/lib/books/metadata';
 import { describeError } from '@/lib/errors';
 import { normalizeIsbn, parseAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
 import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
 import { scanCoverText } from '@/lib/ocr';
+import { findWishlistMatch, useWishlist } from '@/lib/queries/wishlist';
 import { useImageDropZone } from '@/lib/useImageDropZone';
 import { useLayout, useTheme } from '@/theme';
 
@@ -42,6 +43,7 @@ export default function ManualEntryScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ isbn?: string; title?: string }>();
   const { user } = useAuth();
+  const { data: wishlist } = useWishlist();
 
   const [title, setTitle] = useState(params.title ?? '');
   const [authors, setAuthors] = useState('');
@@ -127,6 +129,11 @@ export default function ManualEntryScreen() {
     }
   }
 
+  function proceed(candidate: BookCandidate) {
+    setPendingBook(candidate);
+    router.push('/add/configure');
+  }
+
   function next() {
     if (!title.trim()) {
       setTitleError(t('manual.titleRequired'));
@@ -137,7 +144,7 @@ export default function ManualEntryScreen() {
     const parsedYear = Number(year);
     const parsedPages = Number(pages);
 
-    setPendingBook({
+    const candidate: BookCandidate = {
       ...emptyCandidate(),
       title: title.trim(),
       authors: parseAuthors(authors),
@@ -149,9 +156,26 @@ export default function ManualEntryScreen() {
       language,
       page_count: Number.isFinite(parsedPages) && parsedPages > 0 ? parsedPages : null,
       cover_url: coverUrl,
-    });
+    };
 
-    router.push('/add/configure');
+    // Even when the user skips or dismisses this, add/configure.tsx clears
+    // the matching wishlist entry unconditionally once the book is actually
+    // saved — this prompt is just an earlier, optional heads-up.
+    const match = findWishlistMatch(wishlist, candidate.title, candidate.authors);
+    if (!match) {
+      proceed(candidate);
+      return;
+    }
+
+    const message = t('wishlist.matchBody', { title: match.title });
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm(message)) proceed(candidate);
+      return;
+    }
+    Alert.alert(t('wishlist.matchTitle'), message, [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('wishlist.matchContinue'), onPress: () => proceed(candidate) },
+    ]);
   }
 
   return (

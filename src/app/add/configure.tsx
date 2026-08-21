@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -20,7 +20,7 @@ import { usePositionOptions } from '@/lib/queries/bookshelves';
 import { useSetBookCategories } from '@/lib/queries/categories';
 import { useHousehold } from '@/lib/queries/household';
 import { useAddBook, useLibrary } from '@/lib/queries/library';
-import { useAddWishlistItem, useDeleteWishlistItem } from '@/lib/queries/wishlist';
+import { isSameWishlistBook, useAddWishlistItem, useDeleteWishlistItem, useWishlist } from '@/lib/queries/wishlist';
 import { useLayout, useTheme } from '@/theme';
 import { BOOK_CONDITIONS, READING_STATUSES, type BookCondition, type ReadingStatus } from '@/types/database';
 
@@ -44,12 +44,12 @@ export default function ConfigureScreen() {
   const theme = useTheme();
   const { t } = useI18n();
   const router = useRouter();
-  const { fromWishlistId } = useLocalSearchParams<{ fromWishlistId?: string }>();
 
   const candidate = usePendingBook();
   const positions = usePositionOptions();
   const { data: library } = useLibrary();
   const { data: household } = useHousehold();
+  const { data: wishlist } = useWishlist();
   const addBook = useAddBook();
   const setCategories = useSetBookCategories();
   const deleteWishlistItem = useDeleteWishlistItem();
@@ -109,12 +109,16 @@ export default function ConfigureScreen() {
         }
       }
 
-      // Same tolerance as categories above: the book is saved either way,
-      // so a failure clearing the source wishlist row must not undo that —
-      // it's recoverable from the wishlist screen itself.
-      if (fromWishlistId) {
+      // Clears any wishlist entry for this same title+author — the point of
+      // adding a book someone had wished for. Runs regardless of how they
+      // got here (search, manual entry, or scan) and regardless of whether
+      // they acted on the earlier "this is on your wishlist" prompt (see
+      // (tabs)/add.tsx and add/manual.tsx) — same tolerance as categories
+      // above, a failure here must not undo the book that was just saved.
+      const wishlistMatches = (wishlist ?? []).filter((item) => isSameWishlistBook(item, candidate.title, candidate.authors));
+      for (const match of wishlistMatches) {
         try {
-          await deleteWishlistItem.mutateAsync(fromWishlistId);
+          await deleteWishlistItem.mutateAsync(match.id);
         } catch {
           // Recoverable from the wishlist screen itself.
         }
@@ -130,10 +134,7 @@ export default function ConfigureScreen() {
     if (!candidate) return;
     setError(null);
     try {
-      await addToWishlist.mutateAsync({
-        candidate,
-        householdId: household && shareBook ? household.household.id : null,
-      });
+      await addToWishlist.mutateAsync({ title: candidate.title, authors: candidate.authors });
       router.back();
     } catch (cause) {
       setError(describeError(cause, t));
@@ -153,15 +154,13 @@ export default function ConfigureScreen() {
             loading={addBook.isPending}
             onPress={showDuplicateGate ? () => setDuplicateAcknowledged(true) : save}
           />
-          {!fromWishlistId ? (
-            <Button
-              title={t('wishlist.addToWishlist')}
-              variant="ghost"
-              fullWidth
-              loading={addToWishlist.isPending}
-              onPress={addToWishlistInstead}
-            />
-          ) : null}
+          <Button
+            title={t('wishlist.addToWishlist')}
+            variant="ghost"
+            fullWidth
+            loading={addToWishlist.isPending}
+            onPress={addToWishlistInstead}
+          />
         </View>
       }
     >
