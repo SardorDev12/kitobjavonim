@@ -273,6 +273,8 @@ export const uz: LocaleCatalogue = {
   'wishlist.add': 'Istaklar roʻyxatiga qoʻshish',
   'wishlist.addSubtitle': 'Faqat nomi va muallifi — qidirish shart emas.',
   'wishlist.removeConfirm': '"{{title}}" istaklar roʻyxatidan olib tashlansinmi?',
+  'wishlist.editTitle': 'Yozuvni tahrirlash',
+  'wishlist.remove': 'Istaklar roʻyxatidan olib tashlash',
   'wishlist.addToWishlist': 'Buning oʻrniga istaklar roʻyxatiga qoʻshish',
   'wishlist.matchTitle': 'Istaklar roʻyxatida bor',
   'wishlist.matchBody': 'Bu "{{title}}" istaklar roʻyxatingizdagi kitobga oʻxshaydi. Uni kutubxonaga qoʻshishni davom ettirasizmi?',

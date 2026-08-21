@@ -271,6 +271,8 @@ export const ru: LocaleCatalogue = {
   'wishlist.add': 'Добавить в список желаний',
   'wishlist.addSubtitle': 'Только название и автор — искать не нужно.',
   'wishlist.removeConfirm': 'Удалить «{{title}}» из списка желаний?',
+  'wishlist.editTitle': 'Изменить запись',
+  'wishlist.remove': 'Удалить из списка желаний',
   'wishlist.addToWishlist': 'Добавить в список желаний',
   'wishlist.matchTitle': 'В списке желаний',
   'wishlist.matchBody': 'Похоже на «{{title}}» из вашего списка желаний. Продолжить добавление в библиотеку?',

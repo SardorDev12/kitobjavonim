@@ -268,6 +268,8 @@ export const en = {
   'wishlist.add': 'Add to wishlist',
   'wishlist.addSubtitle': 'Just the title and author — no need to search.',
   'wishlist.removeConfirm': 'Remove "{{title}}" from your wishlist?',
+  'wishlist.editTitle': 'Edit wishlist item',
+  'wishlist.remove': 'Remove from wishlist',
   'wishlist.addToWishlist': 'Add to wishlist instead',
   'wishlist.matchTitle': 'On your wishlist',
   'wishlist.matchBody': 'This looks like "{{title}}" from your wishlist. Continue adding it to your library?',

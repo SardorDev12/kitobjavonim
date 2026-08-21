@@ -34,12 +34,20 @@ export function useAddWishlistItem() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ title, authors }: { title: string; authors: string[] }) => {
+    mutationFn: async ({
+      title,
+      authors,
+      householdId,
+    }: {
+      title: string;
+      authors: string[];
+      householdId?: string | null;
+    }) => {
       if (!user) throw new Error('Not signed in');
 
       const { data, error } = await supabase
         .from('wishlist_items')
-        .insert({ user_id: user.id, title: title.trim(), authors })
+        .insert({ user_id: user.id, title: title.trim(), authors, household_id: householdId ?? null })
         .select('id')
         .single();
       if (error) throw error;
@@ -49,13 +57,26 @@ export function useAddWishlistItem() {
   });
 }
 
-/** Mirrors useSetBookshelfHousehold (bookshelves.ts) — flips an existing item between personal and shared. */
-export function useSetWishlistItemHousehold() {
+/** Edits an existing item's title, authors, and household sharing — the wishlist/[id].tsx edit screen. */
+export function useUpdateWishlistItem() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ id, householdId }: { id: string; householdId: string | null }) => {
-      const { error } = await supabase.from('wishlist_items').update({ household_id: householdId }).eq('id', id);
+    mutationFn: async ({
+      id,
+      title,
+      authors,
+      householdId,
+    }: {
+      id: string;
+      title: string;
+      authors: string[];
+      householdId?: string | null;
+    }) => {
+      const { error } = await supabase
+        .from('wishlist_items')
+        .update({ title: title.trim(), authors, household_id: householdId ?? null })
+        .eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.wishlist.all }),

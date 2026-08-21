@@ -1,13 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { Button, Card, EmptyState, LoadingState, Screen, Text } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { formatAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
-import { useHousehold } from '@/lib/queries/household';
-import { useDeleteWishlistItem, useSetWishlistItemHousehold, useWishlist } from '@/lib/queries/wishlist';
+import { useWishlist } from '@/lib/queries/wishlist';
 import { useTheme } from '@/theme';
 import type { WishlistEntry } from '@/types/database';
 
@@ -52,43 +51,27 @@ export default function WishlistScreen() {
             onAction={() => router.push('/wishlist/add')}
           />
         ) : (
-          (items ?? []).map((item) => <WishlistRow key={item.id} entry={item} />)
+          (items ?? []).map((item) => <WishlistRow key={item.id} entry={item} onPress={() => router.push(`/wishlist/${item.id}`)} />)
         )}
       </View>
     </Screen>
   );
 }
 
-function WishlistRow({ entry }: { entry: WishlistEntry }) {
+/**
+ * Tapping the row opens the item's own screen (wishlist/[id].tsx) — sharing
+ * and removal live there now rather than as small inline controls here,
+ * same shape as BookCard/book/[id].tsx.
+ */
+function WishlistRow({ entry, onPress }: { entry: WishlistEntry; onPress: () => void }) {
   const theme = useTheme();
   const { t } = useI18n();
   const { user } = useAuth();
 
-  const { data: household } = useHousehold();
-  const setHousehold = useSetWishlistItemHousehold();
-  const deleteItem = useDeleteWishlistItem();
-
-  const isShared = Boolean(entry.household_id);
-  // Un-sharing is restricted to the item's own creator at the database
-  // level (0019's assert_user_id_immutable, mirroring bookshelves) — only
-  // offer the toggle where it would actually succeed.
-  const canToggleShare = Boolean(household) && entry.user_id === user?.id;
   const addedByOther = entry.user_id !== user?.id ? entry.added_by_name : null;
 
-  function confirmRemove() {
-    const message = t('wishlist.removeConfirm', { title: entry.title });
-    if (Platform.OS === 'web') {
-      if (globalThis.confirm(message)) deleteItem.mutate(entry.id);
-      return;
-    }
-    Alert.alert('', message, [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('common.delete'), style: 'destructive', onPress: () => deleteItem.mutate(entry.id) },
-    ]);
-  }
-
   return (
-    <Card padded={false}>
+    <Card padded={false} onPress={onPress}>
       <View style={[styles.row, { padding: theme.spacing.lg, gap: theme.spacing.md }]}>
         <View style={styles.body}>
           <Text variant="bodyStrong" numberOfLines={2}>
@@ -106,46 +89,13 @@ function WishlistRow({ entry }: { entry: WishlistEntry }) {
           ) : null}
         </View>
 
-        <View style={{ gap: theme.spacing.md, alignItems: 'flex-end' }}>
-          {isShared || canToggleShare ? (
-            <Pressable
-              onPress={
-                canToggleShare
-                  ? () =>
-                      setHousehold.mutate({
-                        id: entry.id,
-                        householdId: isShared ? null : (household?.household.id ?? null),
-                      })
-                  : undefined
-              }
-              disabled={!canToggleShare}
-              hitSlop={10}
-              accessibilityRole="button"
-              accessibilityLabel={t('household.share')}
-              style={{ opacity: canToggleShare ? 1 : 0.6 }}
-            >
-              <Ionicons
-                name={isShared ? 'people' : 'people-outline'}
-                size={18}
-                color={isShared ? theme.colors.primary : theme.colors.textSubtle}
-              />
-            </Pressable>
-          ) : null}
-          <Pressable
-            onPress={confirmRemove}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel={t('common.delete')}
-          >
-            <Ionicons name="trash-outline" size={18} color={theme.colors.danger} />
-          </Pressable>
-        </View>
+        <Ionicons name="chevron-forward" size={18} color={theme.colors.textSubtle} />
       </View>
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'flex-start' },
+  row: { flexDirection: 'row', alignItems: 'center' },
   body: { flex: 1, gap: 2 },
 });
