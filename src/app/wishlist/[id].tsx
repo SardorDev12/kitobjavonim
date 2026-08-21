@@ -111,18 +111,7 @@ export default function WishlistEditScreen() {
   return (
     <Screen
       scroll
-      footer={
-        <View style={{ gap: theme.spacing.sm }}>
-          <Button title={t('common.save')} fullWidth loading={updateItem.isPending} onPress={save} />
-          <Button
-            title={t('wishlist.remove')}
-            variant="danger"
-            fullWidth
-            loading={deleteItem.isPending}
-            onPress={confirmRemove}
-          />
-        </View>
-      }
+      footer={<Button title={t('common.save')} fullWidth loading={updateItem.isPending} onPress={save} />}
     >
       <View style={{ gap: theme.spacing.lg, paddingTop: theme.spacing.md }}>
         <Text variant="display">{t('wishlist.editTitle')}</Text>
@@ -152,6 +141,14 @@ export default function WishlistEditScreen() {
             onChange={setShareItem}
           />
         ) : null}
+
+        <Button
+          title={t('wishlist.remove')}
+          variant="danger"
+          fullWidth
+          loading={deleteItem.isPending}
+          onPress={confirmRemove}
+        />
 
         {error ? (
           <Text variant="caption" color="danger">
