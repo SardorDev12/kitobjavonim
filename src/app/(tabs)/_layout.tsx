@@ -31,6 +31,13 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen
+        name="reading"
+        options={{
+          title: t('reading.tabLabel'),
+          tabBarIcon: ({ color, size }) => <Ionicons name="book-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="index"
         options={{
           title: t('tabs.library'),

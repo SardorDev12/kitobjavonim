@@ -276,10 +276,18 @@ export const ru: LocaleCatalogue = {
   'shelves.positionFormat': 'Полка {{shelf}} → Ряд {{row}}',
   'shelves.fullPositionFormat': '{{bookshelf}} → Полка {{shelf}} → Ряд {{row}}',
 
+  'reading.tabLabel': 'Чтение',
   'reading.title': 'Трекер чтения',
   'reading.subtitle': 'Книги, которые вы сейчас читаете, и ваш прогресс по ним.',
   'reading.empty': 'Пока ничего не читается',
   'reading.emptyBody': 'Отметьте книгу как «читаю», чтобы отслеживать прогресс здесь.',
+  'reading.updateProgress': 'Обновить прогресс',
+  'reading.finishBook': 'Завершить книгу',
+  'reading.statsTitle': 'Статистика чтения',
+  'reading.statsWeek': 'На этой неделе',
+  'reading.statsMonth': 'В этом месяце',
+  'reading.statsYear': 'В этом году',
+  'reading.statsAllTime': 'За всё время',
 
   'wishlist.title': 'Список желаний',
   'wishlist.subtitle': 'Книги, которые вы хотите, но пока у вас нет.',

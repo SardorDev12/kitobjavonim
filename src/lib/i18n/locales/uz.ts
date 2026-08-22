@@ -276,10 +276,18 @@ export const uz: LocaleCatalogue = {
   'shelves.positionFormat': 'Tokcha {{shelf}} → Qator {{row}}',
   'shelves.fullPositionFormat': '{{bookshelf}} → Tokcha {{shelf}} → Qator {{row}}',
 
+  'reading.tabLabel': 'Oʻqish',
   'reading.title': 'Oʻqish trekeri',
   'reading.subtitle': 'Hozir oʻqiyotgan kitoblaringiz va ulardagi jarayoningiz.',
   'reading.empty': 'Hozircha hech narsa oʻqilmayapti',
   'reading.emptyBody': 'Jarayonni shu yerda kuzatish uchun kitobni "oʻqilmoqda" deb belgilang.',
+  'reading.updateProgress': 'Jarayonni yangilash',
+  'reading.finishBook': 'Kitobni tugatish',
+  'reading.statsTitle': 'Oʻqish statistikasi',
+  'reading.statsWeek': 'Shu hafta',
+  'reading.statsMonth': 'Shu oy',
+  'reading.statsYear': 'Shu yil',
+  'reading.statsAllTime': 'Barcha vaqt',
 
   'wishlist.title': 'Istaklar roʻyxati',
   'wishlist.subtitle': 'Xohlagan, lekin hali sizda yoʻq kitoblar.',

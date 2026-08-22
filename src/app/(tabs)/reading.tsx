@@ -1,5 +1,7 @@
+import { Ionicons } from '@expo/vector-icons';
+import { isWithinInterval, startOfMonth, startOfWeek, startOfYear } from 'date-fns';
 import { useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { BookCover } from '@/components/BookCover';
 import { Button, Card, Chip, EmptyState, LoadingState, Screen, Sheet, Text, TextField } from '@/components/ui';
@@ -7,16 +9,15 @@ import { formatAuthors, formatDate } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { useLibrary, useUpdateReadingProgress, type UpdateReadingProgressInput } from '@/lib/queries/library';
 import { useTheme } from '@/theme';
-import { READING_STATUSES, type LibraryEntry, type ReadingStatus } from '@/types/database';
+import type { LibraryEntry } from '@/types/database';
 
 const PERCENT_OPTIONS = [25, 50, 75, 100];
 
 /**
  * Books currently being read, with progress/pace and a way to update them —
- * a dedicated screen rather than spread across each book's own detail page,
- * since reading state is now per-person (0020_reading_progress.sql) and
- * this is meant to be the one place to manage it across every in-progress
- * book at once.
+ * its own tab rather than spread across each book's own detail page, since
+ * reading state is per-person (0020_reading_progress.sql) and this is the
+ * one place to manage it across every in-progress book at once.
  *
  * No new query — reuses useLibrary() (already loads the whole library into
  * cache) filtered client-side, the same "small enough to hold in cache"
@@ -28,6 +29,7 @@ export default function ReadingTrackerScreen() {
 
   const { data: library, isPending } = useLibrary();
   const [activeEntry, setActiveEntry] = useState<LibraryEntry | null>(null);
+  const [statsOpen, setStatsOpen] = useState(false);
 
   const inProgress = useMemo(() => (library ?? []).filter((entry) => entry.reading_status === 'reading'), [library]);
 
@@ -42,11 +44,22 @@ export default function ReadingTrackerScreen() {
   return (
     <Screen scroll>
       <View style={{ gap: theme.spacing.lg, paddingTop: theme.spacing.md, paddingBottom: theme.spacing.lg }}>
-        <View style={{ gap: theme.spacing.xs }}>
-          <Text variant="display">{t('reading.title')}</Text>
-          <Text variant="body" color="textMuted">
-            {t('reading.subtitle')}
-          </Text>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <View style={{ gap: theme.spacing.xs, flex: 1 }}>
+            <Text variant="display">{t('reading.title')}</Text>
+            <Text variant="body" color="textMuted">
+              {t('reading.subtitle')}
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => setStatsOpen(true)}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={t('reading.statsTitle')}
+            style={{ padding: theme.spacing.xs }}
+          >
+            <Ionicons name="stats-chart-outline" size={22} color={theme.colors.text} />
+          </Pressable>
         </View>
 
         {inProgress.length === 0 ? (
@@ -57,6 +70,7 @@ export default function ReadingTrackerScreen() {
       </View>
 
       <ProgressSheet visible={activeEntry !== null} onClose={() => setActiveEntry(null)} entry={activeEntry} />
+      <StatsSheet visible={statsOpen} onClose={() => setStatsOpen(false)} library={library ?? []} />
     </Screen>
   );
 }
@@ -64,9 +78,17 @@ export default function ReadingTrackerScreen() {
 function ReadingRow({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: () => void }) {
   const theme = useTheme();
   const { t, locale } = useI18n();
+  const updateProgress = useUpdateReadingProgress();
 
   const progressLabel = useMemo(() => describeProgress(entry, t), [entry, t]);
   const paceEstimate = useMemo(() => describePace(entry, t), [entry, t]);
+
+  function finish() {
+    updateProgress.mutate({
+      userBookId: entry.id,
+      patch: { reading_status: 'finished', date_finished: entry.date_finished ?? new Date().toISOString().slice(0, 10) },
+    });
+  }
 
   return (
     <Card>
@@ -99,14 +121,17 @@ function ReadingRow({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: () => 
         </View>
       </View>
 
-      <Button
-        title={t('common.edit')}
-        variant="secondary"
-        size="sm"
-        fullWidth
-        onPress={onUpdate}
-        style={{ marginTop: theme.spacing.md }}
-      />
+      <View style={{ flexDirection: 'row', gap: theme.spacing.sm, marginTop: theme.spacing.md }}>
+        <Button title={t('reading.updateProgress')} variant="secondary" size="sm" onPress={onUpdate} style={{ flex: 1 }} />
+        <Button
+          title={t('reading.finishBook')}
+          variant="secondary"
+          size="sm"
+          loading={updateProgress.isPending}
+          onPress={finish}
+          style={{ flex: 1 }}
+        />
+      </View>
     </Card>
   );
 }
@@ -138,7 +163,7 @@ function ProgressSheet({ visible, onClose, entry }: { visible: boolean; onClose:
   const updateProgress = useUpdateReadingProgress();
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={t('book.progress')}>
+    <Sheet visible={visible} onClose={onClose} title={t('reading.updateProgress')}>
       {entry ? (
         <ProgressSheetForm
           key={`${entry.id}-${entry.updated_at}`}
@@ -156,6 +181,11 @@ function ProgressSheet({ visible, onClose, entry }: { visible: boolean; onClose:
   );
 }
 
+/**
+ * Progress only — no reading-status chips. Status changes now live on the
+ * row itself (the "Finish book" button); this sheet's one job is
+ * current_page/progress_percent.
+ */
 function ProgressSheetForm({
   entry,
   onSave,
@@ -169,54 +199,21 @@ function ProgressSheetForm({
   theme: ReturnType<typeof useTheme>;
   t: ReturnType<typeof useI18n>['t'];
 }) {
-  const [status, setStatus] = useState<ReadingStatus>(entry.reading_status);
   const [page, setPage] = useState(entry.current_page?.toString() ?? '');
   const [percent, setPercent] = useState<number | null>(entry.progress_percent);
 
-  // Same date_started/date_finished rules as book/[id].tsx's changeStatus —
-  // duplicated rather than shared, matching this codebase's convention of
-  // small per-screen logic over a shared abstraction for a few lines.
   function save() {
-    const progress: UpdateReadingProgressInput['patch'] = entry.page_count
-      ? (() => {
-          const parsed = Number(page);
-          const clamped = Number.isFinite(parsed) ? Math.min(Math.max(parsed, 0), entry.page_count!) : 0;
-          return { current_page: clamped > 0 ? clamped : null, progress_percent: null };
-        })()
-      : { current_page: null, progress_percent: percent };
-
-    const patch: UpdateReadingProgressInput['patch'] = { reading_status: status, ...progress };
-
-    if (status === 'finished' && !entry.date_finished) {
-      patch.date_finished = new Date().toISOString().slice(0, 10);
+    if (entry.page_count) {
+      const parsed = Number(page);
+      const clamped = Number.isFinite(parsed) ? Math.min(Math.max(parsed, 0), entry.page_count) : 0;
+      onSave({ current_page: clamped > 0 ? clamped : null, progress_percent: null });
+    } else {
+      onSave({ current_page: null, progress_percent: percent });
     }
-
-    if (status === 'reading' && !entry.date_started) {
-      patch.date_started = new Date().toISOString().slice(0, 10);
-    }
-
-    if (status === 'want_to_read' && (entry.reading_status === 'reading' || entry.reading_status === 'finished')) {
-      patch.date_started = null;
-      patch.current_page = null;
-      patch.progress_percent = null;
-    }
-
-    onSave(patch);
   }
 
   return (
     <View style={{ gap: theme.spacing.lg }}>
-      <View style={{ gap: theme.spacing.sm }}>
-        <Text variant="label" color="textMuted">
-          {t('book.readingStatusLabel')}
-        </Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-          {READING_STATUSES.map((option) => (
-            <Chip key={option} label={t(`status.${option}`)} selected={status === option} onPress={() => setStatus(option)} />
-          ))}
-        </View>
-      </View>
-
       {entry.page_count ? (
         <TextField
           label={t('book.currentPage')}
@@ -241,6 +238,58 @@ function ProgressSheetForm({
       )}
 
       <Button title={t('common.save')} fullWidth loading={saving} onPress={save} />
+    </View>
+  );
+}
+
+/**
+ * Books finished this week/month/year, and all-time — computed client-side
+ * from the already-cached library rather than a new query, same reasoning
+ * as the in-progress list above.
+ */
+function StatsSheet({ visible, onClose, library }: { visible: boolean; onClose: () => void; library: LibraryEntry[] }) {
+  const theme = useTheme();
+  const { t } = useI18n();
+
+  const stats = useMemo(() => {
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const monthStart = startOfMonth(now);
+    const yearStart = startOfYear(now);
+
+    const finishedDates = library
+      .filter((entry) => entry.reading_status === 'finished' && entry.date_finished)
+      .map((entry) => new Date(entry.date_finished!));
+
+    const count = (start: Date) => finishedDates.filter((date) => isWithinInterval(date, { start, end: now })).length;
+
+    return {
+      week: count(weekStart),
+      month: count(monthStart),
+      year: count(yearStart),
+      allTime: finishedDates.length,
+    };
+  }, [library]);
+
+  return (
+    <Sheet visible={visible} onClose={onClose} title={t('reading.statsTitle')}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.lg }}>
+        <StatTile label={t('reading.statsWeek')} value={stats.week} />
+        <StatTile label={t('reading.statsMonth')} value={stats.month} />
+        <StatTile label={t('reading.statsYear')} value={stats.year} />
+        <StatTile label={t('reading.statsAllTime')} value={stats.allTime} />
+      </View>
+    </Sheet>
+  );
+}
+
+function StatTile({ label, value }: { label: string; value: number }) {
+  return (
+    <View style={{ width: '45%', gap: 2 }}>
+      <Text variant="title">{value}</Text>
+      <Text variant="caption" color="textMuted">
+        {label}
+      </Text>
     </View>
   );
 }

@@ -271,10 +271,18 @@ export const en = {
   'shelves.positionFormat': 'Shelf {{shelf}} → Row {{row}}',
   'shelves.fullPositionFormat': '{{bookshelf}} → Shelf {{shelf}} → Row {{row}}',
 
+  'reading.tabLabel': 'Reading',
   'reading.title': 'Reading tracker',
   'reading.subtitle': 'Books you’re currently reading, and how far along you are.',
   'reading.empty': 'Nothing in progress',
   'reading.emptyBody': 'Mark a book as reading to track your progress here.',
+  'reading.updateProgress': 'Update progress',
+  'reading.finishBook': 'Finish book',
+  'reading.statsTitle': 'Reading stats',
+  'reading.statsWeek': 'This week',
+  'reading.statsMonth': 'This month',
+  'reading.statsYear': 'This year',
+  'reading.statsAllTime': 'All time',
 
   'wishlist.title': 'Wishlist',
   'wishlist.subtitle': 'Books you want, but don’t have yet.',
