@@ -58,15 +58,6 @@ insert into reading_progress (user_book_id, user_id, reading_status, date_finish
 select id, user_id, reading_status, date_finished, rating, review, notes
 from user_books;
 
-alter table user_books
-  drop column reading_status,
-  drop column date_finished,
-  drop column rating,
-  drop column review,
-  drop column notes;
--- user_books_status_idx (0001_init.sql), which indexed the now-dropped
--- reading_status column, is dropped automatically along with it.
-
 -- -----------------------------------------------------------------------------
 -- RLS — always own-rows-only. Unlike bookshelves/user_books, household
 -- membership never grants read/write access to *another* member's
@@ -212,3 +203,20 @@ left join user_books ub       on ub.user_id = p.id
 left join reading_progress rp on rp.user_book_id = ub.id and rp.user_id = p.id
 where p.id = auth.uid()
 group by p.id;
+
+-- -----------------------------------------------------------------------------
+-- Only safe to drop now that library_entries/profile_stats above no longer
+-- reference these columns — dropping them earlier fails with "cannot drop
+-- column ... because other objects depend on it" (2BP01), since the
+-- original views (0002/0007/0015/0017) still pointed at user_books
+-- directly until the create or replace statements above ran.
+-- -----------------------------------------------------------------------------
+
+alter table user_books
+  drop column reading_status,
+  drop column date_finished,
+  drop column rating,
+  drop column review,
+  drop column notes;
+-- user_books_status_idx (0001_init.sql), which indexed the now-dropped
+-- reading_status column, is dropped automatically along with it.
