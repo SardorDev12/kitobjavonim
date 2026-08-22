@@ -119,18 +119,20 @@ export type BookshelfPosition = {
   created_at: string;
 };
 
+/**
+ * A physical copy — ownership, shelf placement, and listing fields only.
+ * Reading status/progress/rating/review/notes live on `ReadingProgress`
+ * instead (0020_reading_progress.sql): those are per-person, not per-copy,
+ * since a shared copy can be read/rated independently by each household
+ * member who tracks it.
+ */
 export type UserBook = {
   id: string;
   user_id: string;
   book_id: string;
   bookshelf_position_id: string | null;
-  reading_status: ReadingStatus;
   condition: BookCondition | null;
-  rating: number | null;
-  review: string | null;
-  notes: string | null;
   date_added: string;
-  date_finished: string | null;
   availability_type: AvailabilityType;
   listed_at: string | null;
   exchange_preferences: string | null;
@@ -141,6 +143,27 @@ export type UserBook = {
   updated_at: string;
   /** Set when shared with a household — every member can then see and edit it. */
   household_id: string | null;
+};
+
+/**
+ * One person's reading state on one copy — status, progress, and their own
+ * rating/review/notes. Unique per (user_book_id, user_id): a shared copy
+ * has one row per household member who's tracked it, each independent of
+ * the others. See 0020_reading_progress.sql.
+ */
+export type ReadingProgress = {
+  id: string;
+  user_book_id: string;
+  user_id: string;
+  reading_status: ReadingStatus;
+  date_started: string | null;
+  date_finished: string | null;
+  current_page: number | null;
+  progress_percent: number | null;
+  rating: number | null;
+  review: string | null;
+  notes: string | null;
+  updated_at: string;
 };
 
 /** A row of the `library_entries` view — a copy joined to its book and shelf. */
@@ -191,6 +214,11 @@ export type LibraryEntry = {
   /** Who added it — null for the signed-in user's own entries. */
   added_by_name: string | null;
   added_by_avatar_url: string | null;
+
+  /** The viewer's own reading progress on this copy — null until they've started tracking it. */
+  date_started: string | null;
+  current_page: number | null;
+  progress_percent: number | null;
 };
 
 export type WishlistItem = {

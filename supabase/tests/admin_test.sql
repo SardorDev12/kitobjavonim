@@ -18,11 +18,11 @@ insert into books (id, title, authors, language, created_by)
 values ('e1111111-0000-0000-0000-000000000001', 'Some Catalog Book', array['Original Author'],
         'en', 'b2222222-2222-2222-2222-222222222222');
 
-insert into user_books (id, user_id, book_id, reading_status, availability_type, sale_price)
+insert into user_books (id, user_id, book_id, availability_type, sale_price)
 values ('f1111111-0000-0000-0000-000000000001',
         'b2222222-2222-2222-2222-222222222222',
         'e1111111-0000-0000-0000-000000000001',
-        'want_to_read', 'sale', 50000);
+        'sale', 50000);
 
 -- ---------------------------------------------------------------------------
 -- As bob (not an admin)

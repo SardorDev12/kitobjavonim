@@ -41,6 +41,7 @@ import {
   useDeleteUserBook,
   useLibraryEntry,
   useUpdateBook,
+  useUpdateReadingProgress,
   useUpdateUserBook,
   type UpdateBookInput,
 } from '@/lib/queries/library';
@@ -59,6 +60,7 @@ export default function BookDetailScreen() {
   const positions = usePositionOptions();
   const { data: household } = useHousehold();
   const updateBook = useUpdateUserBook();
+  const updateProgress = useUpdateReadingProgress();
   const updateBookDetails = useUpdateBook();
   const deleteBook = useDeleteUserBook();
   const { data: categories } = useBookCategories(entry?.book_id);
@@ -132,21 +134,44 @@ export default function BookDetailScreen() {
     return updateBook.mutateAsync({ id: entry!.id, patch: changes });
   }
 
+  // The signed-in user's own reading state on this copy — status, progress,
+  // rating/review/notes — separate from patch()/patchAsync() above, which
+  // only ever touch physical-copy fields (shelf, listing, condition,
+  // household sharing). See 0020_reading_progress.sql: a shared copy's
+  // reading state is per-person, so this always writes to the *viewer's
+  // own* reading_progress row, never entry.user_id's.
+  function patchProgress(changes: Parameters<typeof updateProgress.mutate>[0]['patch']) {
+    updateProgress.mutate({ userBookId: entry!.id, patch: changes });
+  }
+
   function changeStatus(status: ReadingStatus) {
     // Leaving "finished" would strand a rating and review on a book the user is
     // no longer marking as read, and the DB constraint rejects that pairing, so
     // the review is cleared alongside the status.
     if (status !== 'finished' && entry!.reading_status === 'finished') {
-      patch({ reading_status: status, rating: null, review: null, date_finished: null });
+      patchProgress({ reading_status: status, rating: null, review: null, date_finished: null });
       return;
     }
 
     if (status === 'finished' && !entry!.date_finished) {
-      patch({ reading_status: status, date_finished: new Date().toISOString().slice(0, 10) });
+      patchProgress({ reading_status: status, date_finished: new Date().toISOString().slice(0, 10) });
       return;
     }
 
-    patch({ reading_status: status });
+    if (status === 'reading' && !entry!.date_started) {
+      patchProgress({ reading_status: status, date_started: new Date().toISOString().slice(0, 10) });
+      return;
+    }
+
+    // Backing out to "want to read" abandons whatever progress existed —
+    // same spirit as clearing rating/review/date_finished above when
+    // leaving "finished".
+    if (status === 'want_to_read' && (entry!.reading_status === 'reading' || entry!.reading_status === 'finished')) {
+      patchProgress({ reading_status: status, date_started: null, current_page: null, progress_percent: null });
+      return;
+    }
+
+    patchProgress({ reading_status: status });
   }
 
   function confirmDelete() {
@@ -414,7 +439,7 @@ export default function BookDetailScreen() {
         initialRating={entry.rating}
         initialReview={entry.review}
         onSave={(rating, review) =>
-          patch({
+          patchProgress({
             rating,
             review,
             reading_status: 'finished',

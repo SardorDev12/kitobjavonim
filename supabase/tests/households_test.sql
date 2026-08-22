@@ -68,6 +68,10 @@ values ('d0000000-0000-0000-0000-000000000006',
 select household_id is not null as shared, added_by_name
   from library_entries where id = 'd0000000-0000-0000-0000-000000000006';
 
+\echo '### dave marks his own copy reading (his own reading_progress row, 0020)'
+insert into reading_progress (user_book_id, user_id, reading_status)
+values ('d0000000-0000-0000-0000-000000000006', 'd4444444-4444-4444-4444-444444444444', 'reading');
+
 reset role;
 
 -- ---------------------------------------------------------------------------
@@ -120,9 +124,15 @@ values ('d0000000-0000-0000-0000-000000000007',
         'd0000000-0000-0000-0000-000000000005',
         :'dave_household');
 
-\echo '### erin can edit dave''s shared copy (expect success)'
-update user_books set reading_status = 'finished'
-where id = 'd0000000-0000-0000-0000-000000000006';
+\echo '### erin cannot see dave''s own reading_progress row on the shared copy (expect 0 — private per person, 0020)'
+select count(*) from reading_progress where user_book_id = 'd0000000-0000-0000-0000-000000000006';
+
+\echo '### erin creates her own reading_progress on dave''s shared copy (expect success)'
+insert into reading_progress (user_book_id, user_id, reading_status)
+values ('d0000000-0000-0000-0000-000000000006', 'e5555555-5555-5555-5555-555555555555', 'finished');
+
+\echo '### erin sees her own status on the shared copy via library_entries (expect finished)'
+select reading_status from library_entries where id = 'd0000000-0000-0000-0000-000000000006';
 
 \echo '### erin cannot reassign a shared copy''s user_id to herself (expect error)'
 \set ON_ERROR_STOP off
@@ -146,6 +156,9 @@ select household_id is not null as still_shared
 reset role;
 set role authenticated;
 set request.jwt.claim.sub = 'd4444444-4444-4444-4444-444444444444';
+
+\echo '### dave''s own status on the same shared copy is untouched by erin''s (expect reading, not finished)'
+select reading_status from library_entries where id = 'd0000000-0000-0000-0000-000000000006';
 
 \echo '### dave (the creator) can un-share his own copy (expect success)'
 update user_books set household_id = null

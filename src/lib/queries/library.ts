@@ -4,7 +4,7 @@ import type { BookCandidate } from '@/lib/books/metadata';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { storagePathFromPublicUrl } from '@/lib/images';
 import { supabase } from '@/lib/supabase';
-import type { Book, LibraryEntry, UserBook } from '@/types/database';
+import type { Book, LibraryEntry, ReadingProgress, ReadingStatus, UserBook } from '@/types/database';
 
 import { queryKeys } from './keys';
 
@@ -133,7 +133,7 @@ export type AddBookInput = {
    */
   existingBookId?: string;
   bookshelfPositionId?: string | null;
-  readingStatus?: UserBook['reading_status'];
+  readingStatus?: ReadingStatus;
   condition?: UserBook['condition'];
   /** Set to share this copy with the signed-in user's household (0015_households.sql). */
   householdId?: string | null;
@@ -162,7 +162,6 @@ export function useAddBook() {
           user_id: user.id,
           book_id: bookId,
           bookshelf_position_id: bookshelfPositionId ?? null,
-          reading_status: readingStatus ?? 'want_to_read',
           condition: condition ?? null,
           household_id: householdId ?? null,
         })
@@ -171,9 +170,24 @@ export function useAddBook() {
 
       if (error) throw error;
 
+      const userBookId = data.id as string;
+
+      // Reading status/progress live on the creator's own reading_progress
+      // row now, not on user_books (0020_reading_progress.sql — per-person,
+      // not per-copy). Not wrapped in a transaction with the insert above,
+      // so a failure here surfaces as a normal add-book error rather than
+      // being silently swallowed — but if an orphaned user_books row ever
+      // did end up without one, library_entries' own
+      // coalesce(reading_status, 'want_to_read') fallback keeps every read
+      // path safe regardless.
+      const { error: progressError } = await supabase
+        .from('reading_progress')
+        .insert({ user_book_id: userBookId, user_id: user.id, reading_status: readingStatus ?? 'want_to_read' });
+      if (progressError) throw progressError;
+
       // Both ids matter to the caller: the copy id to navigate to, and the
       // canonical book id so categories can be attached to the shared record.
-      return { userBookId: data.id as string, bookId };
+      return { userBookId, bookId };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
@@ -187,12 +201,7 @@ export type UpdateUserBookInput = {
   patch: Partial<
     Pick<
       UserBook,
-      | 'reading_status'
       | 'condition'
-      | 'rating'
-      | 'review'
-      | 'notes'
-      | 'date_finished'
       | 'bookshelf_position_id'
       | 'availability_type'
       | 'exchange_preferences'
@@ -204,6 +213,7 @@ export type UpdateUserBookInput = {
   >;
 };
 
+/** Physical-copy fields only — shelf, listing, condition, household sharing. */
 export function useUpdateUserBook() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -216,6 +226,49 @@ export function useUpdateUserBook() {
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.library.entry(variables.id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
+      if (user) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.profile.stats(user.id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.plan.status(user.id) });
+      }
+    },
+  });
+}
+
+export type UpdateReadingProgressInput = {
+  userBookId: string;
+  patch: Partial<
+    Pick<
+      ReadingProgress,
+      'reading_status' | 'date_started' | 'date_finished' | 'current_page' | 'progress_percent' | 'rating' | 'review' | 'notes'
+    >
+  >;
+};
+
+/**
+ * The signed-in user's own reading state on a copy — status, progress,
+ * rating/review/notes. Upserts rather than updates: the first time someone
+ * (an owner, or a household member on a shared copy) touches their reading
+ * state on a given copy, there may be no row yet. See
+ * 0020_reading_progress.sql — this is per-person, not per-copy, so it's
+ * always keyed to the signed-in user's own id, never an arbitrary one.
+ */
+export function useUpdateReadingProgress() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ userBookId, patch }: UpdateReadingProgressInput) => {
+      if (!user) throw new Error('Not signed in');
+
+      const { error } = await supabase
+        .from('reading_progress')
+        .upsert({ user_book_id: userBookId, user_id: user.id, ...patch }, { onConflict: 'user_book_id,user_id' });
+      if (error) throw error;
+    },
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.library.entry(variables.userBookId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
       if (user) {
         queryClient.invalidateQueries({ queryKey: queryKeys.profile.stats(user.id) });

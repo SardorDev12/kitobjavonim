@@ -30,13 +30,19 @@ values ('cccccccc-0000-0000-0000-000000000001',
 \echo '### position user_id backfilled from bookshelf (expect alice)'
 select user_id from bookshelf_positions where id = 'cccccccc-0000-0000-0000-000000000001';
 
-insert into user_books (id, user_id, book_id, bookshelf_position_id, reading_status,
-                        rating, review, condition, availability_type, sale_price)
+insert into user_books (id, user_id, book_id, bookshelf_position_id, condition, availability_type, sale_price)
 values ('dddddddd-0000-0000-0000-000000000001',
         '11111111-1111-1111-1111-111111111111',
         'aaaaaaaa-0000-0000-0000-000000000001',
         'cccccccc-0000-0000-0000-000000000001',
-        'finished', 5, 'SECRET PRIVATE REVIEW', 'good', 'sale', 85000);
+        'good', 'sale', 85000);
+
+-- reading_status/rating/review live in reading_progress now (0020), keyed
+-- per person rather than per copy.
+insert into reading_progress (user_book_id, user_id, reading_status, rating, review)
+values ('dddddddd-0000-0000-0000-000000000001',
+        '11111111-1111-1111-1111-111111111111',
+        'finished', 5, 'SECRET PRIVATE REVIEW');
 
 \echo '### listed_at populated by trigger (expect t)'
 select listed_at is not null from user_books where id = 'dddddddd-0000-0000-0000-000000000001';
@@ -47,8 +53,11 @@ select listed_at is not null from user_books where id = 'dddddddd-0000-0000-0000
 set role authenticated;
 set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
 
-\echo '### bob reading user_books directly (expect 0 — alice''s review must not leak)'
+\echo '### bob reading user_books directly (expect 0 — alice''s copy must not leak)'
 select count(*) from user_books;
+
+\echo '### bob reading reading_progress directly (expect 0 — alice''s review must not leak)'
+select count(*) from reading_progress;
 
 \echo '### bob reading listings view (expect 1)'
 select count(*) from listings;
@@ -137,10 +146,16 @@ insert into user_books (user_id, book_id, availability_type)
 values ('11111111-1111-1111-1111-111111111111',
         'aaaaaaaa-0000-0000-0000-000000000001', 'sale');
 
-\echo '### review on an unfinished book rejected (expect error)'
-insert into user_books (user_id, book_id, reading_status, rating)
-values ('11111111-1111-1111-1111-111111111111',
-        'aaaaaaaa-0000-0000-0000-000000000001', 'reading', 4);
+\echo '### a second copy for alice, with no reading_progress row yet'
+insert into user_books (id, user_id, book_id)
+values ('dddddddd-0000-0000-0000-000000000002',
+        '11111111-1111-1111-1111-111111111111',
+        'aaaaaaaa-0000-0000-0000-000000000001');
+
+\echo '### review on an unfinished reading_progress row rejected (expect error)'
+insert into reading_progress (user_book_id, user_id, reading_status, rating)
+values ('dddddddd-0000-0000-0000-000000000002',
+        '11111111-1111-1111-1111-111111111111', 'reading', 4);
 
 \echo '### placing a book on someone else''s shelf rejected (expect error)'
 insert into user_books (user_id, book_id, bookshelf_position_id)
@@ -164,7 +179,11 @@ select count(*) from books where search_vector @@ websearch_to_tsquery('simple',
 \echo '### author search via trigram (expect 1)'
 select count(*) from books where authors_text(authors) ilike '%clear%';
 
-\echo '### profile_stats (expect 1 book, 1 for sale, 0 unread)'
+-- 2 copies now: dddddddd-...-001 (finished, for sale) and -002 (added
+-- above for the constraint check — its reading_progress insert failed,
+-- so it has no row and falls back to "unread" via profile_stats' own
+-- coalesce, same as library_entries does).
+\echo '### profile_stats (expect 2 books, 1 finished, 1 unread, 1 for sale)'
 select total_books, finished_books, unread_books, exchange_count, sale_count
   from profile_stats where user_id = '11111111-1111-1111-1111-111111111111';
 
