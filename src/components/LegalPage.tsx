@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { goToTab } from '@/features/tabs/activeTab';
 import { useI18n } from '@/lib/i18n';
 import type { LegalDoc } from '@/lib/legalContent';
 import { useTheme } from '@/theme';
@@ -24,7 +25,10 @@ export function LegalPage({ doc }: { doc: LegalDoc }) {
 
   function goBack() {
     if (router.canGoBack()) router.back();
-    else router.replace('/(tabs)/profile');
+    else {
+      router.replace('/(tabs)');
+      goToTab('profile');
+    }
   }
 
   return (

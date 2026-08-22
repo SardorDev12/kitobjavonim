@@ -9,6 +9,7 @@ import { CategoryPicker } from '@/components/CategoryPicker';
 import { AuthorsField, Button, Card, Chip, EmptyState, Screen, Select, Sheet, Text, TextField, Toggle } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { setPendingBook, usePendingBook } from '@/features/add/pendingBook';
+import { goToTab } from '@/features/tabs/activeTab';
 import type { BookCandidate } from '@/lib/books/metadata';
 import { describeError } from '@/lib/errors';
 import { formatAuthors, normalizeIsbn, parseAuthors } from '@/lib/format';
@@ -70,7 +71,10 @@ export default function ConfigureScreen() {
   // A hard refresh on web clears the in-memory selection; send the user back
   // rather than showing an empty form.
   useEffect(() => {
-    if (!candidate) router.replace('/(tabs)/add');
+    if (!candidate) {
+      router.replace('/(tabs)');
+      goToTab('add');
+    }
   }, [candidate, router]);
 
   const duplicate = useMemo(() => {

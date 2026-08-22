@@ -22,6 +22,7 @@ import {
   TextField,
 } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { goToTab } from '@/features/tabs/activeTab';
 import { hasContactMethod } from '@/lib/contactMethod';
 import { describeError } from '@/lib/errors';
 import { formatAuthors, formatDate, formatPrice } from '@/lib/format';
@@ -55,7 +56,10 @@ export default function ListingDetailScreen() {
   // nothing.
   function goBack() {
     if (router.canGoBack()) router.back();
-    else router.replace('/(tabs)/discover');
+    else {
+      router.replace('/(tabs)');
+      goToTab('discover');
+    }
   }
 
   // Unlike book/[id].tsx's private library entry, this page's own URL is

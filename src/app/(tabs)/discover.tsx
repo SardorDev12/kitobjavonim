@@ -10,6 +10,7 @@ import { ListingRow } from '@/components/ListingRow';
 import { PullToRefreshIndicator } from '@/components/PullToRefreshIndicator';
 import { Button, Chip, ChipRow, EmptyState, LoadingState, Screen, Select, Sheet, Text, TextField } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { goToTab } from '@/features/tabs/activeTab';
 import { useI18n } from '@/lib/i18n';
 import { emptyListingFilters, useListings, type ListingFilters } from '@/lib/queries/listings';
 import { useCategoryOptions, useLocationOptions } from '@/lib/queries/reference';
@@ -36,7 +37,8 @@ export default function DiscoverScreen() {
   // book of their own goes through sign-in first, same as the root layout's
   // route guard already does for the Add tab itself.
   function goToAdd() {
-    router.push(session ? '/(tabs)/add' : '/(auth)/sign-in');
+    if (session) goToTab('add');
+    else router.push('/(auth)/sign-in');
   }
 
   // Stable across renders (router itself doesn't change identity) so that
