@@ -277,7 +277,7 @@ export const uz: LocaleCatalogue = {
   'shelves.fullPositionFormat': '{{bookshelf}} → Tokcha {{shelf}} → Qator {{row}}',
 
   'reading.tabLabel': 'Oʻqish',
-  'reading.title': 'Oʻqish trekeri',
+  'reading.title': 'Mutolaam',
   'reading.subtitle': 'Hozir oʻqiyotgan kitoblaringiz va ulardagi jarayoningiz.',
   'reading.empty': 'Hozircha hech narsa oʻqilmayapti',
   'reading.emptyBody': 'Jarayonni shu yerda kuzatish uchun kitobni "oʻqilmoqda" deb belgilang.',
