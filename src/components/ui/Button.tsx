@@ -13,7 +13,7 @@ import { useTheme } from '@/theme';
 
 import { Text } from './Text';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type Variant = 'primary' | 'secondary' | 'tint' | 'ghost' | 'danger';
 type Size = 'sm' | 'md' | 'lg';
 
 export type ButtonProps = Omit<PressableProps, 'style' | 'children'> & {
@@ -57,6 +57,12 @@ export function Button({
       pressed: theme.colors.surfaceSunken,
       text: theme.colors.text,
       border: theme.colors.borderStrong,
+    },
+    tint: {
+      background: theme.colors.primarySoft,
+      pressed: theme.colors.primaryOnSoft,
+      text: theme.colors.primaryOnSoft,
+      border: 'transparent',
     },
     ghost: {
       background: 'transparent',

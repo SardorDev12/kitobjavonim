@@ -34,7 +34,21 @@ export default function ReadingTrackerScreen() {
   const [statsOpen, setStatsOpen] = useState(false);
   const [search, setSearch] = useState('');
 
-  const inProgress = useMemo(() => (library ?? []).filter((entry) => entry.reading_status === 'reading'), [library]);
+  // date_started rather than updated_at: it's always set the moment a copy
+  // enters 'reading' (changeStatus in book/[id].tsx, start()/reread() below)
+  // and, unlike updated_at (which only reflects user_books changes), it
+  // moves whenever a reader actually picks a book back up — so the freshest
+  // date_started is a reliable "what am I reading right now" signal.
+  const inProgress = useMemo(
+    () =>
+      (library ?? [])
+        .filter((entry) => entry.reading_status === 'reading')
+        .sort((a, b) => (b.date_started ?? '').localeCompare(a.date_started ?? '')),
+    [library]
+  );
+  const [heroEntry, ...restInProgress] = inProgress;
+
+  const finishedStats = useMemo(() => computeFinishedStats(library ?? []), [library]);
 
   // Books that match the search and aren't already being read — those are
   // what the in-progress list above is for. "Not found" here means "not in
@@ -77,6 +91,23 @@ export default function ReadingTrackerScreen() {
           </Pressable>
         </View>
 
+        {inProgress.length > 0 ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
+            <StatChip icon="book-outline" count={inProgress.length} label={t('reading.statInProgress')} theme={theme} />
+            {finishedStats.month > 0 ? (
+              <>
+                <View style={{ width: 3, height: 3, borderRadius: 2, backgroundColor: theme.colors.border }} />
+                <StatChip
+                  icon="checkmark-circle-outline"
+                  count={finishedStats.month}
+                  label={t('reading.statFinishedMonth')}
+                  theme={theme}
+                />
+              </>
+            ) : null}
+          </View>
+        ) : null}
+
         <TextField
           placeholder={t('library.searchPlaceholder')}
           value={search}
@@ -113,13 +144,135 @@ export default function ReadingTrackerScreen() {
         ) : inProgress.length === 0 ? (
           <EmptyState icon="book-outline" title={t('reading.empty')} body={t('reading.emptyBody')} />
         ) : (
-          inProgress.map((entry) => <ReadingRow key={entry.id} entry={entry} onUpdate={() => setActiveEntry(entry)} />)
+          <>
+            <SectionLabel icon="book" label={t('reading.continueReading')} tone="accent" theme={theme} />
+            <HeroReadingCard entry={heroEntry!} onUpdate={() => setActiveEntry(heroEntry!)} />
+            {restInProgress.length > 0 ? (
+              <>
+                <SectionLabel label={t('reading.alsoReading')} tone="muted" theme={theme} />
+                {restInProgress.map((entry) => (
+                  <ReadingRow key={entry.id} entry={entry} onUpdate={() => setActiveEntry(entry)} />
+                ))}
+              </>
+            ) : null}
+          </>
         )}
       </View>
 
       <ProgressSheet visible={activeEntry !== null} onClose={() => setActiveEntry(null)} entry={activeEntry} />
-      <StatsSheet visible={statsOpen} onClose={() => setStatsOpen(false)} library={library ?? []} />
+      <StatsSheet visible={statsOpen} onClose={() => setStatsOpen(false)} stats={finishedStats} />
     </Screen>
+  );
+}
+
+function StatChip({
+  icon,
+  count,
+  label,
+  theme,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  count: number;
+  label: string;
+  theme: ReturnType<typeof useTheme>;
+}) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+      <Ionicons name={icon} size={14} color={theme.colors.textMuted} />
+      <Text variant="caption" color="textMuted">
+        <Text variant="label" style={{ fontWeight: '700' }}>
+          {count}
+        </Text>{' '}
+        {label}
+      </Text>
+    </View>
+  );
+}
+
+/** A small uppercase label above a group of cards — an open-book icon marks the accent-toned one. */
+function SectionLabel({
+  icon,
+  label,
+  tone,
+  theme,
+}: {
+  icon?: keyof typeof Ionicons.glyphMap;
+  label: string;
+  tone: 'accent' | 'muted';
+  theme: ReturnType<typeof useTheme>;
+}) {
+  const color = tone === 'accent' ? theme.colors.primary : theme.colors.textSubtle;
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+      {icon ? <Ionicons name={icon} size={13} color={color} /> : null}
+      <Text variant="micro" style={{ color, letterSpacing: 0.6 }}>
+        {label.toUpperCase()}
+      </Text>
+    </View>
+  );
+}
+
+/** The most recently started in-progress book, enlarged with a thicker progress bar and full-width actions. */
+function HeroReadingCard({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: () => void }) {
+  const theme = useTheme();
+  const { t, locale } = useI18n();
+  const updateProgress = useUpdateReadingProgress();
+
+  const progressLabel = useMemo(() => describeProgress(entry, t), [entry, t]);
+  const percent = useMemo(() => effectivePercent(entry), [entry]);
+  const paceEstimate = useMemo(() => describePace(entry, t), [entry, t]);
+
+  function finish() {
+    updateProgress.mutate({
+      userBookId: entry.id,
+      patch: { reading_status: 'finished', date_finished: entry.date_finished ?? new Date().toISOString().slice(0, 10) },
+    });
+  }
+
+  return (
+    <Card style={theme.shadow.card}>
+      <View style={{ flexDirection: 'row', gap: theme.spacing.md }}>
+        <BookCover uri={entry.cover_url} title={entry.title} width={84} radius={theme.radius.sm} />
+
+        <View style={{ flex: 1, gap: 2, paddingTop: 2 }}>
+          <Text variant="heading" numberOfLines={2}>
+            {entry.title}
+          </Text>
+          {entry.authors.length > 0 ? (
+            <Text variant="caption" color="textMuted" numberOfLines={1}>
+              {formatAuthors(entry.authors)}
+            </Text>
+          ) : null}
+
+          <Text variant="body" style={{ marginTop: 6 }}>
+            {progressLabel}
+          </Text>
+          {entry.date_started ? (
+            <Text variant="caption" color="textSubtle">
+              {t('book.startedOn', { date: formatDate(entry.date_started, locale) })}
+            </Text>
+          ) : null}
+          {paceEstimate ? (
+            <Text variant="caption" color="textSubtle">
+              {paceEstimate}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+
+      {percent != null ? <ProgressBar percent={percent} theme={theme} size="lg" /> : null}
+
+      <View style={{ flexDirection: 'row', gap: theme.spacing.sm, marginTop: theme.spacing.md }}>
+        <Button title={t('reading.updateProgress')} variant="tint" onPress={onUpdate} style={{ flex: 1 }} />
+        <Button
+          title={t('reading.finishBook')}
+          variant="secondary"
+          loading={updateProgress.isPending}
+          onPress={finish}
+          style={{ flex: 1 }}
+        />
+      </View>
+    </Card>
   );
 }
 
@@ -140,7 +293,7 @@ function ReadingRow({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: () => 
   }
 
   return (
-    <Card>
+    <Card style={theme.shadow.card}>
       <View style={[{ flexDirection: 'row', gap: theme.spacing.md }]}>
         <BookCover uri={entry.cover_url} title={entry.title} width={56} radius={theme.radius.sm} />
 
@@ -303,20 +456,55 @@ function describePace(entry: LibraryEntry, t: ReturnType<typeof useI18n>['t']): 
   return daysLeft > 0 ? t('book.progressEstimate', { days: daysLeft }) : null;
 }
 
-/** A thin fill bar showing progress toward the effective total — full once the reader hits the last page. */
-function ProgressBar({ percent, theme }: { percent: number; theme: ReturnType<typeof useTheme> }) {
+/**
+ * A fill bar showing progress toward the effective total — full once the reader
+ * hits the last page. The hero card uses the thicker `lg` size with a trailing
+ * percent pill; compact rows use the default thin bar.
+ */
+function ProgressBar({
+  percent,
+  theme,
+  size = 'sm',
+}: {
+  percent: number;
+  theme: ReturnType<typeof useTheme>;
+  size?: 'sm' | 'lg';
+}) {
   const clamped = Math.max(0, Math.min(100, percent));
-  return (
+  const height = size === 'lg' ? 8 : 6;
+  const track = (
     <View
       style={{
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: theme.colors.border,
+        flex: 1,
+        height,
+        borderRadius: height / 2,
+        backgroundColor: theme.colors.surfaceSunken,
         overflow: 'hidden',
-        marginTop: 6,
       }}
     >
-      <View style={{ height: '100%', width: `${clamped}%`, borderRadius: 3, backgroundColor: theme.colors.primary }} />
+      <View style={{ height: '100%', width: `${clamped}%`, borderRadius: height / 2, backgroundColor: theme.colors.primary }} />
+    </View>
+  );
+
+  if (size !== 'lg') {
+    return <View style={{ marginTop: 6 }}>{track}</View>;
+  }
+
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, marginTop: theme.spacing.sm }}>
+      {track}
+      <View
+        style={{
+          backgroundColor: theme.colors.primarySoft,
+          paddingHorizontal: theme.spacing.sm,
+          paddingVertical: 3,
+          borderRadius: theme.radius.pill,
+        }}
+      >
+        <Text variant="caption" style={{ color: theme.colors.primaryOnSoft, fontWeight: '700' }}>
+          {clamped}%
+        </Text>
+      </View>
     </View>
   );
 }
@@ -416,34 +604,37 @@ function ProgressSheetForm({
   );
 }
 
+type FinishedStats = { week: number; month: number; year: number; allTime: number };
+
 /**
  * Books finished this week/month/year, and all-time — computed client-side
  * from the already-cached library rather than a new query, same reasoning
- * as the in-progress list above.
+ * as the in-progress list above. Lifted out of StatsSheet so the header's
+ * "finished this month" stat chip can share the same computation.
  */
-function StatsSheet({ visible, onClose, library }: { visible: boolean; onClose: () => void; library: LibraryEntry[] }) {
+function computeFinishedStats(library: LibraryEntry[]): FinishedStats {
+  const now = new Date();
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const monthStart = startOfMonth(now);
+  const yearStart = startOfYear(now);
+
+  const finishedDates = library
+    .filter((entry) => entry.reading_status === 'finished' && entry.date_finished)
+    .map((entry) => new Date(entry.date_finished!));
+
+  const count = (start: Date) => finishedDates.filter((date) => isWithinInterval(date, { start, end: now })).length;
+
+  return {
+    week: count(weekStart),
+    month: count(monthStart),
+    year: count(yearStart),
+    allTime: finishedDates.length,
+  };
+}
+
+function StatsSheet({ visible, onClose, stats }: { visible: boolean; onClose: () => void; stats: FinishedStats }) {
   const theme = useTheme();
   const { t } = useI18n();
-
-  const stats = useMemo(() => {
-    const now = new Date();
-    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-    const monthStart = startOfMonth(now);
-    const yearStart = startOfYear(now);
-
-    const finishedDates = library
-      .filter((entry) => entry.reading_status === 'finished' && entry.date_finished)
-      .map((entry) => new Date(entry.date_finished!));
-
-    const count = (start: Date) => finishedDates.filter((date) => isWithinInterval(date, { start, end: now })).length;
-
-    return {
-      week: count(weekStart),
-      month: count(monthStart),
-      year: count(yearStart),
-      allTime: finishedDates.length,
-    };
-  }, [library]);
 
   return (
     <Sheet visible={visible} onClose={onClose} title={t('reading.statsTitle')}>

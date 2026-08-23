@@ -292,6 +292,10 @@ export const ru: LocaleCatalogue = {
   'reading.statsMonth': 'В этом месяце',
   'reading.statsYear': 'В этом году',
   'reading.statsAllTime': 'За всё время',
+  'reading.continueReading': 'Продолжить чтение',
+  'reading.alsoReading': 'Также читаете',
+  'reading.statInProgress': 'в процессе',
+  'reading.statFinishedMonth': 'завершено в этом месяце',
 
   'wishlist.title': 'Список желаний',
   'wishlist.subtitle': 'Книги, которые вы хотите, но пока у вас нет.',

@@ -292,6 +292,10 @@ export const uz: LocaleCatalogue = {
   'reading.statsMonth': 'Shu oy',
   'reading.statsYear': 'Shu yil',
   'reading.statsAllTime': 'Barcha vaqt',
+  'reading.continueReading': 'Oʻqishni davom ettirish',
+  'reading.alsoReading': 'Yana oʻqilmoqda',
+  'reading.statInProgress': 'oʻqilmoqda',
+  'reading.statFinishedMonth': 'shu oy tugatilgan',
 
   'wishlist.title': 'Istaklar roʻyxati',
   'wishlist.subtitle': 'Xohlagan, lekin hali sizda yoʻq kitoblar.',

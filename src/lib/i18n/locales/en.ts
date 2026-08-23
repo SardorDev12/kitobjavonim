@@ -287,6 +287,10 @@ export const en = {
   'reading.statsMonth': 'This month',
   'reading.statsYear': 'This year',
   'reading.statsAllTime': 'All time',
+  'reading.continueReading': 'Continue reading',
+  'reading.alsoReading': 'Also reading',
+  'reading.statInProgress': 'in progress',
+  'reading.statFinishedMonth': 'finished this month',
 
   'wishlist.title': 'Wishlist',
   'wishlist.subtitle': 'Books you want, but don’t have yet.',
