@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { isWithinInterval, startOfMonth, startOfWeek, startOfYear } from 'date-fns';
 import { useMemo, useState } from 'react';
-import { Pressable, View } from 'react-native';
+import { Alert, Platform, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/BookCover';
@@ -204,9 +204,45 @@ function StartReadingRow({ entry, onStarted }: { entry: LibraryEntry; onStarted:
   // default page" isn't held up by (or silently stuck on) a network
   // round-trip.
   function start() {
+    if (entry.reading_status === 'finished') {
+      const message = t('reading.rereadBody', { title: entry.title });
+      if (Platform.OS === 'web') {
+        if (globalThis.confirm(message)) reread();
+        return;
+      }
+      Alert.alert(t('reading.rereadTitle'), message, [
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('reading.rereadConfirm'), onPress: reread },
+      ]);
+      return;
+    }
+
     updateProgress.mutate({
       userBookId: entry.id,
       patch: { reading_status: 'reading', date_started: entry.date_started ?? new Date().toISOString().slice(0, 10) },
+    });
+    onStarted();
+  }
+
+  // A fresh read, not a resumed one: date_started resets to today and
+  // current_page/progress_percent are cleared so the progress bar doesn't
+  // start out looking nearly done. rating/review/date_finished must also go
+  // — the review_requires_finished check constraint (0020_reading_progress.sql)
+  // rejects any of them staying set once reading_status isn't 'finished',
+  // the same rule book/[id].tsx's changeStatus already follows when leaving
+  // "finished" for any other status.
+  function reread() {
+    updateProgress.mutate({
+      userBookId: entry.id,
+      patch: {
+        reading_status: 'reading',
+        date_started: new Date().toISOString().slice(0, 10),
+        date_finished: null,
+        current_page: null,
+        progress_percent: null,
+        rating: null,
+        review: null,
+      },
     });
     onStarted();
   }
