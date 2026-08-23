@@ -1,14 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCard } from '@/components/BookCard';
 import { BookGridCard } from '@/components/BookGridCard';
 import { GALLERY_TILE_WIDTH } from '@/components/BookCover';
 import { PullToRefreshIndicator } from '@/components/PullToRefreshIndicator';
-import { Chip, ChipRow, EmptyState, LoadingState, Sheet, Text, TextField } from '@/components/ui';
+import { Chip, EmptyState, LoadingState, Sheet, Text, TextField } from '@/components/ui';
 import { setPendingAddQuery } from '@/features/add/pendingAddQuery';
 import { goToTab } from '@/features/tabs/activeTab';
 import { useI18n } from '@/lib/i18n';
@@ -17,9 +19,27 @@ import { selectLibrary, useLibrary, type LibraryFilter, type LibrarySort } from 
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useTheme } from '@/theme';
 
-const FILTERS: LibraryFilter[] = ['all', 'want_to_read', 'reading', 'finished', 'exchange', 'sale'];
 const SORTS: LibrarySort[] = ['recent', 'title', 'author', 'finished', 'shelf'];
 type ViewMode = 'list' | 'gallery';
+
+// 'all' is pinned outside the draggable row (see the header below) — these
+// are the ones the user can reorder.
+const REORDERABLE_FILTERS: LibraryFilter[] = ['want_to_read', 'reading', 'finished', 'exchange', 'sale'];
+const FILTER_ORDER_STORAGE_KEY = 'settings.libraryFilterOrder';
+
+/**
+ * Drops anything no longer a real filter and appends any filter missing from
+ * a stored order (e.g. one added in a later release after the user last
+ * reordered) — same "don't trust old local storage blindly" spirit as
+ * theme/index.tsx's own mode validation.
+ */
+function sanitizeFilterOrder(stored: unknown): LibraryFilter[] {
+  if (!Array.isArray(stored)) return REORDERABLE_FILTERS;
+  const known = new Set<LibraryFilter>(REORDERABLE_FILTERS);
+  const kept = stored.filter((value): value is LibraryFilter => known.has(value));
+  const missing = REORDERABLE_FILTERS.filter((filter) => !kept.includes(filter));
+  return [...kept, ...missing];
+}
 
 export default function LibraryScreen() {
   const theme = useTheme();
@@ -45,6 +65,29 @@ export default function LibraryScreen() {
   const [sort, setSort] = useState<LibrarySort>('recent');
   const [sortOpen, setSortOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [filterOrder, setFilterOrder] = useState<LibraryFilter[]>(REORDERABLE_FILTERS);
+
+  useEffect(() => {
+    let cancelled = false;
+    AsyncStorage.getItem(FILTER_ORDER_STORAGE_KEY)
+      .then((stored) => {
+        if (cancelled || !stored) return;
+        try {
+          setFilterOrder(sanitizeFilterOrder(JSON.parse(stored)));
+        } catch {
+          // Malformed storage — keep the default order.
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function reorderFilters(next: LibraryFilter[]) {
+    setFilterOrder(next);
+    AsyncStorage.setItem(FILTER_ORDER_STORAGE_KEY, JSON.stringify(next)).catch(() => {});
+  }
 
   // Tiles stay a fixed, small size on every screen — a wider window just
   // fits more columns of it, rather than a fixed column count rendering
@@ -172,17 +215,30 @@ export default function LibraryScreen() {
         />
       </View>
 
-      <View style={{ paddingVertical: theme.spacing.md }}>
-        <ChipRow>
-          {FILTERS.map((option) => (
-            <Chip
-              key={option}
-              label={t(`library.filter.${option}`)}
-              selected={filter === option}
-              onPress={() => setFilter(option)}
-            />
-          ))}
-        </ChipRow>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingVertical: theme.spacing.md,
+          paddingLeft: theme.spacing.lg,
+          gap: theme.spacing.sm,
+        }}
+      >
+        <Chip label={t('library.filter.all')} selected={filter === 'all'} onPress={() => setFilter('all')} />
+        <DraggableFlatList
+          horizontal
+          data={filterOrder}
+          keyExtractor={(item) => item}
+          showsHorizontalScrollIndicator={false}
+          style={{ flexShrink: 1 }}
+          contentContainerStyle={{ gap: theme.spacing.sm, paddingRight: theme.spacing.lg }}
+          onDragEnd={({ data }) => reorderFilters(data)}
+          renderItem={({ item, drag, isActive }: RenderItemParams<LibraryFilter>) => (
+            <Pressable onLongPress={drag} disabled={isActive} onPress={() => setFilter(item)}>
+              <Chip label={t(`library.filter.${item}`)} selected={filter === item} />
+            </Pressable>
+          )}
+        />
       </View>
 
       <View style={styles.fill} onLayout={(event) => setListWidth(event.nativeEvent.layout.width)}>
