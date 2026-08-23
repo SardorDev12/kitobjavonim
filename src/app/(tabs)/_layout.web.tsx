@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 
 import { useI18n } from '@/lib/i18n';
-import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 import { useTheme } from '@/theme';
 
 /**
@@ -19,12 +18,6 @@ import { useTheme } from '@/theme';
 export default function TabsLayout() {
   const theme = useTheme();
   const { t } = useI18n();
-  // Under edge-to-edge, opening the keyboard on a screen inside a tab (e.g.
-  // Discover's search field) doesn't shrink the window — the tab bar stays
-  // rendered at its usual spot at the true bottom of the screen, which the
-  // keyboard then just draws over. Lifting it by the keyboard's height keeps
-  // it reachable instead of hidden underneath.
-  const keyboardHeight = useKeyboardHeight();
 
   return (
     <Tabs
@@ -35,7 +28,6 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: theme.colors.surface,
           borderTopColor: theme.colors.border,
-          ...(keyboardHeight > 0 ? { transform: [{ translateY: -keyboardHeight }] } : null),
         },
         tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
         sceneStyle: { backgroundColor: theme.colors.background },

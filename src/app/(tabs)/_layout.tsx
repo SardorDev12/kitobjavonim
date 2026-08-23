@@ -7,7 +7,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { goToTab, registerTabsPager, setActiveTabIndex, TAB_ROUTES, useActiveTabIndex, type TabRoute } from '@/features/tabs/activeTab';
 import { useI18n } from '@/lib/i18n';
-import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 import { useTheme } from '@/theme';
 
 import AddScreen from './add';
@@ -65,13 +64,6 @@ export default function TabsLayout() {
     // changes activeIndex via onPageSelected.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  // Under edge-to-edge, opening the keyboard on a screen inside a tab (e.g.
-  // Discover's search field) doesn't shrink the window — the tab bar stays
-  // rendered at its usual spot at the true bottom of the screen, which the
-  // keyboard then just draws over. Lifting it by the keyboard's height keeps
-  // it reachable instead of hidden underneath — same fix the old <Tabs>
-  // config applied via tabBarStyle's transform.
-  const keyboardHeight = useKeyboardHeight();
   const activeIndex = useActiveTabIndex();
 
   function labelFor(route: TabRoute): string {
@@ -121,7 +113,6 @@ export default function TabsLayout() {
             backgroundColor: theme.colors.surface,
             borderTopColor: theme.colors.border,
             paddingBottom: insets.bottom,
-            ...(keyboardHeight > 0 ? { transform: [{ translateY: -keyboardHeight }] } : null),
           },
         ]}
       >

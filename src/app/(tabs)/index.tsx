@@ -198,8 +198,13 @@ function StartReadingRow({ entry, onStarted }: { entry: LibraryEntry; onStarted:
   const { t } = useI18n();
   const updateProgress = useUpdateReadingProgress();
 
-  async function start() {
-    await updateProgress.mutateAsync({
+  // Fire-and-forget, same as the in-progress list's own "Finish book"
+  // button above — clearing the search happens immediately on tap rather
+  // than waiting on the mutation to resolve, so "back to the tracker's
+  // default page" isn't held up by (or silently stuck on) a network
+  // round-trip.
+  function start() {
+    updateProgress.mutate({
       userBookId: entry.id,
       patch: { reading_status: 'reading', date_started: entry.date_started ?? new Date().toISOString().slice(0, 10) },
     });
