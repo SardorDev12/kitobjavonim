@@ -209,6 +209,7 @@ export type UpdateUserBookInput = {
       | 'price_negotiable'
       | 'sale_description'
       | 'household_id'
+      | 'total_pages'
     >
   >;
 };

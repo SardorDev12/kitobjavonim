@@ -143,6 +143,8 @@ export type UserBook = {
   updated_at: string;
   /** Set when shared with a household — every member can then see and edit it. */
   household_id: string | null;
+  /** Fallback total page count for this copy, used when the shared books.page_count is unknown. */
+  total_pages: number | null;
 };
 
 /**
@@ -187,6 +189,8 @@ export type LibraryEntry = {
   sale_description: string | null;
   bookshelf_position_id: string | null;
   updated_at: string;
+  /** Fallback total page count for this copy, used when page_count below is unknown. */
+  total_pages: number | null;
 
   title: string;
   subtitle: string | null;

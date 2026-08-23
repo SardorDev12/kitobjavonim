@@ -2,16 +2,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { isWithinInterval, startOfMonth, startOfWeek, startOfYear } from 'date-fns';
 import { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/BookCover';
-import { Button, Card, Chip, EmptyState, LoadingState, Screen, Sheet, Text, TextField } from '@/components/ui';
+import { Button, Card, EmptyState, LoadingState, Screen, Sheet, Text, TextField } from '@/components/ui';
 import { formatAuthors, formatDate } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
-import { useLibrary, useUpdateReadingProgress, type UpdateReadingProgressInput } from '@/lib/queries/library';
+import { useLibrary, useUpdateReadingProgress, useUpdateUserBook } from '@/lib/queries/library';
 import { useTheme } from '@/theme';
 import type { LibraryEntry } from '@/types/database';
-
-const PERCENT_OPTIONS = [25, 50, 75, 100];
 
 /**
  * Books currently being read, with progress/pace and a way to update them —
@@ -26,6 +25,7 @@ const PERCENT_OPTIONS = [25, 50, 75, 100];
 export default function ReadingTrackerScreen() {
   const theme = useTheme();
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
 
   const { data: library, isPending } = useLibrary();
   const [activeEntry, setActiveEntry] = useState<LibraryEntry | null>(null);
@@ -43,7 +43,7 @@ export default function ReadingTrackerScreen() {
 
   return (
     <Screen scroll>
-      <View style={{ gap: theme.spacing.lg, paddingTop: theme.spacing.md, paddingBottom: theme.spacing.lg }}>
+      <View style={{ gap: theme.spacing.lg, paddingTop: insets.top + theme.spacing.md, paddingBottom: theme.spacing.lg }}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <View style={{ gap: theme.spacing.xs, flex: 1 }}>
             <Text variant="display">{t('reading.title')}</Text>
@@ -81,6 +81,7 @@ function ReadingRow({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: () => 
   const updateProgress = useUpdateReadingProgress();
 
   const progressLabel = useMemo(() => describeProgress(entry, t), [entry, t]);
+  const percent = useMemo(() => effectivePercent(entry), [entry]);
   const paceEstimate = useMemo(() => describePace(entry, t), [entry, t]);
 
   function finish() {
@@ -108,6 +109,7 @@ function ReadingRow({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: () => 
           <Text variant="body" style={{ marginTop: 4 }}>
             {progressLabel}
           </Text>
+          {percent != null ? <ProgressBar percent={percent} theme={theme} /> : null}
           {entry.date_started ? (
             <Text variant="caption" color="textSubtle">
               {t('book.startedOn', { date: formatDate(entry.date_started, locale) })}
@@ -136,10 +138,23 @@ function ReadingRow({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: () => 
   );
 }
 
+/** The book's page count if the catalog has it, else this copy's own fallback figure. */
+function effectiveTotal(entry: LibraryEntry): number | null {
+  return entry.page_count ?? entry.total_pages;
+}
+
+/** Progress as a 0-100 whole number, page-based when a total is known, else the legacy percent field. */
+function effectivePercent(entry: LibraryEntry): number | null {
+  const total = effectiveTotal(entry);
+  if (total && entry.current_page) return Math.round((entry.current_page / total) * 100);
+  return entry.progress_percent;
+}
+
 function describeProgress(entry: LibraryEntry, t: ReturnType<typeof useI18n>['t']): string {
-  if (entry.page_count && entry.current_page) {
-    const percent = Math.round((entry.current_page / entry.page_count) * 100);
-    return t('book.progressPageOf', { page: entry.current_page, total: entry.page_count, percent });
+  const total = effectiveTotal(entry);
+  if (total && entry.current_page) {
+    const percent = Math.round((entry.current_page / total) * 100);
+    return t('book.progressPageOf', { page: entry.current_page, total, percent });
   }
   if (entry.progress_percent != null) return t('book.progressPercent', { percent: entry.progress_percent });
   return t('book.progressEmpty');
@@ -147,7 +162,7 @@ function describeProgress(entry: LibraryEntry, t: ReturnType<typeof useI18n>['t'
 
 function describePace(entry: LibraryEntry, t: ReturnType<typeof useI18n>['t']): string | null {
   if (!entry.date_started) return null;
-  const percent = entry.page_count && entry.current_page ? (entry.current_page / entry.page_count) * 100 : entry.progress_percent;
+  const percent = effectivePercent(entry);
   if (!percent) return null;
 
   const daysElapsed = Math.floor((Date.now() - new Date(entry.date_started).getTime()) / 86_400_000);
@@ -157,10 +172,29 @@ function describePace(entry: LibraryEntry, t: ReturnType<typeof useI18n>['t']): 
   return daysLeft > 0 ? t('book.progressEstimate', { days: daysLeft }) : null;
 }
 
+/** A thin fill bar showing progress toward the effective total — full once the reader hits the last page. */
+function ProgressBar({ percent, theme }: { percent: number; theme: ReturnType<typeof useTheme> }) {
+  const clamped = Math.max(0, Math.min(100, percent));
+  return (
+    <View
+      style={{
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: theme.colors.border,
+        overflow: 'hidden',
+        marginTop: 6,
+      }}
+    >
+      <View style={{ height: '100%', width: `${clamped}%`, borderRadius: 3, backgroundColor: theme.colors.primary }} />
+    </View>
+  );
+}
+
 function ProgressSheet({ visible, onClose, entry }: { visible: boolean; onClose: () => void; entry: LibraryEntry | null }) {
   const theme = useTheme();
   const { t } = useI18n();
   const updateProgress = useUpdateReadingProgress();
+  const updateUserBook = useUpdateUserBook();
 
   return (
     <Sheet visible={visible} onClose={onClose} title={t('reading.updateProgress')}>
@@ -168,11 +202,17 @@ function ProgressSheet({ visible, onClose, entry }: { visible: boolean; onClose:
         <ProgressSheetForm
           key={`${entry.id}-${entry.updated_at}`}
           entry={entry}
-          onSave={async (patch) => {
-            await updateProgress.mutateAsync({ userBookId: entry.id, patch });
+          onSave={async ({ totalPages, currentPage }) => {
+            // A newly-entered total goes on the copy (user_books) — shared
+            // with the household, unlike current_page below, which is this
+            // reader's own reading_progress row.
+            await Promise.all([
+              updateProgress.mutateAsync({ userBookId: entry.id, patch: { current_page: currentPage, progress_percent: null } }),
+              totalPages != null ? updateUserBook.mutateAsync({ id: entry.id, patch: { total_pages: totalPages } }) : Promise.resolve(),
+            ]);
             onClose();
           }}
-          saving={updateProgress.isPending}
+          saving={updateProgress.isPending || updateUserBook.isPending}
           theme={theme}
           t={t}
         />
@@ -183,8 +223,10 @@ function ProgressSheet({ visible, onClose, entry }: { visible: boolean; onClose:
 
 /**
  * Progress only — no reading-status chips. Status changes now live on the
- * row itself (the "Finish book" button); this sheet's one job is
- * current_page/progress_percent.
+ * row itself (the "Finish book" button). Always page-based: when neither the
+ * catalog's page_count nor this copy's own total_pages fallback is known yet,
+ * asks for the total once (reusing book.pages — no new copy) alongside the
+ * current page, saving both together.
  */
 function ProgressSheetForm({
   entry,
@@ -194,50 +236,51 @@ function ProgressSheetForm({
   t,
 }: {
   entry: LibraryEntry;
-  onSave: (patch: UpdateReadingProgressInput['patch']) => void;
+  onSave: (input: { totalPages: number | null; currentPage: number | null }) => void;
   saving: boolean;
   theme: ReturnType<typeof useTheme>;
   t: ReturnType<typeof useI18n>['t'];
 }) {
+  const knownTotal = effectiveTotal(entry);
+  const [totalPagesInput, setTotalPagesInput] = useState('');
   const [page, setPage] = useState(entry.current_page?.toString() ?? '');
-  const [percent, setPercent] = useState<number | null>(entry.progress_percent);
+
+  const enteredTotal = knownTotal ?? (Number.isFinite(Number(totalPagesInput)) ? Number(totalPagesInput) : 0);
+  const canSave = enteredTotal > 0;
 
   function save() {
-    if (entry.page_count) {
-      const parsed = Number(page);
-      const clamped = Number.isFinite(parsed) ? Math.min(Math.max(parsed, 0), entry.page_count) : 0;
-      onSave({ current_page: clamped > 0 ? clamped : null, progress_percent: null });
-    } else {
-      onSave({ current_page: null, progress_percent: percent });
-    }
+    if (enteredTotal <= 0) return;
+    const parsedPage = Number(page);
+    const clamped = Number.isFinite(parsedPage) ? Math.min(Math.max(parsedPage, 0), enteredTotal) : 0;
+    onSave({
+      totalPages: knownTotal ? null : enteredTotal,
+      currentPage: clamped > 0 ? clamped : null,
+    });
   }
 
   return (
     <View style={{ gap: theme.spacing.lg }}>
-      {entry.page_count ? (
+      {!knownTotal ? (
         <TextField
-          label={t('book.currentPage')}
-          hint={t('book.currentPageHint', { total: entry.page_count })}
-          value={page}
-          onChangeText={setPage}
+          label={t('book.pages')}
+          value={totalPagesInput}
+          onChangeText={setTotalPagesInput}
           keyboardType="number-pad"
           inputMode="numeric"
-          maxLength={String(entry.page_count).length}
         />
-      ) : (
-        <View style={{ gap: theme.spacing.sm }}>
-          <Text variant="label" color="textMuted">
-            {t('book.progress')}
-          </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-            {PERCENT_OPTIONS.map((option) => (
-              <Chip key={option} label={`${option}%`} selected={percent === option} onPress={() => setPercent(option)} />
-            ))}
-          </View>
-        </View>
-      )}
+      ) : null}
 
-      <Button title={t('common.save')} fullWidth loading={saving} onPress={save} />
+      <TextField
+        label={t('book.currentPage')}
+        hint={enteredTotal > 0 ? t('book.currentPageHint', { total: enteredTotal }) : undefined}
+        value={page}
+        onChangeText={setPage}
+        keyboardType="number-pad"
+        inputMode="numeric"
+        maxLength={enteredTotal > 0 ? String(enteredTotal).length : undefined}
+      />
+
+      <Button title={t('common.save')} fullWidth loading={saving} disabled={!canSave} onPress={save} />
     </View>
   );
 }

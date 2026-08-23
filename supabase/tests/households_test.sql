@@ -134,6 +134,14 @@ values ('d0000000-0000-0000-0000-000000000006', 'e5555555-5555-5555-5555-5555555
 \echo '### erin sees her own status on the shared copy via library_entries (expect finished)'
 select reading_status from library_entries where id = 'd0000000-0000-0000-0000-000000000006';
 
+-- total_pages (0021) is a copy-level fact, not per-person like reading_status
+-- above — any household member sharing the copy may fill it in, not just
+-- whoever added it, unlike household_id itself (see erin's blocked un-share
+-- attempt below).
+\echo '### erin (non-owner household member) can set total_pages on dave''s shared copy (expect success)'
+update user_books set total_pages = 320
+where id = 'd0000000-0000-0000-0000-000000000006';
+
 \echo '### erin cannot reassign a shared copy''s user_id to herself (expect error)'
 \set ON_ERROR_STOP off
 update user_books set user_id = 'e5555555-5555-5555-5555-555555555555'
@@ -159,6 +167,9 @@ set request.jwt.claim.sub = 'd4444444-4444-4444-4444-444444444444';
 
 \echo '### dave''s own status on the same shared copy is untouched by erin''s (expect reading, not finished)'
 select reading_status from library_entries where id = 'd0000000-0000-0000-0000-000000000006';
+
+\echo '### dave sees erin''s total_pages update via library_entries (expect 320 — a copy-level fact, not per-person)'
+select total_pages from library_entries where id = 'd0000000-0000-0000-0000-000000000006';
 
 \echo '### dave (the creator) can un-share his own copy (expect success)'
 update user_books set household_id = null
