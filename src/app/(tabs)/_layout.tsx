@@ -12,13 +12,13 @@ import { useTheme } from '@/theme';
 
 import AddScreen from './add';
 import DiscoverScreen from './discover';
-import LibraryScreen from './index';
+import ReadingTrackerScreen from './index';
+import LibraryScreen from './library';
 import ProfileScreen from './profile';
-import ReadingTrackerScreen from './reading';
 
 const ICONS: Record<TabRoute, keyof typeof Ionicons.glyphMap> = {
-  reading: 'book-outline',
-  index: 'library-outline',
+  index: 'book-outline',
+  library: 'library-outline',
   discover: 'swap-horizontal',
   add: 'add-circle',
   profile: 'person-outline',
@@ -48,7 +48,7 @@ export default function TabsLayout() {
   // public) — segments still reflect that match even though this layout no
   // longer renders a distinct screen per route, so the pager should open on
   // whichever page was actually requested instead of always defaulting to
-  // Library.
+  // Reading.
   // Widened for the same reason root _layout.tsx widens its own segments: the
   // tuple shape expo-router infers depends on .expo/types/router.d.ts, which
   // can be stale, missing, or narrower than the app's real routes.
@@ -76,9 +76,9 @@ export default function TabsLayout() {
 
   function labelFor(route: TabRoute): string {
     switch (route) {
-      case 'reading':
-        return t('reading.tabLabel');
       case 'index':
+        return t('reading.tabLabel');
+      case 'library':
         return t('tabs.library');
       case 'discover':
         return t('tabs.discover');
@@ -97,10 +97,10 @@ export default function TabsLayout() {
         initialPage={initialPage}
         onPageSelected={(e) => setActiveTabIndex(e.nativeEvent.position)}
       >
-        <View key="reading" style={{ flex: 1, backgroundColor: theme.colors.background }}>
+        <View key="index" style={{ flex: 1, backgroundColor: theme.colors.background }}>
           <ReadingTrackerScreen />
         </View>
-        <View key="index" style={{ flex: 1, backgroundColor: theme.colors.background }}>
+        <View key="library" style={{ flex: 1, backgroundColor: theme.colors.background }}>
           <LibraryScreen />
         </View>
         <View key="discover" style={{ flex: 1, backgroundColor: theme.colors.background }}>

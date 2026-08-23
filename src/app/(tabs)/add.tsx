@@ -1,12 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/BookCover';
 import { Button, EmptyState, LoadingState, Text, TextField } from '@/components/ui';
+import { usePendingAddQuery } from '@/features/add/pendingAddQuery';
 import { setPendingBook } from '@/features/add/pendingBook';
 import { searchBooks, type BookCandidate } from '@/lib/books/metadata';
 import { formatAuthors } from '@/lib/format';
@@ -27,17 +28,16 @@ export default function AddScreen() {
   // the empty/footer state stays wherever the FlatList's un-shrunk (under
   // edge-to-edge) layout put it, which the keyboard then just draws over.
   const keyboardHeight = useKeyboardHeight();
-  // Carried over from the Library tab's "not found, add it" empty state —
-  // tabs stay mounted across switches, so this can't be initial state alone,
-  // it has to react to the param changing on an already-mounted screen too.
-  const params = useLocalSearchParams<{ q?: string }>();
-
-  const [input, setInput] = useState(params.q ?? '');
+  const [input, setInput] = useState('');
   const [query, setQuery] = useState('');
 
-  useEffect(() => {
-    if (params.q) setInput(params.q);
-  }, [params.q]);
+  // Carried over from Library's/Reading's "not found, add it" empty states —
+  // this screen is mounted once, directly inside the tabs pager, and never
+  // re-navigated to, so a prop/param can't deliver a later search on top of
+  // an already-mounted screen the way it could under the old <Tabs>
+  // navigator. usePendingAddQuery() fires once per setPendingAddQuery() call
+  // instead, including one already pending when this screen first mounts.
+  usePendingAddQuery((q) => setInput(q));
 
   // Debounced so typing a title does not fire a request per keystroke — the
   // providers are free but rate-limited, and this is the hottest screen.

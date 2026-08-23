@@ -278,6 +278,7 @@ export const en = {
   'reading.emptyBody': 'Mark a book as reading to track your progress here.',
   'reading.updateProgress': 'Update progress',
   'reading.finishBook': 'Finish book',
+  'reading.startReading': 'Start reading',
   'reading.statsTitle': 'Reading stats',
   'reading.statsWeek': 'This week',
   'reading.statsMonth': 'This month',

@@ -1,154 +1,80 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { isWithinInterval, startOfMonth, startOfWeek, startOfYear } from 'date-fns';
+import { useMemo, useState } from 'react';
+import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { BookCard } from '@/components/BookCard';
-import { BookGridCard } from '@/components/BookGridCard';
-import { GALLERY_TILE_WIDTH } from '@/components/BookCover';
-import { PullToRefreshIndicator } from '@/components/PullToRefreshIndicator';
-import { Chip, ChipRow, EmptyState, LoadingState, Sheet, Text, TextField } from '@/components/ui';
+import { BookCover } from '@/components/BookCover';
+import { Button, Card, EmptyState, LoadingState, Screen, Sheet, Text, TextField } from '@/components/ui';
+import { setPendingAddQuery } from '@/features/add/pendingAddQuery';
+import { goToTab } from '@/features/tabs/activeTab';
+import { formatAuthors, formatDate } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
-import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
-import { selectLibrary, useLibrary, type LibraryFilter, type LibrarySort } from '@/lib/queries/library';
-import { usePullToRefresh } from '@/lib/usePullToRefresh';
+import { selectLibrary, useLibrary, useUpdateReadingProgress, useUpdateUserBook } from '@/lib/queries/library';
 import { useTheme } from '@/theme';
+import type { LibraryEntry } from '@/types/database';
 
-const FILTERS: LibraryFilter[] = ['all', 'want_to_read', 'reading', 'finished', 'exchange', 'sale'];
-const SORTS: LibrarySort[] = ['recent', 'title', 'author', 'finished', 'shelf'];
-type ViewMode = 'list' | 'gallery';
-
-export default function LibraryScreen() {
+/**
+ * Books currently being read, with progress/pace and a way to update them —
+ * its own tab rather than spread across each book's own detail page, since
+ * reading state is per-person (0020_reading_progress.sql) and this is the
+ * one place to manage it across every in-progress book at once.
+ *
+ * No new query — reuses useLibrary() (already loads the whole library into
+ * cache) filtered client-side, the same "small enough to hold in cache"
+ * reasoning useLibrary() itself is built on.
+ */
+export default function ReadingTrackerScreen() {
   const theme = useTheme();
   const { t } = useI18n();
-  const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const { data, isPending, isError, refetch, isRefetching } = useLibrary();
-  const { pullDistance, handlers: pullHandlers } = usePullToRefresh(refetch, isRefetching);
-  // The "not found, add it" empty state's button is the whole point of
-  // searching here with nothing in your library yet — without this, the
-  // keyboard that's necessarily still open (it's what you just searched
-  // with) covers it, same problem add.tsx's catalog search has and fixes.
-  const keyboardHeight = useKeyboardHeight();
-
-  // Stable across renders so memo on BookCard/BookGridCard has something to
-  // compare — see their own comments for why that matters in a virtualized
-  // list.
-  const openBook = useCallback((id: string) => router.push(`/book/${id}`), [router]);
-
+  const { data: library, isPending } = useLibrary();
+  const [activeEntry, setActiveEntry] = useState<LibraryEntry | null>(null);
+  const [statsOpen, setStatsOpen] = useState(false);
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<LibraryFilter>('all');
-  const [sort, setSort] = useState<LibrarySort>('recent');
-  const [sortOpen, setSortOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
 
-  // Tiles stay a fixed, small size on every screen — a wider window just
-  // fits more columns of it, rather than a fixed column count rendering
-  // visibly larger tiles.
-  const gutter = theme.spacing.md;
-  const horizontalPadding = theme.spacing.lg;
-  const [listWidth, setListWidth] = useState(0);
-  const galleryColumns =
-    listWidth > 0
-      ? Math.max(2, Math.floor((listWidth - horizontalPadding * 2 + gutter) / (GALLERY_TILE_WIDTH + gutter)))
-      : 0;
-  // Widened past the base gutter to close the slack Math.floor leaves
-  // behind, so a full row's tiles reach the row's actual right edge exactly
-  // (the same effect as justifyContent: 'space-between', without its
-  // downside: applied as a real justifyContent, it would also stretch a
-  // partial last row's one or two tiles apart to fill the leftover width,
-  // which reads as a missing tile rather than intentional spacing. A fixed
-  // gap keeps a partial row's spacing identical to a full row's while still
-  // packing it to the left.)
-  const galleryRowGap =
-    galleryColumns > 1
-      ? Math.max(gutter, (listWidth - horizontalPadding * 2 - galleryColumns * GALLERY_TILE_WIDTH) / (galleryColumns - 1))
-      : gutter;
+  const inProgress = useMemo(() => (library ?? []).filter((entry) => entry.reading_status === 'reading'), [library]);
 
-  const entries = useMemo(
-    () => selectLibrary(data ?? [], { filter, sort, search }),
-    [data, filter, sort, search]
-  );
-
-  const isFiltered = filter !== 'all' || search.trim().length > 0;
-  const total = data?.length ?? 0;
+  // Books that match the search and aren't already being read — those are
+  // what the in-progress list above is for. "Not found" here means "not in
+  // your library yet," same as Library's own search: there's nothing to
+  // start reading for a catalog book nobody owns a copy of.
+  const searchResults = useMemo(() => {
+    if (!search.trim()) return [];
+    return selectLibrary(library ?? [], { filter: 'all', sort: 'title', search }).filter(
+      (entry) => entry.reading_status !== 'reading'
+    );
+  }, [library, search]);
+  const searching = search.trim().length > 0;
 
   if (isPending) {
     return (
-      <View style={[styles.fill, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
+      <Screen>
         <LoadingState />
-      </View>
-    );
-  }
-
-  if (isError && total === 0) {
-    return (
-      <View style={[styles.fill, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
-        <EmptyState
-          tone="error"
-          title={t('error.loadFailed')}
-          body={t('error.network')}
-          actionLabel={t('common.retry')}
-          onAction={() => refetch()}
-        />
-      </View>
+      </Screen>
     );
   }
 
   return (
-    <View style={[styles.fill, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
-      <View style={[styles.header, { paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.md }]}>
-        <View style={styles.titleRow}>
-          <View style={styles.titleText}>
-            <Text variant="display">{t('library.title')}</Text>
-            <Text variant="caption" color="textMuted">
-              {t('library.bookCount', { count: total })}
+    <Screen scroll>
+      <View style={{ gap: theme.spacing.lg, paddingTop: insets.top + theme.spacing.md, paddingBottom: theme.spacing.lg }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <View style={{ gap: theme.spacing.xs, flex: 1 }}>
+            <Text variant="display">{t('reading.title')}</Text>
+            <Text variant="body" color="textMuted">
+              {t('reading.subtitle')}
             </Text>
           </View>
-
-          <View style={styles.headerActions}>
-            <Pressable
-              onPress={() => setViewMode(viewMode === 'list' ? 'gallery' : 'list')}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={viewMode === 'list' ? t('library.viewGallery') : t('library.viewList')}
-              style={({ pressed }) => [
-                styles.iconButton,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.border,
-                  borderRadius: theme.radius.md,
-                  opacity: pressed ? 0.7 : 1,
-                },
-              ]}
-            >
-              <Ionicons
-                name={viewMode === 'list' ? 'grid-outline' : 'list-outline'}
-                size={18}
-                color={theme.colors.textMuted}
-              />
-            </Pressable>
-
-            <Pressable
-              onPress={() => setSortOpen(true)}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={`${t('common.sort')}: ${t(`library.sort.${sort}`)}`}
-              style={({ pressed }) => [
-                styles.iconButton,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.border,
-                  borderRadius: theme.radius.md,
-                  opacity: pressed ? 0.7 : 1,
-                },
-              ]}
-            >
-              <Ionicons name="swap-vertical" size={18} color={theme.colors.textMuted} />
-            </Pressable>
-          </View>
+          <Pressable
+            onPress={() => setStatsOpen(true)}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={t('reading.statsTitle')}
+            style={{ padding: theme.spacing.xs }}
+          >
+            <Ionicons name="stats-chart-outline" size={22} color={theme.colors.text} />
+          </Pressable>
         </View>
 
         <TextField
@@ -168,129 +94,335 @@ export default function LibraryScreen() {
             )
           }
         />
-      </View>
 
-      <View style={{ paddingVertical: theme.spacing.md }}>
-        <ChipRow>
-          {FILTERS.map((option) => (
-            <Chip
-              key={option}
-              label={t(`library.filter.${option}`)}
-              selected={filter === option}
-              onPress={() => setFilter(option)}
-            />
-          ))}
-        </ChipRow>
-      </View>
-
-      <View style={styles.fill} onLayout={(event) => setListWidth(event.nativeEvent.layout.width)}>
-      <PullToRefreshIndicator pullDistance={pullDistance} refreshing={isRefetching} />
-      <FlatList
-        key={viewMode === 'gallery' ? `gallery-${galleryColumns}` : 'list'}
-        data={entries}
-        keyExtractor={(entry) => entry.id}
-        numColumns={viewMode === 'gallery' ? Math.max(galleryColumns, 1) : 1}
-        // galleryRowGap (not the base gutter) — see its own comment above
-        // for why: a full row's tiles reach the row's right edge exactly
-        // (reading the same as space-between), while a partial row keeps
-        // that identical spacing and stays packed to the left instead of
-        // stretching to fill the leftover width.
-        columnWrapperStyle={viewMode === 'gallery' && galleryColumns > 1 ? { gap: galleryRowGap } : undefined}
-        renderItem={({ item }) =>
-          viewMode === 'gallery' ? (
-            galleryColumns > 0 ? (
-              <BookGridCard entry={item} width={GALLERY_TILE_WIDTH} onPress={openBook} />
-            ) : null
-          ) : (
-            <BookCard entry={item} onPress={openBook} />
-          )
-        }
-        contentContainerStyle={[
-          entries.length === 0 && styles.fill,
-          viewMode === 'gallery' && { paddingHorizontal: horizontalPadding },
-          { paddingBottom: theme.spacing['2xl'] + keyboardHeight, gap: viewMode === 'gallery' ? theme.spacing.xl : 0 },
-        ]}
-        scrollEventThrottle={16}
-        {...pullHandlers}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
-            tintColor={theme.colors.primary}
-          />
-        }
-        ListEmptyComponent={
-          search.trim().length > 0 ? (
-            // A text search that turns up nothing in the user's own library
-            // most likely means they don't own that book yet — offer the
-            // fastest path to adding it, with the same query carried over.
+        {searching ? (
+          searchResults.length === 0 ? (
             <EmptyState
               icon="search-outline"
               title={t('library.noResults')}
               body={t('library.noResultsAddBody')}
               actionLabel={t('library.noResultsAddCta')}
-              onAction={() => router.push({ pathname: '/(tabs)/add', params: { q: search.trim() } })}
-            />
-          ) : isFiltered ? (
-            <EmptyState
-              icon="search-outline"
-              title={t('library.noResults')}
-              body={t('library.noResultsBody')}
-              actionLabel={t('common.clear')}
               onAction={() => {
-                setSearch('');
-                setFilter('all');
+                setPendingAddQuery(search.trim());
+                goToTab('add');
               }}
             />
           ) : (
-            <EmptyState
-              title={t('library.empty.title')}
-              body={t('library.empty.body')}
-              actionLabel={t('library.empty.cta')}
-              onAction={() => router.push('/(tabs)/add')}
-            />
+            searchResults.map((entry) => <StartReadingRow key={entry.id} entry={entry} onStarted={() => setSearch('')} />)
           )
-        }
-      />
+        ) : inProgress.length === 0 ? (
+          <EmptyState icon="book-outline" title={t('reading.empty')} body={t('reading.emptyBody')} />
+        ) : (
+          inProgress.map((entry) => <ReadingRow key={entry.id} entry={entry} onUpdate={() => setActiveEntry(entry)} />)
+        )}
       </View>
 
-      <Sheet visible={sortOpen} onClose={() => setSortOpen(false)} title={t('common.sort')}>
-        {SORTS.map((option) => (
-          <Pressable
-            key={option}
-            onPress={() => {
-              setSort(option);
-              setSortOpen(false);
-            }}
-            style={({ pressed }) => [
-              styles.sortOption,
-              { paddingVertical: theme.spacing.md },
-              pressed && { backgroundColor: theme.colors.surfaceSunken },
-            ]}
-          >
-            <Text variant={sort === option ? 'bodyStrong' : 'body'} color={sort === option ? 'primary' : 'text'}>
-              {t(`library.sort.${option}`)}
+      <ProgressSheet visible={activeEntry !== null} onClose={() => setActiveEntry(null)} entry={activeEntry} />
+      <StatsSheet visible={statsOpen} onClose={() => setStatsOpen(false)} library={library ?? []} />
+    </Screen>
+  );
+}
+
+function ReadingRow({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: () => void }) {
+  const theme = useTheme();
+  const { t, locale } = useI18n();
+  const updateProgress = useUpdateReadingProgress();
+
+  const progressLabel = useMemo(() => describeProgress(entry, t), [entry, t]);
+  const percent = useMemo(() => effectivePercent(entry), [entry]);
+  const paceEstimate = useMemo(() => describePace(entry, t), [entry, t]);
+
+  function finish() {
+    updateProgress.mutate({
+      userBookId: entry.id,
+      patch: { reading_status: 'finished', date_finished: entry.date_finished ?? new Date().toISOString().slice(0, 10) },
+    });
+  }
+
+  return (
+    <Card>
+      <View style={[{ flexDirection: 'row', gap: theme.spacing.md }]}>
+        <BookCover uri={entry.cover_url} title={entry.title} width={56} radius={theme.radius.sm} />
+
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text variant="bodyStrong" numberOfLines={2}>
+            {entry.title}
+          </Text>
+          {entry.authors.length > 0 ? (
+            <Text variant="caption" color="textMuted" numberOfLines={1}>
+              {formatAuthors(entry.authors)}
             </Text>
-            {sort === option ? <Ionicons name="checkmark" size={20} color={theme.colors.primary} /> : null}
-          </Pressable>
-        ))}
-      </Sheet>
+          ) : null}
+
+          <Text variant="body" style={{ marginTop: 4 }}>
+            {progressLabel}
+          </Text>
+          {percent != null ? <ProgressBar percent={percent} theme={theme} /> : null}
+          {entry.date_started ? (
+            <Text variant="caption" color="textSubtle">
+              {t('book.startedOn', { date: formatDate(entry.date_started, locale) })}
+            </Text>
+          ) : null}
+          {paceEstimate ? (
+            <Text variant="caption" color="textSubtle">
+              {paceEstimate}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+
+      <View style={{ flexDirection: 'row', gap: theme.spacing.sm, marginTop: theme.spacing.md }}>
+        <Button title={t('reading.updateProgress')} variant="secondary" size="sm" onPress={onUpdate} style={{ flex: 1 }} />
+        <Button
+          title={t('reading.finishBook')}
+          variant="secondary"
+          size="sm"
+          loading={updateProgress.isPending}
+          onPress={finish}
+          style={{ flex: 1 }}
+        />
+      </View>
+    </Card>
+  );
+}
+
+/**
+ * A search match not currently being read — one tap starts it, same
+ * date_started-if-not-already-set rule book/[id].tsx's changeStatus uses.
+ * onStarted clears the search afterward, which is "back to the tracker's
+ * default page": the search UI drops away and the in-progress list (now
+ * including this book) is what's showing.
+ */
+function StartReadingRow({ entry, onStarted }: { entry: LibraryEntry; onStarted: () => void }) {
+  const theme = useTheme();
+  const { t } = useI18n();
+  const updateProgress = useUpdateReadingProgress();
+
+  async function start() {
+    await updateProgress.mutateAsync({
+      userBookId: entry.id,
+      patch: { reading_status: 'reading', date_started: entry.date_started ?? new Date().toISOString().slice(0, 10) },
+    });
+    onStarted();
+  }
+
+  return (
+    <Card>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
+        <BookCover uri={entry.cover_url} title={entry.title} width={48} radius={theme.radius.sm} />
+
+        <View style={{ flex: 1, gap: 2 }}>
+          <Text variant="bodyStrong" numberOfLines={2}>
+            {entry.title}
+          </Text>
+          {entry.authors.length > 0 ? (
+            <Text variant="caption" color="textMuted" numberOfLines={1}>
+              {formatAuthors(entry.authors)}
+            </Text>
+          ) : null}
+        </View>
+
+        <Button title={t('reading.startReading')} variant="secondary" size="sm" loading={updateProgress.isPending} onPress={start} />
+      </View>
+    </Card>
+  );
+}
+
+/** The book's page count if the catalog has it, else this copy's own fallback figure. */
+function effectiveTotal(entry: LibraryEntry): number | null {
+  return entry.page_count ?? entry.total_pages;
+}
+
+/** Progress as a 0-100 whole number, page-based when a total is known, else the legacy percent field. */
+function effectivePercent(entry: LibraryEntry): number | null {
+  const total = effectiveTotal(entry);
+  if (total && entry.current_page) return Math.round((entry.current_page / total) * 100);
+  return entry.progress_percent;
+}
+
+function describeProgress(entry: LibraryEntry, t: ReturnType<typeof useI18n>['t']): string {
+  const total = effectiveTotal(entry);
+  if (total && entry.current_page) {
+    const percent = Math.round((entry.current_page / total) * 100);
+    return t('book.progressPageOf', { page: entry.current_page, total, percent });
+  }
+  if (entry.progress_percent != null) return t('book.progressPercent', { percent: entry.progress_percent });
+  return t('book.progressEmpty');
+}
+
+function describePace(entry: LibraryEntry, t: ReturnType<typeof useI18n>['t']): string | null {
+  if (!entry.date_started) return null;
+  const percent = effectivePercent(entry);
+  if (!percent) return null;
+
+  const daysElapsed = Math.floor((Date.now() - new Date(entry.date_started).getTime()) / 86_400_000);
+  if (daysElapsed < 1) return null;
+
+  const daysLeft = Math.max(0, Math.round(daysElapsed / (percent / 100) - daysElapsed));
+  return daysLeft > 0 ? t('book.progressEstimate', { days: daysLeft }) : null;
+}
+
+/** A thin fill bar showing progress toward the effective total — full once the reader hits the last page. */
+function ProgressBar({ percent, theme }: { percent: number; theme: ReturnType<typeof useTheme> }) {
+  const clamped = Math.max(0, Math.min(100, percent));
+  return (
+    <View
+      style={{
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: theme.colors.border,
+        overflow: 'hidden',
+        marginTop: 6,
+      }}
+    >
+      <View style={{ height: '100%', width: `${clamped}%`, borderRadius: 3, backgroundColor: theme.colors.primary }} />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  fill: { flex: 1, flexGrow: 1 },
-  header: { gap: 12 },
-  titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  titleText: { flex: 1, gap: 2 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
-  iconButton: {
-    width: 34,
-    height: 34,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-  },
-  sortOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-});
+function ProgressSheet({ visible, onClose, entry }: { visible: boolean; onClose: () => void; entry: LibraryEntry | null }) {
+  const theme = useTheme();
+  const { t } = useI18n();
+  const updateProgress = useUpdateReadingProgress();
+  const updateUserBook = useUpdateUserBook();
+
+  return (
+    <Sheet visible={visible} onClose={onClose} title={t('reading.updateProgress')}>
+      {entry ? (
+        <ProgressSheetForm
+          key={`${entry.id}-${entry.updated_at}`}
+          entry={entry}
+          onSave={async ({ totalPages, currentPage }) => {
+            // A newly-entered total goes on the copy (user_books) — shared
+            // with the household, unlike current_page below, which is this
+            // reader's own reading_progress row.
+            await Promise.all([
+              updateProgress.mutateAsync({ userBookId: entry.id, patch: { current_page: currentPage, progress_percent: null } }),
+              totalPages != null ? updateUserBook.mutateAsync({ id: entry.id, patch: { total_pages: totalPages } }) : Promise.resolve(),
+            ]);
+            onClose();
+          }}
+          saving={updateProgress.isPending || updateUserBook.isPending}
+          theme={theme}
+          t={t}
+        />
+      ) : null}
+    </Sheet>
+  );
+}
+
+/**
+ * Progress only — no reading-status chips. Status changes now live on the
+ * row itself (the "Finish book" button). Always page-based: when neither the
+ * catalog's page_count nor this copy's own total_pages fallback is known yet,
+ * asks for the total once (reusing book.pages — no new copy) alongside the
+ * current page, saving both together.
+ */
+function ProgressSheetForm({
+  entry,
+  onSave,
+  saving,
+  theme,
+  t,
+}: {
+  entry: LibraryEntry;
+  onSave: (input: { totalPages: number | null; currentPage: number | null }) => void;
+  saving: boolean;
+  theme: ReturnType<typeof useTheme>;
+  t: ReturnType<typeof useI18n>['t'];
+}) {
+  const knownTotal = effectiveTotal(entry);
+  const [totalPagesInput, setTotalPagesInput] = useState('');
+  const [page, setPage] = useState(entry.current_page?.toString() ?? '');
+
+  const enteredTotal = knownTotal ?? (Number.isFinite(Number(totalPagesInput)) ? Number(totalPagesInput) : 0);
+  const canSave = enteredTotal > 0;
+
+  function save() {
+    if (enteredTotal <= 0) return;
+    const parsedPage = Number(page);
+    const clamped = Number.isFinite(parsedPage) ? Math.min(Math.max(parsedPage, 0), enteredTotal) : 0;
+    onSave({
+      totalPages: knownTotal ? null : enteredTotal,
+      currentPage: clamped > 0 ? clamped : null,
+    });
+  }
+
+  return (
+    <View style={{ gap: theme.spacing.lg }}>
+      {!knownTotal ? (
+        <TextField
+          label={t('book.pages')}
+          value={totalPagesInput}
+          onChangeText={setTotalPagesInput}
+          keyboardType="number-pad"
+          inputMode="numeric"
+        />
+      ) : null}
+
+      <TextField
+        label={t('book.currentPage')}
+        hint={enteredTotal > 0 ? t('book.currentPageHint', { total: enteredTotal }) : undefined}
+        value={page}
+        onChangeText={setPage}
+        keyboardType="number-pad"
+        inputMode="numeric"
+        maxLength={enteredTotal > 0 ? String(enteredTotal).length : undefined}
+      />
+
+      <Button title={t('common.save')} fullWidth loading={saving} disabled={!canSave} onPress={save} />
+    </View>
+  );
+}
+
+/**
+ * Books finished this week/month/year, and all-time — computed client-side
+ * from the already-cached library rather than a new query, same reasoning
+ * as the in-progress list above.
+ */
+function StatsSheet({ visible, onClose, library }: { visible: boolean; onClose: () => void; library: LibraryEntry[] }) {
+  const theme = useTheme();
+  const { t } = useI18n();
+
+  const stats = useMemo(() => {
+    const now = new Date();
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    const monthStart = startOfMonth(now);
+    const yearStart = startOfYear(now);
+
+    const finishedDates = library
+      .filter((entry) => entry.reading_status === 'finished' && entry.date_finished)
+      .map((entry) => new Date(entry.date_finished!));
+
+    const count = (start: Date) => finishedDates.filter((date) => isWithinInterval(date, { start, end: now })).length;
+
+    return {
+      week: count(weekStart),
+      month: count(monthStart),
+      year: count(yearStart),
+      allTime: finishedDates.length,
+    };
+  }, [library]);
+
+  return (
+    <Sheet visible={visible} onClose={onClose} title={t('reading.statsTitle')}>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.lg }}>
+        <StatTile label={t('reading.statsWeek')} value={stats.week} />
+        <StatTile label={t('reading.statsMonth')} value={stats.month} />
+        <StatTile label={t('reading.statsYear')} value={stats.year} />
+        <StatTile label={t('reading.statsAllTime')} value={stats.allTime} />
+      </View>
+    </Sheet>
+  );
+}
+
+function StatTile({ label, value }: { label: string; value: number }) {
+  return (
+    <View style={{ width: '45%', gap: 2 }}>
+      <Text variant="title">{value}</Text>
+      <Text variant="caption" color="textMuted">
+        {label}
+      </Text>
+    </View>
+  );
+}

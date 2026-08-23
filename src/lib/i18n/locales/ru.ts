@@ -283,6 +283,7 @@ export const ru: LocaleCatalogue = {
   'reading.emptyBody': 'Отметьте книгу как «читаю», чтобы отслеживать прогресс здесь.',
   'reading.updateProgress': 'Обновить прогресс',
   'reading.finishBook': 'Завершить книгу',
+  'reading.startReading': 'Начать чтение',
   'reading.statsTitle': 'Статистика чтения',
   'reading.statsWeek': 'На этой неделе',
   'reading.statsMonth': 'В этом месяце',

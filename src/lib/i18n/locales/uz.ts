@@ -283,6 +283,7 @@ export const uz: LocaleCatalogue = {
   'reading.emptyBody': 'Jarayonni shu yerda kuzatish uchun kitobni "oʻqilmoqda" deb belgilang.',
   'reading.updateProgress': 'Jarayonni yangilash',
   'reading.finishBook': 'Kitobni tugatish',
+  'reading.startReading': 'Oʻqishni boshlash',
   'reading.statsTitle': 'Oʻqish statistikasi',
   'reading.statsWeek': 'Shu hafta',
   'reading.statsMonth': 'Shu oy',

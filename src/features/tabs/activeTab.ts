@@ -5,10 +5,13 @@ import type PagerView from 'react-native-pager-view';
 
 /**
  * The 5 tab pages, in pager order — index 0 is the leftmost/first page.
- * Library stays the app's actual cold-launch screen (see (tabs)/_layout.tsx's
- * initialPage) even though Reading is listed first for the bottom bar.
+ * 'index' means Reading, not Library: Expo Router always loads whichever
+ * file is literally named index.tsx at a group's bare path, and Reading is
+ * that file now (renamed from reading.tsx) so it's what opens on cold
+ * launch — Library's file is library.tsx. This array's own order only
+ * controls the tab bar/pager's left-to-right order, which is unrelated.
  */
-export const TAB_ROUTES = ['reading', 'index', 'discover', 'add', 'profile'] as const;
+export const TAB_ROUTES = ['index', 'library', 'discover', 'add', 'profile'] as const;
 export type TabRoute = (typeof TAB_ROUTES)[number];
 
 /**
