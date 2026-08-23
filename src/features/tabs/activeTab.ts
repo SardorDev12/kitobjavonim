@@ -1,5 +1,7 @@
-import type PagerView from 'react-native-pager-view';
+import { router } from 'expo-router';
 import { useSyncExternalStore } from 'react';
+import { Platform } from 'react-native';
+import type PagerView from 'react-native-pager-view';
 
 /**
  * The 5 tab pages, in pager order — index 0 is the leftmost/first page.
@@ -56,8 +58,20 @@ export function getActiveTabIndex(): number {
   return activeIndex;
 }
 
-/** Switches to a tab from anywhere in the app — the pager-based replacement for router.push('/(tabs)/<tab>'). */
+/**
+ * Switches to a tab from anywhere in the app — the pager-based replacement
+ * for router.push('/(tabs)/<tab>') on native. Web never mounts a PagerView
+ * (_layout.web.tsx keeps the classic per-route Tabs navigator — see its own
+ * comment for why), so there `pager` is always null; falling back to plain
+ * route navigation there is what actually switches tabs on web, not a
+ * queued no-op.
+ */
 export function goToTab(route: TabRoute) {
+  if (Platform.OS === 'web') {
+    router.replace(route === 'index' ? '/(tabs)' : (`/(tabs)/${route}` as const));
+    return;
+  }
+
   const index = TAB_ROUTES.indexOf(route);
   if (index < 0) return;
   if (pager) pager.setPage(index);
