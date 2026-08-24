@@ -90,7 +90,7 @@ export function Screen({
         },
       ]}
     >
-      <View style={[styles.headerInner, { maxWidth: maxContentWidth }]}>{header}</View>
+      <View style={[styles.staticConstrain, { maxWidth: maxContentWidth }]}>{header}</View>
     </View>
   ) : null;
 
@@ -127,7 +127,21 @@ export function Screen({
           >
             {onRefresh ? <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} /> : null}
             {headerNode}
-            <View style={[styles.constrain, { maxWidth: maxContentWidth, paddingHorizontal: padded ? theme.spacing.lg : 0 }, contentStyle]}>
+            {/*
+              No flex:1 here (unlike the header-less branch's `inner`) — as a
+              second child alongside the sticky headerNode, a flex:1 sibling
+              stretched to fill the ScrollView's flexGrow:1 content container
+              and pushed its own children down to the bottom of that stretch
+              instead of the top, leaving a large blank gap under the header.
+              Natural content height keeps the list directly under it.
+            */}
+            <View
+              style={[
+                styles.staticConstrain,
+                { maxWidth: maxContentWidth, paddingHorizontal: padded ? theme.spacing.lg : 0 },
+                contentStyle,
+              ]}
+            >
               {children}
             </View>
           </ScrollView>
@@ -209,7 +223,7 @@ const styles = StyleSheet.create({
   constrain: { width: '100%', flex: 1 },
   // No flex:1, unlike `constrain` — this sits inside a ScrollView's content
   // alongside a sibling, and only ever needs its natural content height.
-  headerInner: { width: '100%', alignSelf: 'center' },
+  staticConstrain: { width: '100%', alignSelf: 'center' },
   header: { borderBottomWidth: 1, alignItems: 'center' },
   footer: { borderTopWidth: 1, alignItems: 'center' },
 });
