@@ -77,61 +77,100 @@ export function Screen({
     <View style={[styles.constrain, { maxWidth: maxContentWidth }, contentStyle]}>{children}</View>
   );
 
+  const headerNode = header ? (
+    <View
+      style={[
+        styles.header,
+        {
+          backgroundColor: theme.colors.background,
+          borderBottomColor: theme.colors.border,
+          paddingHorizontal: padded ? theme.spacing.lg : 0,
+          paddingTop: insets.top + theme.spacing.md,
+          paddingBottom: theme.spacing.md,
+        },
+      ]}
+    >
+      <View style={[styles.headerInner, { maxWidth: maxContentWidth }]}>{header}</View>
+    </View>
+  ) : null;
+
   return (
     <View style={[styles.root, { backgroundColor: theme.colors.background }, style]}>
-      {header ? (
-        <View
-          style={[
-            styles.header,
-            {
-              backgroundColor: theme.colors.background,
-              borderBottomColor: theme.colors.border,
-              paddingHorizontal: padded ? theme.spacing.lg : 0,
-              paddingTop: insets.top + theme.spacing.md,
-              paddingBottom: theme.spacing.md,
-            },
-          ]}
-        >
-          <View style={[styles.constrain, { maxWidth: maxContentWidth }]}>{header}</View>
-        </View>
-      ) : null}
-
       {scroll ? (
-        <ScrollView
-          ref={scrollRef}
-          // A bare `flex: 1` here, and nothing else — without it a ScrollView
-          // with no other height constraint sizes itself to its *content*
-          // rather than to the space available in this flex-column root, on
-          // native (react-native-web is more forgiving about the missing
-          // constraint). On a long form that let the ScrollView grow taller
-          // than the screen and push the footer below the fold. (Don't reuse
-          // `styles.flex` for this — it also carries `alignItems: 'center'`,
-          // which centers this outer scroll container to its content's
-          // width instead of stretching it, squeezing every line of text
-          // into a narrow column.)
-          style={styles.scrollOuter}
-          contentContainerStyle={[
-            styles.scrollContent,
-            {
-              paddingHorizontal: padded ? theme.spacing.lg : 0,
-              paddingBottom: theme.spacing['2xl'] + bottomInset + keyboardHeight,
-            },
-          ]}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-          scrollEventThrottle={16}
-          {...(onRefresh ? pullHandlers : null)}
-          refreshControl={
-            onRefresh ? (
-              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
-            ) : undefined
-          }
-        >
-          {onRefresh ? <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} /> : null}
-          {inner}
-        </ScrollView>
+        header ? (
+          // `header` pins via ScrollView's own stickyHeaderIndices rather
+          // than sitting as a plain sibling before the ScrollView: a fixed
+          // sibling next to a `flex: 1` ScrollView measured 0 height on at
+          // least one real Android device (its content still painted,
+          // just outside the box layout accounted for — everything below
+          // it, including the header itself, rendered overlapping at the
+          // top). stickyHeaderIndices is RN's own built-in mechanism for
+          // this and doesn't share that failure mode. Horizontal padding
+          // moves onto each child individually (rather than the shared
+          // contentContainerStyle below) so the sticky header's background
+          // can stay full-bleed behind it while the body content still
+          // gets the normal inset.
+          <ScrollView
+            ref={scrollRef}
+            style={styles.scrollOuter}
+            contentContainerStyle={[styles.scrollContent, { paddingBottom: theme.spacing['2xl'] + bottomInset + keyboardHeight }]}
+            stickyHeaderIndices={onRefresh ? [1] : [0]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            scrollEventThrottle={16}
+            {...(onRefresh ? pullHandlers : null)}
+            refreshControl={
+              onRefresh ? (
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
+              ) : undefined
+            }
+          >
+            {onRefresh ? <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} /> : null}
+            {headerNode}
+            <View style={[styles.constrain, { maxWidth: maxContentWidth, paddingHorizontal: padded ? theme.spacing.lg : 0 }, contentStyle]}>
+              {children}
+            </View>
+          </ScrollView>
+        ) : (
+          <ScrollView
+            ref={scrollRef}
+            // A bare `flex: 1` here, and nothing else — without it a ScrollView
+            // with no other height constraint sizes itself to its *content*
+            // rather than to the space available in this flex-column root, on
+            // native (react-native-web is more forgiving about the missing
+            // constraint). On a long form that let the ScrollView grow taller
+            // than the screen and push the footer below the fold. (Don't reuse
+            // `styles.flex` for this — it also carries `alignItems: 'center'`,
+            // which centers this outer scroll container to its content's
+            // width instead of stretching it, squeezing every line of text
+            // into a narrow column.)
+            style={styles.scrollOuter}
+            contentContainerStyle={[
+              styles.scrollContent,
+              {
+                paddingHorizontal: padded ? theme.spacing.lg : 0,
+                paddingBottom: theme.spacing['2xl'] + bottomInset + keyboardHeight,
+              },
+            ]}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+            scrollEventThrottle={16}
+            {...(onRefresh ? pullHandlers : null)}
+            refreshControl={
+              onRefresh ? (
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
+              ) : undefined
+            }
+          >
+            {onRefresh ? <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} /> : null}
+            {inner}
+          </ScrollView>
+        )
       ) : (
-        <View style={[styles.flex, { paddingHorizontal: padded ? theme.spacing.lg : 0 }]}>{inner}</View>
+        <>
+          {headerNode}
+          <View style={[styles.flex, { paddingHorizontal: padded ? theme.spacing.lg : 0 }]}>{inner}</View>
+        </>
       )}
 
       {footer ? (
@@ -168,6 +207,9 @@ const styles = StyleSheet.create({
   scrollOuter: { flex: 1 },
   scrollContent: { alignItems: 'center', flexGrow: 1 },
   constrain: { width: '100%', flex: 1 },
+  // No flex:1, unlike `constrain` — this sits inside a ScrollView's content
+  // alongside a sibling, and only ever needs its natural content height.
+  headerInner: { width: '100%', alignSelf: 'center' },
   header: { borderBottomWidth: 1, alignItems: 'center' },
   footer: { borderTopWidth: 1, alignItems: 'center' },
 });
