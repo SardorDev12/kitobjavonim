@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { isWithinInterval, startOfMonth, startOfWeek, startOfYear } from 'date-fns';
 import { useMemo, useState } from 'react';
-import { Alert, Platform, Pressable, View } from 'react-native';
+import { Alert, FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/BookCover';
-import { Button, Card, EmptyState, LoadingState, Screen, Sheet, Text, TextField } from '@/components/ui';
+import { Button, Card, EmptyState, LoadingState, Sheet, Text, TextField } from '@/components/ui';
 import { setPendingAddQuery } from '@/features/add/pendingAddQuery';
 import { goToTab } from '@/features/tabs/activeTab';
 import { formatAuthors, formatDate } from '@/lib/format';
@@ -26,6 +27,7 @@ import type { LibraryEntry } from '@/types/database';
 export default function ReadingTrackerScreen() {
   const theme = useTheme();
   const { t } = useI18n();
+  const insets = useSafeAreaInsets();
 
   const { data: library, isPending } = useLibrary();
   const [activeEntry, setActiveEntry] = useState<LibraryEntry | null>(null);
@@ -62,74 +64,84 @@ export default function ReadingTrackerScreen() {
 
   if (isPending) {
     return (
-      <Screen>
+      <View style={[styles.fill, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
         <LoadingState />
-      </Screen>
+      </View>
     );
   }
 
-  const header = (
-    <View style={{ gap: theme.spacing.md }}>
-      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <View style={{ gap: theme.spacing.xs, flex: 1 }}>
-          <Text variant="display">{t('reading.title')}</Text>
-          <Text variant="body" color="textMuted">
-            {t('reading.subtitle')}
-          </Text>
+  // Title/stats icon/stat strip/search stay as a plain sibling above the
+  // FlatList below, the same shape Library's own screen already uses (and
+  // ships fine on real devices) — not a ScrollView + separate header prop,
+  // which measured 0 height on at least one real Android device.
+  return (
+    <View style={[styles.fill, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
+      <View style={{ gap: theme.spacing.md, paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.md }}>
+        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <View style={{ gap: theme.spacing.xs, flex: 1 }}>
+            <Text variant="display">{t('reading.title')}</Text>
+            <Text variant="body" color="textMuted">
+              {t('reading.subtitle')}
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => setStatsOpen(true)}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel={t('reading.statsTitle')}
+            style={{ padding: theme.spacing.xs }}
+          >
+            <Ionicons name="stats-chart-outline" size={22} color={theme.colors.text} />
+          </Pressable>
         </View>
-        <Pressable
-          onPress={() => setStatsOpen(true)}
-          hitSlop={12}
-          accessibilityRole="button"
-          accessibilityLabel={t('reading.statsTitle')}
-          style={{ padding: theme.spacing.xs }}
-        >
-          <Ionicons name="stats-chart-outline" size={22} color={theme.colors.text} />
-        </Pressable>
+
+        {inProgress.length > 0 ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
+            <StatChip icon="book-outline" count={inProgress.length} label={t('reading.statInProgress')} theme={theme} />
+            {finishedStats.month > 0 ? (
+              <>
+                <View style={{ width: 3, height: 3, borderRadius: 2, backgroundColor: theme.colors.border }} />
+                <StatChip
+                  icon="checkmark-circle-outline"
+                  count={finishedStats.month}
+                  label={t('reading.statFinishedMonth')}
+                  theme={theme}
+                />
+              </>
+            ) : null}
+          </View>
+        ) : null}
+
+        <TextField
+          placeholder={t('library.searchPlaceholder')}
+          value={search}
+          onChangeText={setSearch}
+          autoCapitalize="none"
+          autoCorrect={false}
+          returnKeyType="search"
+          trailing={
+            search ? (
+              <Pressable onPress={() => setSearch('')} hitSlop={8} accessibilityLabel={t('common.clear')}>
+                <Ionicons name="close-circle" size={18} color={theme.colors.textSubtle} />
+              </Pressable>
+            ) : (
+              <Ionicons name="search" size={18} color={theme.colors.textSubtle} />
+            )
+          }
+        />
       </View>
 
-      {inProgress.length > 0 ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
-          <StatChip icon="book-outline" count={inProgress.length} label={t('reading.statInProgress')} theme={theme} />
-          {finishedStats.month > 0 ? (
-            <>
-              <View style={{ width: 3, height: 3, borderRadius: 2, backgroundColor: theme.colors.border }} />
-              <StatChip
-                icon="checkmark-circle-outline"
-                count={finishedStats.month}
-                label={t('reading.statFinishedMonth')}
-                theme={theme}
-              />
-            </>
-          ) : null}
-        </View>
-      ) : null}
-
-      <TextField
-        placeholder={t('library.searchPlaceholder')}
-        value={search}
-        onChangeText={setSearch}
-        autoCapitalize="none"
-        autoCorrect={false}
-        returnKeyType="search"
-        trailing={
-          search ? (
-            <Pressable onPress={() => setSearch('')} hitSlop={8} accessibilityLabel={t('common.clear')}>
-              <Ionicons name="close-circle" size={18} color={theme.colors.textSubtle} />
-            </Pressable>
-          ) : (
-            <Ionicons name="search" size={18} color={theme.colors.textSubtle} />
-          )
-        }
-      />
-    </View>
-  );
-
-  return (
-    <Screen scroll header={header}>
-      <View style={{ gap: theme.spacing.lg, paddingTop: theme.spacing.lg, paddingBottom: theme.spacing.lg }}>
-        {searching ? (
-          searchResults.length === 0 ? (
+      {searching ? (
+        <FlatList
+          data={searchResults}
+          keyExtractor={(entry) => entry.id}
+          renderItem={({ item }) => <StartReadingRow entry={item} onStarted={() => setSearch('')} />}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[
+            searchResults.length === 0 && styles.fill,
+            { paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.lg, paddingBottom: theme.spacing['2xl'], gap: theme.spacing.md },
+          ]}
+          ListEmptyComponent={
             <EmptyState
               icon="search-outline"
               title={t('library.noResults')}
@@ -140,32 +152,44 @@ export default function ReadingTrackerScreen() {
                 goToTab('add');
               }}
             />
-          ) : (
-            searchResults.map((entry) => <StartReadingRow key={entry.id} entry={entry} onStarted={() => setSearch('')} />)
-          )
-        ) : inProgress.length === 0 ? (
-          <EmptyState icon="book-outline" title={t('reading.empty')} body={t('reading.emptyBody')} />
-        ) : (
-          <>
-            <SectionLabel icon="book" label={t('reading.continueReading')} tone="accent" theme={theme} />
-            <HeroReadingCard entry={heroEntry!} onUpdate={() => setActiveEntry(heroEntry!)} />
-            {restInProgress.length > 0 ? (
-              <>
-                <SectionLabel label={t('reading.alsoReading')} tone="muted" theme={theme} />
-                {restInProgress.map((entry) => (
-                  <ReadingRow key={entry.id} entry={entry} onUpdate={() => setActiveEntry(entry)} />
-                ))}
-              </>
-            ) : null}
-          </>
-        )}
-      </View>
+          }
+        />
+      ) : (
+        <FlatList
+          data={restInProgress}
+          keyExtractor={(entry) => entry.id}
+          renderItem={({ item }) => <ReadingRow entry={item} onUpdate={() => setActiveEntry(item)} />}
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={[
+            inProgress.length === 0 && styles.fill,
+            { paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.lg, paddingBottom: theme.spacing['2xl'], gap: theme.spacing.lg },
+          ]}
+          ListHeaderComponent={
+            heroEntry ? (
+              <View style={{ gap: theme.spacing.lg }}>
+                <SectionLabel icon="book" label={t('reading.continueReading')} tone="accent" theme={theme} />
+                <HeroReadingCard entry={heroEntry} onUpdate={() => setActiveEntry(heroEntry)} />
+                {restInProgress.length > 0 ? (
+                  <SectionLabel label={t('reading.alsoReading')} tone="muted" theme={theme} />
+                ) : null}
+              </View>
+            ) : null
+          }
+          ListEmptyComponent={
+            inProgress.length === 0 ? (
+              <EmptyState icon="book-outline" title={t('reading.empty')} body={t('reading.emptyBody')} />
+            ) : null
+          }
+        />
+      )}
 
       <ProgressSheet visible={activeEntry !== null} onClose={() => setActiveEntry(null)} entry={activeEntry} />
       <StatsSheet visible={statsOpen} onClose={() => setStatsOpen(false)} stats={finishedStats} />
-    </Screen>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({ fill: { flex: 1, flexGrow: 1 } });
 
 function StatChip({
   icon,
