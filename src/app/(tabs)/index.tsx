@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { isWithinInterval, startOfMonth, startOfWeek, startOfYear } from 'date-fns';
 import { useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/BookCover';
 import { Button, Card, EmptyState, LoadingState, Screen, Sheet, Text, TextField } from '@/components/ui';
@@ -27,7 +26,6 @@ import type { LibraryEntry } from '@/types/database';
 export default function ReadingTrackerScreen() {
   const theme = useTheme();
   const { t } = useI18n();
-  const insets = useSafeAreaInsets();
 
   const { data: library, isPending } = useLibrary();
   const [activeEntry, setActiveEntry] = useState<LibraryEntry | null>(null);
@@ -70,62 +68,66 @@ export default function ReadingTrackerScreen() {
     );
   }
 
-  return (
-    <Screen scroll>
-      <View style={{ gap: theme.spacing.lg, paddingTop: insets.top + theme.spacing.md, paddingBottom: theme.spacing.lg }}>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          <View style={{ gap: theme.spacing.xs, flex: 1 }}>
-            <Text variant="display">{t('reading.title')}</Text>
-            <Text variant="body" color="textMuted">
-              {t('reading.subtitle')}
-            </Text>
-          </View>
-          <Pressable
-            onPress={() => setStatsOpen(true)}
-            hitSlop={12}
-            accessibilityRole="button"
-            accessibilityLabel={t('reading.statsTitle')}
-            style={{ padding: theme.spacing.xs }}
-          >
-            <Ionicons name="stats-chart-outline" size={22} color={theme.colors.text} />
-          </Pressable>
+  const header = (
+    <View style={{ gap: theme.spacing.md }}>
+      <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+        <View style={{ gap: theme.spacing.xs, flex: 1 }}>
+          <Text variant="display">{t('reading.title')}</Text>
+          <Text variant="body" color="textMuted">
+            {t('reading.subtitle')}
+          </Text>
         </View>
+        <Pressable
+          onPress={() => setStatsOpen(true)}
+          hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel={t('reading.statsTitle')}
+          style={{ padding: theme.spacing.xs }}
+        >
+          <Ionicons name="stats-chart-outline" size={22} color={theme.colors.text} />
+        </Pressable>
+      </View>
 
-        {inProgress.length > 0 ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
-            <StatChip icon="book-outline" count={inProgress.length} label={t('reading.statInProgress')} theme={theme} />
-            {finishedStats.month > 0 ? (
-              <>
-                <View style={{ width: 3, height: 3, borderRadius: 2, backgroundColor: theme.colors.border }} />
-                <StatChip
-                  icon="checkmark-circle-outline"
-                  count={finishedStats.month}
-                  label={t('reading.statFinishedMonth')}
-                  theme={theme}
-                />
-              </>
-            ) : null}
-          </View>
-        ) : null}
+      {inProgress.length > 0 ? (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
+          <StatChip icon="book-outline" count={inProgress.length} label={t('reading.statInProgress')} theme={theme} />
+          {finishedStats.month > 0 ? (
+            <>
+              <View style={{ width: 3, height: 3, borderRadius: 2, backgroundColor: theme.colors.border }} />
+              <StatChip
+                icon="checkmark-circle-outline"
+                count={finishedStats.month}
+                label={t('reading.statFinishedMonth')}
+                theme={theme}
+              />
+            </>
+          ) : null}
+        </View>
+      ) : null}
 
-        <TextField
-          placeholder={t('library.searchPlaceholder')}
-          value={search}
-          onChangeText={setSearch}
-          autoCapitalize="none"
-          autoCorrect={false}
-          returnKeyType="search"
-          trailing={
-            search ? (
-              <Pressable onPress={() => setSearch('')} hitSlop={8} accessibilityLabel={t('common.clear')}>
-                <Ionicons name="close-circle" size={18} color={theme.colors.textSubtle} />
-              </Pressable>
-            ) : (
-              <Ionicons name="search" size={18} color={theme.colors.textSubtle} />
-            )
-          }
-        />
+      <TextField
+        placeholder={t('library.searchPlaceholder')}
+        value={search}
+        onChangeText={setSearch}
+        autoCapitalize="none"
+        autoCorrect={false}
+        returnKeyType="search"
+        trailing={
+          search ? (
+            <Pressable onPress={() => setSearch('')} hitSlop={8} accessibilityLabel={t('common.clear')}>
+              <Ionicons name="close-circle" size={18} color={theme.colors.textSubtle} />
+            </Pressable>
+          ) : (
+            <Ionicons name="search" size={18} color={theme.colors.textSubtle} />
+          )
+        }
+      />
+    </View>
+  );
 
+  return (
+    <Screen scroll header={header}>
+      <View style={{ gap: theme.spacing.lg, paddingTop: theme.spacing.lg, paddingBottom: theme.spacing.lg }}>
         {searching ? (
           searchResults.length === 0 ? (
             <EmptyState

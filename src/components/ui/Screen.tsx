@@ -26,6 +26,12 @@ type ScreenProps = {
   padded?: boolean;
   style?: StyleProp<ViewStyle>;
   contentStyle?: StyleProp<ViewStyle>;
+  /**
+   * Rendered above the scroll area instead of inside it — for a title/search
+   * bar that should stay put while a long list scrolls underneath. Owns the
+   * screen's top safe-area inset, so scrolling content shouldn't add its own.
+   */
+  header?: ReactNode;
   footer?: ReactNode;
   /** Pull-to-refresh, wired to a query's refetch. Requires `scroll`. */
   onRefresh?: () => void;
@@ -53,6 +59,7 @@ export function Screen({
   padded = true,
   style,
   contentStyle,
+  header,
   footer,
   onRefresh,
   refreshing = false,
@@ -72,6 +79,23 @@ export function Screen({
 
   return (
     <View style={[styles.root, { backgroundColor: theme.colors.background }, style]}>
+      {header ? (
+        <View
+          style={[
+            styles.header,
+            {
+              backgroundColor: theme.colors.background,
+              borderBottomColor: theme.colors.border,
+              paddingHorizontal: padded ? theme.spacing.lg : 0,
+              paddingTop: insets.top + theme.spacing.md,
+              paddingBottom: theme.spacing.md,
+            },
+          ]}
+        >
+          <View style={[styles.constrain, { maxWidth: maxContentWidth }]}>{header}</View>
+        </View>
+      ) : null}
+
       {scroll ? (
         <ScrollView
           ref={scrollRef}
@@ -144,5 +168,6 @@ const styles = StyleSheet.create({
   scrollOuter: { flex: 1 },
   scrollContent: { alignItems: 'center', flexGrow: 1 },
   constrain: { width: '100%', flex: 1 },
+  header: { borderBottomWidth: 1, alignItems: 'center' },
   footer: { borderTopWidth: 1, alignItems: 'center' },
 });
