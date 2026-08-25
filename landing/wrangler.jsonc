@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Pure static site, no build step at all — plain HTML/CSS/JS, so
+  // "directory" points straight at the source (public/) rather than a
+  // built dist/ the way admin/wrangler.jsonc does. A separate Worker from
+  // both the consumer app and the admin panel so this subdomain never
+  // shares a deploy, a build, or an outage with either; "kitobjavonim-landing"
+  // avoids colliding with those Workers' own names.
+  "name": "kitobjavonim-landing",
+  "compatibility_date": "2026-01-01",
+  // One page, no router — an unmatched path gets Cloudflare's own generic
+  // 404, same reasoning as admin/wrangler.jsonc.
+  "assets": {
+    "directory": "./public"
+  }
+}

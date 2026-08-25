@@ -1,0 +1,14 @@
+# Cloudflare's header-injection convention — same idea as the main app's
+# public/_headers and admin/public/_headers.
+#
+# Tighter than either: this page makes no API calls at all (no Supabase,
+# no third-party script), so connect-src stays 'self' with nothing added.
+# The only two external hosts anywhere in this CSP are Google Fonts'
+# stylesheet host and its font-file host — no inline styles or scripts are
+# used, so neither style-src nor script-src needs 'unsafe-inline'.
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=()
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'
