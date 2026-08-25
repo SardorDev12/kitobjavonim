@@ -1,0 +1,32 @@
+name: Deploy Landing Page
+
+# Publishes landing/public/ as-is to Cloudflare — no build step at all (see
+# landing/README.md), so this is just an upload, not a compile-then-upload
+# the way eas-update.yml or the admin build is.
+#
+# develop -> kitobjavonim-landing-staging, main -> kitobjavonim-landing (the
+# name landing/wrangler.jsonc itself carries) — same staging/production
+# Worker split as the admin panel's own deploy, and for the same reason:
+# a landing-only change should never be able to touch the production
+# subdomain until it's gone through develop first.
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - "landing/**"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: landing
+          command: >-
+            deploy
+            ${{ github.ref_name != 'main' && '--name kitobjavonim-landing-staging' || '' }}

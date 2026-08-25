@@ -37,30 +37,40 @@ npx serve .
 
 ## Deploying
 
-Same two options as `admin/README.md`:
+**GitHub Actions (recommended).** `.github/workflows/deploy-landing.yml`
+runs `wrangler deploy` on every push that touches `landing/**` — same
+mechanism `eas-update.yml` already uses for the app, just with
+`cloudflare/wrangler-action` instead of `expo-github-action`. `develop`
+deploys to `kitobjavonim-landing-staging`, `main` to `kitobjavonim-landing`
+(the name `wrangler.jsonc` itself carries) — same staging/production split
+as the admin panel.
 
-**Cloudflare Git integration (recommended — no local machine needed).**
-Workers & Pages → connect the GitHub repo → track **`main`** (or
-`develop`, if you want a staging subdomain too) → root directory
-`landing/public`, **no build command**, output directory `/` (the root
-directory already points at the deployable folder, since there's nothing
-to build). Cloudflare redeploys automatically on every push to that
-branch.
+This needs two repository secrets (**Settings → Secrets and variables →
+Actions → New repository secret**), created once:
 
-**Local build + wrangler CLI**, if you'd rather:
+- `CLOUDFLARE_API_TOKEN` — **My Profile → API Tokens → Create Token →
+  "Edit Cloudflare Workers"** template, scoped to this account. This token
+  can create/update/delete Workers — treat it like any other deploy
+  credential; a scoped token that can only touch Workers (not your whole
+  Cloudflare account) is the point of using that template instead of a
+  broader one.
+- `CLOUDFLARE_ACCOUNT_ID` — Cloudflare dashboard → any domain in this
+  account → **Account ID** in the right sidebar (or **Workers & Pages**
+  → **Overview**, same value shown there).
 
-```bash
-cd landing
-npx wrangler deploy
-```
+Once both secrets exist, pushing to `develop` or `main` deploys
+automatically — no further action needed, and no local machine involved.
 
-`wrangler.jsonc`'s `name` is `kitobjavonim-landing`; `assets.directory`
-points at `./public` directly.
+**Alternatives**, if you'd rather not wire up the workflow: Cloudflare's
+own Git integration (Workers & Pages → connect the repo → root directory
+`landing/public`, no build command) works too, or `cd landing && npx
+wrangler deploy` locally with `wrangler login` already run once.
 
-Either way, once the project exists: **Workers & Pages → [project] →
-Settings → Domains & Routes → Add → Custom domain** — point your chosen
-subdomain (e.g. `www.kitobjavonim.uz` or `home.kitobjavonim.uz`) at this
-Worker.
+Either way, once the Worker exists (from any of the three paths above):
+**Workers & Pages → [project] → Settings → Domains & Routes → Add →
+Custom domain** — point your chosen subdomain (e.g. `www.kitobjavonim.uz`
+or `home.kitobjavonim.uz`) at it. This one step still needs the dashboard;
+none of the deploy paths above create the domain binding on their own.
 
 ## What's deliberately not here
 
