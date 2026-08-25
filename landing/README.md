@@ -37,43 +37,27 @@ npx serve .
 
 ## Deploying
 
-**GitHub Actions (recommended).** `.github/workflows/deploy-landing.yml`
-runs `wrangler deploy` on every push that touches `landing/**` — same
-mechanism `eas-update.yml` already uses for the app, just with
-`cloudflare/wrangler-action` instead of `expo-github-action`. `develop`
-deploys to `kitobjavonim-landing-staging`, `main` to `kitobjavonim-landing`
-(the name `wrangler.jsonc` itself carries) — same staging/production split
-as the admin panel.
+**Cloudflare's own Git integration** — Workers & Pages → connect the repo →
+root directory `landing/public`, no build command. Redeploys automatically
+on every push to whichever branch it tracks (currently `main`). This is the
+live setup; no repository secrets, no GitHub Actions workflow, no local
+machine involved.
 
-This needs two repository secrets (**Settings → Secrets and variables →
-Actions → New repository secret**), created once:
+There *was* a `deploy-landing.yml` GitHub Actions workflow doing the same
+job via `wrangler deploy` — removed once this Git integration existed,
+since running both meant every push deployed twice through two different
+paths for no benefit. If the Git integration ever needs replacing, `cd
+landing && npx wrangler deploy` (with `wrangler login` run once, or
+`CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` set as env vars) deploys the
+same `wrangler.jsonc` config directly from a local machine.
 
-- `CLOUDFLARE_API_TOKEN` — **My Profile → API Tokens → Create Token →
-  "Edit Cloudflare Workers"** template, scoped to this account. This token
-  can create/update/delete Workers — treat it like any other deploy
-  credential; a scoped token that can only touch Workers (not your whole
-  Cloudflare account) is the point of using that template instead of a
-  broader one.
-- `CLOUDFLARE_ACCOUNT_ID` — Cloudflare dashboard → any domain in this
-  account → **Account ID** in the right sidebar (or **Workers & Pages**
-  → **Overview**, same value shown there).
-
-Once both secrets exist, pushing to `develop` or `main` deploys
-automatically — no further action needed, and no local machine involved.
-
-**Alternatives**, if you'd rather not wire up the workflow: Cloudflare's
-own Git integration (Workers & Pages → connect the repo → root directory
-`landing/public`, no build command) works too, or `cd landing && npx
-wrangler deploy` locally with `wrangler login` already run once.
-
-Either way, once the Worker exists (from any of the three paths above):
-**Workers & Pages → [project] → Settings → Domains & Routes → Add →
-Custom domain** — point the bare apex `kitobjavonim.uz` at the production
-Worker (`kitobjavonim-landing`). This is the site's main URL; the consumer
-app lives at `app.kitobjavonim.uz` instead (see the root `README.md`'s
-"Web → Cloudflare Pages" section for that binding). This one step still
-needs the dashboard; none of the deploy paths above create the domain
-binding on their own.
+Once the Worker exists (either path above): **Workers & Pages → [project] →
+Settings → Domains & Routes → Add → Custom domain** — point the bare apex
+`kitobjavonim.uz` at the production Worker (`kitobjavonim-landing`). This
+is the site's main URL; the consumer app lives at `app.kitobjavonim.uz`
+instead (see the root `README.md`'s "Web → Cloudflare Pages" section for
+that binding). This one step still needs the dashboard; the Git
+integration doesn't create the domain binding on its own.
 
 ## What's deliberately not here
 
