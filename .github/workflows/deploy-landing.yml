@@ -27,6 +27,14 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: landing
+          # Without this the action installs whatever wrangler 3.x satisfies
+          # its default range, and 3.x's `deploy` demands a script
+          # entry-point (`main`) even for an assets-only Worker like this
+          # one — "Missing entry-point" at deploy time. wrangler 4.x deploys
+          # assets-only config with no `main` at all; admin/package.json
+          # already pins the same major version for its own deploy for
+          # exactly this reason.
+          wranglerVersion: "4"
           command: >-
             deploy
             ${{ github.ref_name != 'main' && '--name kitobjavonim-landing-staging' || '' }}
