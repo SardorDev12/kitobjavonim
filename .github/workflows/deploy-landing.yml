@@ -14,6 +14,10 @@ on:
     branches: [develop, main]
     paths:
       - "landing/**"
+  # Lets a redeploy be triggered by hand from the Actions tab without a
+  # dummy commit under landing/** — e.g. right after fixing this workflow
+  # itself, which a path-scoped push trigger can't do for its own change.
+  workflow_dispatch:
 
 jobs:
   deploy:
