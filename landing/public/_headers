@@ -12,3 +12,10 @@
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), camera=(), microphone=(), payment=(), usb=()
   Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; object-src 'none'
+
+# Asset filenames aren't content-hashed, so a long cache would serve stale
+# CSS/JS/icons after the next deploy — an hour is enough to meaningfully cut
+# repeat-visit requests without that risk. HTML gets none of this (falls
+# through to the block above), so a fresh index.html is always fetched.
+/assets/*
+  Cache-Control: public, max-age=3600
