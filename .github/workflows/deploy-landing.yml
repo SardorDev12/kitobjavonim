@@ -1,0 +1,37 @@
+name: Deploy Landing Page
+
+# Publishes landing/public/ as-is to Cloudflare — no build step at all (see
+# landing/README.md), so this is just an upload, not a compile-then-upload
+# the way eas-update.yml or the admin build is.
+#
+# Restored after Cloudflare's own Git-integration build hung indefinitely at
+# "Initializing" on a real deploy attempt, with no diagnostic visible from
+# either the GitHub webhook side or the Cloudflare dashboard. This path
+# already proved itself working earlier (multiple successful deploys to
+# both kitobjavonim-landing-staging and kitobjavonim-landing) and doesn't
+# depend on Cloudflare's own build-container queue at all — it runs on a
+# GitHub-hosted runner and pushes via wrangler directly, so there's nothing
+# on Cloudflare's side to hang.
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - "landing/**"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: landing
+          wranglerVersion: "4"
+          command: >-
+            deploy
+            ${{ github.ref_name != 'main' && '--name kitobjavonim-landing-staging' || '' }}
