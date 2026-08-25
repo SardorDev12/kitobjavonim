@@ -11,8 +11,8 @@ side never touches the others.
   nothing to compile. The root `tsconfig.json`/`vitest.config.ts` don't
   reach into this folder, same as `admin/`.
 - **No backend.** No Supabase calls, no forms that submit anywhere — every
-  call-to-action link goes to `https://kitobjavonim.uz` (the consumer app
-  itself) or `mailto:`. Nothing here needs an environment variable.
+  call-to-action link goes to `https://app.kitobjavonim.uz` (the consumer
+  app itself) or `mailto:`. Nothing here needs an environment variable.
 - **Own icon assets.** `public/assets/icon.png` / `icon-128.png` /
   `favicon.png` are the real app icon (`assets/images/icon.png` at the repo
   root), resized down for web use — not redrawn, so the landing page and
@@ -68,9 +68,12 @@ wrangler deploy` locally with `wrangler login` already run once.
 
 Either way, once the Worker exists (from any of the three paths above):
 **Workers & Pages → [project] → Settings → Domains & Routes → Add →
-Custom domain** — point your chosen subdomain (e.g. `www.kitobjavonim.uz`
-or `home.kitobjavonim.uz`) at it. This one step still needs the dashboard;
-none of the deploy paths above create the domain binding on their own.
+Custom domain** — point the bare apex `kitobjavonim.uz` at the production
+Worker (`kitobjavonim-landing`). This is the site's main URL; the consumer
+app lives at `app.kitobjavonim.uz` instead (see the root `README.md`'s
+"Web → Cloudflare Pages" section for that binding). This one step still
+needs the dashboard; none of the deploy paths above create the domain
+binding on their own.
 
 ## What's deliberately not here
 
@@ -80,7 +83,7 @@ none of the deploy paths above create the domain binding on their own.
   follow-up (duplicate `index.html` and its copy, share `styles.css`/
   `main.js`/`assets/` as-is) if it's wanted later.
 - **No app store badges.** The primary call-to-action links straight to
-  the live web app at `kitobjavonim.uz` rather than a Play Store/App
+  the live web app at `app.kitobjavonim.uz` rather than a Play Store/App
   Store URL, since neither listing is public yet. Once they are, swap the
   hero's secondary link (or add badges) — the store URL format is
   `https://play.google.com/store/apps/details?id=uz.homelibrary.app` for

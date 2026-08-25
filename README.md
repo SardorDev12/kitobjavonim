@@ -113,11 +113,21 @@ npm run build:web
 ```
 
 Publish the `dist` folder. In the Cloudflare dashboard: build command
-`npm run build:web`, output directory `dist`, and add the two `EXPO_PUBLIC_*`
-variables under Settings → Environment variables.
+`npm run build:web`, output directory `dist`, and add the `EXPO_PUBLIC_*`
+variables (see `.env.production`) under Settings → Environment variables.
+Custom domain: `app.kitobjavonim.uz` — the bare apex `kitobjavonim.uz` is
+the marketing landing page instead (`landing/`, below), not this app.
 
 Cloudflare Pages rather than Vercel on purpose — Vercel's Hobby tier is licensed
 for non-commercial use only, and this app has a marketplace in its roadmap.
+
+### Landing page → `landing/`
+
+A separate static site (no build step, no backend) and a separate deploy —
+its own Cloudflare Worker, bound to the bare apex `kitobjavonim.uz` — see
+`landing/README.md`. Purely marketing copy and links out to this app
+(including its `/legal/privacy` and `/legal/terms` pages); nothing here
+touches Supabase or this app's own build.
 
 ### Admin panel → `admin/`
 

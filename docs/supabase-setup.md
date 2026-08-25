@@ -215,8 +215,11 @@ same way step 5 added `localhost` — a confirmation link that redirects
 somewhere not on this list fails silently for the user:
 
 ```
-https://www.kitobjavonim.uz/**
+https://app.kitobjavonim.uz/**
 ```
+
+(The consumer app lives at the `app.` subdomain — `kitobjavonim.uz` itself is
+the marketing landing page, see `landing/README.md`.)
 
 Add the staging Worker's URL too if you want confirmation emails to work
 there for testing (`https://test.kitobjavonim.uz/**`

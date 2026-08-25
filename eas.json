@@ -35,7 +35,7 @@
         "EXPO_PUBLIC_SUPABASE_URL": "https://zsrhzjujoahresqfhpks.supabase.co",
         "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_jsqMsYY3fmBTkIyrcD8E7g_ve9Ef1Ww",
         "EXPO_PUBLIC_TELEGRAM_BOT_USERNAME": "home_library_signin_bot",
-        "EXPO_PUBLIC_WEB_ORIGIN": "https://www.kitobjavonim.uz"
+        "EXPO_PUBLIC_WEB_ORIGIN": "https://app.kitobjavonim.uz"
       }
     }
   },
