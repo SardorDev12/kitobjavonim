@@ -37,27 +37,36 @@ npx serve .
 
 ## Deploying
 
-**Cloudflare's own Git integration** — Workers & Pages → connect the repo →
-root directory `landing/public`, no build command. Redeploys automatically
-on every push to whichever branch it tracks (currently `main`). This is the
-live setup; no repository secrets, no GitHub Actions workflow, no local
-machine involved.
+**`deploy-landing.yml` (GitHub Actions)** is the live setup — runs
+`wrangler deploy` on every push touching `landing/**` (or manually via the
+Actions tab's "Run workflow" button), `main` → `kitobjavonim-landing`,
+`develop` → `kitobjavonim-landing-staging`. Needs
+`CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` as repo secrets.
 
-There *was* a `deploy-landing.yml` GitHub Actions workflow doing the same
-job via `wrangler deploy` — removed once this Git integration existed,
-since running both meant every push deployed twice through two different
-paths for no benefit. If the Git integration ever needs replacing, `cd
-landing && npx wrangler deploy` (with `wrangler login` run once, or
-`CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` set as env vars) deploys the
-same `wrangler.jsonc` config directly from a local machine.
+Cloudflare's own Git integration (Workers & Pages → connect the repo)
+was tried instead and abandoned — for a no-build, assets-only Worker like
+this one, its build step hung indefinitely at "Initializing" with nothing
+diagnosable from either side. GitHub Actions doesn't touch Cloudflare's
+build queue at all — it deploys straight from a GitHub-hosted runner via
+`wrangler` — so if the Git integration situation ever changes, don't
+reconnect it for this project; `deploy-landing.yml` is the dependable path.
+
+Local alternative: `cd landing && npx wrangler deploy` (with `wrangler
+login` run once, or `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` set as
+env vars) deploys the same `wrangler.jsonc` config directly from a local
+machine.
 
 Once the Worker exists (either path above): **Workers & Pages → [project] →
 Settings → Domains & Routes → Add → Custom domain** — point the bare apex
 `kitobjavonim.uz` at the production Worker (`kitobjavonim-landing`). This
 is the site's main URL; the consumer app lives at `app.kitobjavonim.uz`
 instead (see the root `README.md`'s "Web → Cloudflare Pages" section for
-that binding). This one step still needs the dashboard; the Git
-integration doesn't create the domain binding on its own.
+that binding). This step still needs the dashboard; neither deploy path
+creates the domain binding on its own.
+
+`www.kitobjavonim.uz` is not a second copy of the site — it's a Cloudflare
+DNS `CNAME` + Redirect Rule (zone-level, no Worker involved) that
+301-redirects to the bare apex, so there's exactly one canonical URL.
 
 ## What's deliberately not here
 
