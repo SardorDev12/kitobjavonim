@@ -19,29 +19,10 @@
     --forest-on-soft: #1D3A2F;
     --shadow-color: 35, 30, 24;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #17130F;
-      --surface: #211C16;
-      --surface-sunken: #100D0A;
-      --border: #393127;
-      --border-strong: #4C4235;
-      --text: #F3EDE2;
-      --text-muted: #B2A695;
-      --text-subtle: #867C6D;
-      --text-inverted: #1A1611;
-      --primary: #E08A57;
-      --primary-hover: #EC9A6A;
-      --primary-soft: #3A271B;
-      --primary-on-soft: #F0A87A;
-      --accent: #D9A94F;
-      --accent-soft: #2E2716;
-      --forest: #6FA98E;
-      --forest-soft: #1C2B24;
-      --forest-on-soft: #9CCBB4;
-      --shadow-color: 0, 0, 0;
-    }
-  }
+  /* Light is the default regardless of OS preference — unlike the app and
+     admin panel, this page does not follow prefers-color-scheme on first
+     visit; dark only applies once main.js's toggle sets this attribute
+     explicitly (and remembers it in localStorage from then on). */
   :root[data-theme="dark"] {
     --bg: #17130F;
     --surface: #211C16;
@@ -119,10 +100,6 @@
   }
   .theme-toggle:hover { background: var(--surface-sunken); }
   .theme-toggle .icon-moon { display: none; }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) .theme-toggle .icon-sun { display: none; }
-    :root:not([data-theme="light"]) .theme-toggle .icon-moon { display: inline-flex; }
-  }
   :root[data-theme="dark"] .theme-toggle .icon-sun { display: none; }
   :root[data-theme="dark"] .theme-toggle .icon-moon { display: inline-flex; }
 

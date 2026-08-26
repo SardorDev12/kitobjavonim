@@ -11,15 +11,14 @@ document.getElementById('mobilePanel').addEventListener('click', function (e) {
 });
 
 // ---------- Theme ----------
-// theme-init.js (blocking, in <head>) already applied any stored explicit
-// choice before first paint. This just wires the toggle buttons — with no
-// stored choice, styles.css's prefers-color-scheme media query is already
-// governing the page, so "current" theme is read from that when no
-// data-theme attribute is set yet.
+// Light is the default regardless of OS preference — styles.css no longer
+// auto-switches on prefers-color-scheme, only on an explicit data-theme
+// attribute. theme-init.js (blocking, in <head>) already applied any
+// stored explicit choice before first paint; with no stored choice, no
+// attribute is set, which is exactly the light-mode default.
 function currentTheme() {
   var attr = document.documentElement.getAttribute('data-theme');
-  if (attr === 'light' || attr === 'dark') return attr;
-  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  return attr === 'dark' ? 'dark' : 'light';
 }
 document.querySelectorAll('.theme-toggle').forEach(function (btn) {
   btn.addEventListener('click', function () {
@@ -275,14 +274,14 @@ function applyLanguage(lang) {
   try { localStorage.setItem('kj-lang', lang); } catch (e) {}
 }
 
+// Uzbek is the default regardless of browser language — no navigator.language
+// sniffing. A visitor's explicit choice via the UZ/RU/EN buttons is what
+// changes it from then on.
 function detectInitialLang() {
   try {
     var stored = localStorage.getItem('kj-lang');
     if (stored && STRINGS[stored]) return stored;
   } catch (e) {}
-  var nav = (navigator.language || '').toLowerCase();
-  if (nav.indexOf('ru') === 0) return 'ru';
-  if (nav.indexOf('en') === 0) return 'en';
   return 'uz';
 }
 

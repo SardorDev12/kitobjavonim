@@ -29,17 +29,21 @@ side never touches the others.
   `main.js` holds a flat `STRINGS` dictionary and swaps `textContent`/
   attributes on every `[data-i18n]`/`[data-i18n-attr]` element in
   `index.html` — no i18n library, since three languages of static copy
-  don't need one. Detected from `navigator.language` on first visit
-  (defaulting to Uzbek), then remembered in `localStorage` and switchable
-  any time via the `UZ`/`RU`/`EN` buttons in the nav.
-- **Light and dark mode.** The CSS variables already carried a full dark
-  palette (`prefers-color-scheme`-driven, same tokens as the app) before
-  this had a visible toggle — `main.js` just adds the sun/moon button that
-  sets an explicit `data-theme="light"`/`"dark"` attribute and remembers it
-  in `localStorage`. `assets/theme-init.js` is loaded synchronously in
-  `<head>`, before `styles.css`, purely to apply that stored choice before
-  first paint — without it, a returning visitor with a stored preference
-  opposite their OS setting would see a flash of the wrong theme.
+  don't need one. **Uzbek is the default for every first-time visitor**,
+  deliberately not sniffed from `navigator.language` — this is the launch
+  market's own site, not a generic international one. A visitor's choice
+  via the `UZ`/`RU`/`EN` buttons in the nav is remembered in `localStorage`
+  from then on.
+- **Light and dark mode**, light by default. The CSS variables carry a full
+  dark palette (same tokens as the app), applied only via an explicit
+  `data-theme="dark"` attribute — deliberately **not** driven by
+  `prefers-color-scheme`, so a visitor's OS-level dark mode doesn't change
+  what a first-time visitor sees. `main.js`'s sun/moon toggle sets that
+  attribute and remembers the choice in `localStorage`.
+  `assets/theme-init.js` is loaded synchronously in `<head>`, before
+  `styles.css`, purely to apply a *returning* visitor's stored choice
+  before first paint — without it, someone who chose dark previously would
+  see a flash of light mode before JS caught up.
 
 ## Local preview
 
