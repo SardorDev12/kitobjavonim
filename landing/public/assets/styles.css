@@ -100,6 +100,31 @@
   .mobile-panel { display: none; flex-direction: column; gap: 4px; padding: 8px 0 16px; border-top: 1px solid var(--border); }
   .mobile-panel a { padding: 10px 4px; font-size: 15px; color: var(--text-muted); }
   .nav.open .mobile-panel { display: flex; }
+  .mobile-controls { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
+
+  /* ---------- Language + theme controls ---------- */
+  .lang-switch { display: flex; align-items: center; gap: 2px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 9px; padding: 3px; }
+  .lang-btn {
+    border: none; background: none; cursor: pointer; font-family: inherit;
+    font-size: 12px; font-weight: 700; letter-spacing: .02em; color: var(--text-muted);
+    padding: 5px 9px; border-radius: 6px; transition: background .15s, color .15s;
+  }
+  .lang-btn:hover { color: var(--text); }
+  .lang-btn[aria-current="true"] { background: var(--primary-soft); color: var(--primary-on-soft); }
+  .theme-toggle {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 38px; height: 38px; flex-shrink: 0; border-radius: 9px;
+    background: var(--surface); border: 1px solid var(--border-strong); color: var(--text);
+    cursor: pointer; transition: background .15s;
+  }
+  .theme-toggle:hover { background: var(--surface-sunken); }
+  .theme-toggle .icon-moon { display: none; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .theme-toggle .icon-sun { display: none; }
+    :root:not([data-theme="light"]) .theme-toggle .icon-moon { display: inline-flex; }
+  }
+  :root[data-theme="dark"] .theme-toggle .icon-sun { display: none; }
+  :root[data-theme="dark"] .theme-toggle .icon-moon { display: inline-flex; }
 
   /* ---------- Buttons ---------- */
   .btn {
@@ -261,6 +286,8 @@
   @media (max-width: 860px) {
     .nav-links { display: none; }
     .nav-cta .btn-secondary { display: none; }
+    .nav-cta .lang-switch,
+    .nav-cta .theme-toggle { display: none; }
     .menu-btn { display: inline-flex; align-items: center; justify-content: center; }
     .hero-grid { grid-template-columns: 1fr; gap: 40px; }
     .hero { padding: 40px 0 44px; }

@@ -6,10 +6,11 @@ as `admin/README.md`: a separate deploy means a change or an outage on one
 side never touches the others.
 
 - **No build step.** Plain HTML/CSS/JS — `public/index.html`,
-  `public/assets/styles.css`, `public/assets/main.js` (a mobile-nav toggle
-  and the footer year, nothing else). No framework, no `npm install`,
-  nothing to compile. The root `tsconfig.json`/`vitest.config.ts` don't
-  reach into this folder, same as `admin/`.
+  `public/assets/styles.css`, `public/assets/main.js` (mobile-nav toggle,
+  footer year, the language switcher, and the theme toggle),
+  `public/assets/theme-init.js` (see below). No framework, no
+  `npm install`, nothing to compile. The root `tsconfig.json`/
+  `vitest.config.ts` don't reach into this folder, same as `admin/`.
 - **No backend.** No Supabase calls, no forms that submit anywhere — every
   call-to-action link goes to `https://app.kitobjavonim.uz` (the consumer
   app itself) or `mailto:`. Nothing here needs an environment variable.
@@ -24,6 +25,21 @@ side never touches the others.
   copying is simpler than wiring up a shared package for two consumers.
   Copy is adapted from the app's own onboarding/tab strings
   (`src/lib/i18n/locales/uz.ts`) rather than invented from scratch.
+- **Uzbek, Russian, and English**, matching the app's own three languages.
+  `main.js` holds a flat `STRINGS` dictionary and swaps `textContent`/
+  attributes on every `[data-i18n]`/`[data-i18n-attr]` element in
+  `index.html` — no i18n library, since three languages of static copy
+  don't need one. Detected from `navigator.language` on first visit
+  (defaulting to Uzbek), then remembered in `localStorage` and switchable
+  any time via the `UZ`/`RU`/`EN` buttons in the nav.
+- **Light and dark mode.** The CSS variables already carried a full dark
+  palette (`prefers-color-scheme`-driven, same tokens as the app) before
+  this had a visible toggle — `main.js` just adds the sun/moon button that
+  sets an explicit `data-theme="light"`/`"dark"` attribute and remembers it
+  in `localStorage`. `assets/theme-init.js` is loaded synchronously in
+  `<head>`, before `styles.css`, purely to apply that stored choice before
+  first paint — without it, a returning visitor with a stored preference
+  opposite their OS setting would see a flash of the wrong theme.
 
 ## Local preview
 
@@ -70,11 +86,6 @@ DNS `CNAME` + Redirect Rule (zone-level, no Worker involved) that
 
 ## What's deliberately not here
 
-- **No language switcher.** Copy is Uzbek only, matching the app's launch
-  market and the voice already established in its own strings. The page
-  is small enough that a Russian/English version is a straightforward
-  follow-up (duplicate `index.html` and its copy, share `styles.css`/
-  `main.js`/`assets/` as-is) if it's wanted later.
 - **No app store badges.** The primary call-to-action links straight to
   the live web app at `app.kitobjavonim.uz` rather than a Play Store/App
   Store URL, since neither listing is public yet. Once they are, swap the

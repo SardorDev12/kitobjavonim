@@ -2,13 +2,14 @@
 <html lang="uz">
 <head>
 <meta charset="utf-8">
+<script src="/assets/theme-init.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kitobjavonim — kitob javoningiz raqamli dunyoda</title>
-<meta name="description" content="Kitoblaringizni roʻyxatga oling, oʻqish jarayonini kuzating va keraksiz kitoblarni boshqa kitobxonlar bilan almashing yoki soting. iOS, Android va veb uchun bepul.">
+<title data-i18n="meta.title">Kitobjavonim — kitob javoningiz raqamli dunyoda</title>
+<meta name="description" content="Kitoblaringizni roʻyxatga oling, oʻqish jarayonini kuzating va keraksiz kitoblarni boshqa kitobxonlar bilan almashing yoki soting. iOS, Android va veb uchun bepul." data-i18n-attr="content:meta.description">
 <link rel="icon" type="image/png" href="/assets/favicon.png">
 <link rel="apple-touch-icon" href="/assets/icon-128.png">
-<meta property="og:title" content="Kitobjavonim — kitob javoningiz raqamli dunyoda">
-<meta property="og:description" content="Kitoblaringizni roʻyxatga oling, oʻqish jarayonini kuzating va keraksiz kitoblarni boshqa kitobxonlar bilan almashing yoki soting.">
+<meta property="og:title" content="Kitobjavonim — kitob javoningiz raqamli dunyoda" data-i18n-attr="content:meta.title">
+<meta property="og:description" content="Kitoblaringizni roʻyxatga oling, oʻqish jarayonini kuzating va keraksiz kitoblarni boshqa kitobxonlar bilan almashing yoki soting." data-i18n-attr="content:meta.description">
 <meta property="og:type" content="website">
 <meta property="og:image" content="/assets/icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,24 +26,44 @@
       Kitobjavonim
     </a>
     <div class="nav-links">
-      <a href="#xususiyatlar">Kutubxona</a>
-      <a href="#almashuv">Almashuv</a>
-      <a href="#qanday-ishlaydi">Qanday ishlaydi</a>
-      <a href="#boglanish">Bogʻlanish</a>
+      <a href="#xususiyatlar" data-i18n="nav.library">Kutubxona</a>
+      <a href="#almashuv" data-i18n="nav.exchange">Almashuv</a>
+      <a href="#qanday-ishlaydi" data-i18n="nav.howItWorks">Qanday ishlaydi</a>
+      <a href="#boglanish" data-i18n="nav.contact">Bogʻlanish</a>
     </div>
     <div class="nav-cta">
-      <a class="btn btn-secondary btn-sm" href="https://app.kitobjavonim.uz" rel="noopener">Kirish</a>
-      <a class="btn btn-primary btn-sm" href="https://app.kitobjavonim.uz" rel="noopener">Boshlash</a>
-      <button class="menu-btn" id="menuBtn" aria-label="Menyu" aria-expanded="false">
+      <div class="lang-switch" role="group" aria-label="Til" data-i18n-attr="aria-label:controls.langAriaLabel">
+        <button type="button" class="lang-btn" data-lang="uz">UZ</button>
+        <button type="button" class="lang-btn" data-lang="ru">RU</button>
+        <button type="button" class="lang-btn" data-lang="en">EN</button>
+      </div>
+      <button type="button" class="theme-toggle" aria-label="Mavzuni almashtirish" data-i18n-attr="aria-label:controls.themeAriaLabel">
+        <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22"/><line x1="4.2" y1="4.2" x2="6" y2="6"/><line x1="18" y1="18" x2="19.8" y2="19.8"/><line x1="2" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22" y2="12"/><line x1="4.2" y1="19.8" x2="6" y2="18"/><line x1="18" y1="6" x2="19.8" y2="4.2"/></svg>
+        <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+      </button>
+      <a class="btn btn-secondary btn-sm" href="https://app.kitobjavonim.uz" rel="noopener" data-i18n="nav.signIn">Kirish</a>
+      <a class="btn btn-primary btn-sm" href="https://app.kitobjavonim.uz" rel="noopener" data-i18n="nav.start">Boshlash</a>
+      <button class="menu-btn" id="menuBtn" aria-label="Menyu" aria-expanded="false" data-i18n-attr="aria-label:nav.menuAriaLabel">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
     </div>
   </div>
   <div class="wrap mobile-panel" id="mobilePanel">
-    <a href="#xususiyatlar">Kutubxona</a>
-    <a href="#almashuv">Almashuv</a>
-    <a href="#qanday-ishlaydi">Qanday ishlaydi</a>
-    <a href="#boglanish">Bogʻlanish</a>
+    <a href="#xususiyatlar" data-i18n="nav.library">Kutubxona</a>
+    <a href="#almashuv" data-i18n="nav.exchange">Almashuv</a>
+    <a href="#qanday-ishlaydi" data-i18n="nav.howItWorks">Qanday ishlaydi</a>
+    <a href="#boglanish" data-i18n="nav.contact">Bogʻlanish</a>
+    <div class="mobile-controls">
+      <div class="lang-switch" role="group" aria-label="Til" data-i18n-attr="aria-label:controls.langAriaLabel">
+        <button type="button" class="lang-btn" data-lang="uz">UZ</button>
+        <button type="button" class="lang-btn" data-lang="ru">RU</button>
+        <button type="button" class="lang-btn" data-lang="en">EN</button>
+      </div>
+      <button type="button" class="theme-toggle" aria-label="Mavzuni almashtirish" data-i18n-attr="aria-label:controls.themeAriaLabel">
+        <svg class="icon-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="4.5"/><line x1="12" y1="19.5" x2="12" y2="22"/><line x1="4.2" y1="4.2" x2="6" y2="6"/><line x1="18" y1="18" x2="19.8" y2="19.8"/><line x1="2" y1="12" x2="4.5" y2="12"/><line x1="19.5" y1="12" x2="22" y2="12"/><line x1="4.2" y1="19.8" x2="6" y2="18"/><line x1="18" y1="6" x2="19.8" y2="4.2"/></svg>
+        <svg class="icon-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
+      </button>
+    </div>
   </div>
 </nav>
 
@@ -53,45 +74,45 @@
       <div>
         <span class="eyebrow">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5c-1.5-1-4-1.5-6-1.5v13c2 0 4.5.5 6 1.5 1.5-1 4-1.5 6-1.5v-13c-2 0-4.5.5-6 1.5z"/><line x1="12" y1="6.5" x2="12" y2="19.5"/></svg>
-          Kitobxonlar uchun
+          <span data-i18n="hero.eyebrow">Kitobxonlar uchun</span>
         </span>
-        <h1>Kutubxonangiz — choʻntagingizda.</h1>
-        <p class="hero-sub">
+        <h1 data-i18n="hero.title">Kutubxonangiz — choʻntagingizda.</h1>
+        <p class="hero-sub" data-i18n="hero.subtitle">
           Oʻzingizdagi kitoblarni roʻyxatga oling, oʻqish jarayonini kuzating —
           va keraksiz boʻlib qolganlarini boshqa kitobxonlarga bering yoki soting.
           Bittasi ikkinchisiz ham ishlaydi.
         </p>
         <div class="hero-ctas">
           <a class="btn btn-primary" href="https://app.kitobjavonim.uz" rel="noopener">
-            Bepul boshlash
+            <span data-i18n="hero.ctaPrimary">Bepul boshlash</span>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
           </a>
-          <a class="btn btn-secondary" href="#qanday-ishlaydi">Qanday ishlashini koʻring</a>
+          <a class="btn btn-secondary" href="#qanday-ishlaydi" data-i18n="hero.ctaSecondary">Qanday ishlashini koʻring</a>
         </div>
-        <p class="hero-note">iOS, Android va veb uchun — oʻzbek, rus va ingliz tillarida.</p>
+        <p class="hero-note" data-i18n="hero.note">iOS, Android va veb uchun — oʻzbek, rus va ingliz tillarida.</p>
       </div>
 
       <div class="phone-stage" aria-hidden="true">
         <div class="phone">
           <div>
-            <div class="phone-title">Mutolaam</div>
-            <p class="phone-sub">Hozir oʻqiyotgan kitoblaringiz va ulardagi jarayoningiz.</p>
+            <div class="phone-title" data-i18n="phone.title">Mutolaam</div>
+            <p class="phone-sub" data-i18n="phone.subtitle">Hozir oʻqiyotgan kitoblaringiz va ulardagi jarayoningiz.</p>
           </div>
           <div class="phone-stats">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="3" x2="8" y2="21"/></svg>
-            <span><b>3</b> oʻqilmoqda</span>
+            <span><b>3</b> <span data-i18n="phone.statReading">oʻqilmoqda</span></span>
             <span class="stat-dot"></span>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8 12 11 15 16 9"/></svg>
-            <span><b>2</b> shu oy tugatilgan</span>
+            <span><b>2</b> <span data-i18n="phone.statFinished">shu oy tugatilgan</span></span>
           </div>
           <div class="phone-search">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-            Kitoblaringizni qidiring
+            <span data-i18n="phone.searchPlaceholder">Kitoblaringizni qidiring</span>
           </div>
 
           <div class="section-label">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5c-1.5-1-4-1.5-6-1.5v13c2 0 4.5.5 6 1.5 1.5-1 4-1.5 6-1.5v-13c-2 0-4.5.5-6 1.5z"/></svg>
-            OʻQISHNI DAVOM ETTIRISH
+            <span data-i18n="phone.continueReading">Oʻqishni davom ettirish</span>
           </div>
           <div class="hero-card">
             <div class="hero-card-top">
@@ -99,8 +120,8 @@
               <div class="hero-card-meta">
                 <div class="book-title">Qiyofadosh</div>
                 <div class="book-author">Fyodor Dostoyevskiy</div>
-                <div class="progress-line">184 / 412 sahifa</div>
-                <div class="caption-line">Shu sur'atda — yana ~9 kun</div>
+                <div class="progress-line">184 / 412 <span data-i18n="phone.pagesUnit">sahifa</span></div>
+                <div class="caption-line" data-i18n="phone.pace">Shu sur'atda — yana ~9 kun</div>
               </div>
             </div>
             <div class="bar-row">
@@ -108,19 +129,19 @@
               <div class="pct-pill">45%</div>
             </div>
             <div class="btn-row-sm">
-              <a class="btn btn-tint btn-sm" style="flex:1" tabindex="-1">Jarayonni yangilash</a>
-              <a class="btn btn-secondary btn-sm" style="flex:1" tabindex="-1">Kitobni tugatish</a>
+              <a class="btn btn-tint btn-sm" style="flex:1" tabindex="-1" data-i18n="phone.updateProgress">Jarayonni yangilash</a>
+              <a class="btn btn-secondary btn-sm" style="flex:1" tabindex="-1" data-i18n="phone.finishBook">Kitobni tugatish</a>
             </div>
           </div>
 
-          <div class="section-label muted">ALMASHUVGA QOʻYILGAN</div>
+          <div class="section-label muted" data-i18n="phone.listedForExchange">ALMASHUVGA QOʻYILGAN</div>
           <div class="list-card">
             <div class="cover forest"><div class="spine"></div></div>
             <div class="list-meta">
               <div class="list-title">Oʻtkan kunlar</div>
               <div class="list-sub">Abdulla Qodiriy</div>
             </div>
-            <span class="listing-badge">Almashuv</span>
+            <span class="listing-badge" data-i18n="nav.exchange">Almashuv</span>
           </div>
         </div>
       </div>
@@ -130,38 +151,38 @@
   <section id="xususiyatlar">
     <div class="wrap">
       <div class="section-head">
-        <span class="eyebrow">SHAXSIY KUTUBXONA</span>
-        <h2>Kitoblaringizni tartibga soling</h2>
-        <p>Har bir kitob qayerda turgani, qancha oʻqilgani va nimani xohlayotganingiz — bittasi ham esdan chiqmaydi.</p>
+        <span class="eyebrow" data-i18n="features.eyebrow">Shaxsiy kutubxona</span>
+        <h2 data-i18n="features.title">Kitoblaringizni tartibga soling</h2>
+        <p data-i18n="features.subtitle">Har bir kitob qayerda turgani, qancha oʻqilgani va nimani xohlayotganingiz — bittasi ham esdan chiqmaydi.</p>
       </div>
       <div class="card-grid">
         <div class="feature-card">
           <div class="feature-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V5a1 1 0 0 1 1-1h2"/><path d="M20 7V5a1 1 0 0 0-1-1h-2"/><path d="M4 17v2a1 1 0 0 0 1 1h2"/><path d="M20 17v2a1 1 0 0 1-1 1h-2"/><line x1="7" y1="8" x2="7" y2="16"/><line x1="10.5" y1="8" x2="10.5" y2="16"/><line x1="13" y1="8" x2="13" y2="16"/><line x1="16.5" y1="8" x2="16.5" y2="16"/></svg>
           </div>
-          <h3>Bir necha soniyada qoʻshing</h3>
-          <p>Shtrix-kodni skanerlang yoki nomi boʻyicha qidiring — muallif, muqova va sahifalar soni avtomatik toʻldiriladi.</p>
+          <h3 data-i18n="features.card1.title">Bir necha soniyada qoʻshing</h3>
+          <p data-i18n="features.card1.body">Shtrix-kodni skanerlang yoki nomi boʻyicha qidiring — muallif, muqova va sahifalar soni avtomatik toʻldiriladi.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5c-1.5-1-4-1.5-6-1.5v13c2 0 4.5.5 6 1.5 1.5-1 4-1.5 6-1.5v-13c-2 0-4.5.5-6 1.5z"/><line x1="12" y1="6.5" x2="12" y2="19.5"/></svg>
           </div>
-          <h3>Oʻqish jarayonini kuzating</h3>
-          <p>Qaysi sahifada ekaningizni belgilang — ilova shu sur'atda qachon tugatishingizni taxmin qiladi.</p>
+          <h3 data-i18n="features.card2.title">Oʻqish jarayonini kuzating</h3>
+          <p data-i18n="features.card2.body">Qaysi sahifada ekaningizni belgilang — ilova shu sur'atda qachon tugatishingizni taxmin qiladi.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21V10l8-6 8 6v11"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="8" y1="15" x2="8" y2="21"/><line x1="14" y1="15" x2="14" y2="21"/></svg>
           </div>
-          <h3>Javonga joylashtiring</h3>
-          <p>Har bir kitobni qaysi javon va qatorda turganini belgilang — endi qidirib yurishga hojat yoʻq.</p>
+          <h3 data-i18n="features.card3.title">Javonga joylashtiring</h3>
+          <p data-i18n="features.card3.body">Har bir kitobni qaysi javon va qatorda turganini belgilang — endi qidirib yurishga hojat yoʻq.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
           </div>
-          <h3>Istaklar roʻyxati</h3>
-          <p>Xohlagan, lekin hali sizda yoʻq kitoblarni yozib qoʻying — topganingizda darrov eslaysiz.</p>
+          <h3 data-i18n="features.card4.title">Istaklar roʻyxati</h3>
+          <p data-i18n="features.card4.body">Xohlagan, lekin hali sizda yoʻq kitoblarni yozib qoʻying — topganingizda darrov eslaysiz.</p>
         </div>
       </div>
     </div>
@@ -170,38 +191,38 @@
   <section id="almashuv" class="section-exchange">
     <div class="wrap">
       <div class="section-head">
-        <span class="eyebrow forest">ALMASHUV</span>
-        <h2>Keraksiz kitobga — yangi uy</h2>
-        <p>Javoningizda turgan, lekin endi ochilmaydigan kitoblar bormi? Ularni boshqa kitobxonlarga bering yoki soting — yoki oʻzingizga kerakli kitobni shu yerdan toping.</p>
+        <span class="eyebrow forest" data-i18n="nav.exchange">Almashuv</span>
+        <h2 data-i18n="exchange.title">Keraksiz kitobga — yangi uy</h2>
+        <p data-i18n="exchange.subtitle">Javoningizda turgan, lekin endi ochilmaydigan kitoblar bormi? Ularni boshqa kitobxonlarga bering yoki soting — yoki oʻzingizga kerakli kitobni shu yerdan toping.</p>
       </div>
       <div class="card-grid">
         <div class="feature-card">
           <div class="feature-icon forest">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 12.6 12 21.2a2 2 0 0 1-2.8 0l-6.4-6.4a2 2 0 0 1 0-2.8L11.4 3.4a2 2 0 0 1 1.4-.6H19a2 2 0 0 1 2 2v6.6a2 2 0 0 1-.4 1.6z"/><circle cx="15.5" cy="8.5" r="1.2"/></svg>
           </div>
-          <h3>Eʼlon joylashtiring</h3>
-          <p>Kitobni almashuvga yoki sotuvga qoʻying, holatini (yangi, yaxshi, oʻrtacha) belgilang.</p>
+          <h3 data-i18n="exchange.card1.title">Eʼlon joylashtiring</h3>
+          <p data-i18n="exchange.card1.body">Kitobni almashuvga yoki sotuvga qoʻying, holatini (yangi, yaxshi, oʻrtacha) belgilang.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon forest">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>
           </div>
-          <h3>Hududingizdan qidiring</h3>
-          <p>Viloyat va tuman boʻyicha filtrlang — yaqin-atrofdagi kitobxonlar bilan almashish osonroq.</p>
+          <h3 data-i18n="exchange.card2.title">Hududingizdan qidiring</h3>
+          <p data-i18n="exchange.card2.body">Viloyat va tuman boʻyicha filtrlang — yaqin-atrofdagi kitobxonlar bilan almashish osonroq.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon forest">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><polyline points="9 12 11 14 15 10"/></svg>
           </div>
-          <h3>Xavfsiz aloqa</h3>
-          <p>Aloqa maʼlumotlaringiz faqat "Egasi bilan bogʻlanish" tugmasini bosgan odamgagina koʻrsatiladi.</p>
+          <h3 data-i18n="exchange.card3.title">Xavfsiz aloqa</h3>
+          <p data-i18n="exchange.card3.body">Aloqa maʼlumotlaringiz faqat "Egasi bilan bogʻlanish" tugmasini bosgan odamgagina koʻrsatiladi.</p>
         </div>
         <div class="feature-card">
           <div class="feature-icon forest">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 21V4"/><path d="M5 4h13l-3 4 3 4H5"/></svg>
           </div>
-          <h3>Nazorat ostida</h3>
-          <p>Nomaqbul eʼlonlarni shikoyat qiling — jamoamiz koʻrib chiqib, kerak boʻlsa oʻchiradi.</p>
+          <h3 data-i18n="exchange.card4.title">Nazorat ostida</h3>
+          <p data-i18n="exchange.card4.body">Nomaqbul eʼlonlarni shikoyat qiling — jamoamiz koʻrib chiqib, kerak boʻlsa oʻchiradi.</p>
         </div>
       </div>
     </div>
@@ -210,24 +231,24 @@
   <section id="qanday-ishlaydi">
     <div class="wrap">
       <div class="section-head">
-        <span class="eyebrow">QANDAY ISHLAYDI</span>
-        <h2>Uch qadamda kutubxonangiz jonlanadi</h2>
+        <span class="eyebrow" data-i18n="nav.howItWorks">Qanday ishlaydi</span>
+        <h2 data-i18n="how.title">Uch qadamda kutubxonangiz jonlanadi</h2>
       </div>
       <div class="steps">
         <div class="step">
           <div class="step-num">1</div>
-          <h3>Qoʻshing</h3>
-          <p>Shtrix-kodni skanerlang yoki nomi boʻyicha qidiring — kitob bir necha soniyada kutubxonangizga qoʻshiladi.</p>
+          <h3 data-i18n="how.step1.title">Qoʻshing</h3>
+          <p data-i18n="how.step1.body">Shtrix-kodni skanerlang yoki nomi boʻyicha qidiring — kitob bir necha soniyada kutubxonangizga qoʻshiladi.</p>
         </div>
         <div class="step">
           <div class="step-num">2</div>
-          <h3>Belgilang</h3>
-          <p>Shaxsiy saqlang, oʻqish jarayonini kuzating yoki almashuv/sotuvga chiqaring — istalgan vaqtda oʻzgartirasiz.</p>
+          <h3 data-i18n="how.step2.title">Belgilang</h3>
+          <p data-i18n="how.step2.body">Shaxsiy saqlang, oʻqish jarayonini kuzating yoki almashuv/sotuvga chiqaring — istalgan vaqtda oʻzgartirasiz.</p>
         </div>
         <div class="step">
           <div class="step-num">3</div>
-          <h3>Bogʻlaning</h3>
-          <p>Qiziqqan kitobxon sizga yozadi — javonlaringiz shunchaki roʻyxat emas, haqiqiy tarmoqqa aylanadi.</p>
+          <h3 data-i18n="how.step3.title">Bogʻlaning</h3>
+          <p data-i18n="how.step3.body">Qiziqqan kitobxon sizga yozadi — javonlaringiz shunchaki roʻyxat emas, haqiqiy tarmoqqa aylanadi.</p>
         </div>
       </div>
     </div>
@@ -237,15 +258,15 @@
     <div class="trust-row">
       <div class="trust-item">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg>
-        Oʻzbek, rus va ingliz tillarida
+        <span data-i18n="trust.languages">Oʻzbek, rus va ingliz tillarida</span>
       </div>
       <div class="trust-item">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="5" y1="18" x2="19" y2="18"/></svg>
-        iOS, Android va veb
+        <span data-i18n="trust.platforms">iOS, Android va veb</span>
       </div>
       <div class="trust-item">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
-        Bepul boshlanadi
+        <span data-i18n="trust.free">Bepul boshlanadi</span>
       </div>
     </div>
   </div>
@@ -253,10 +274,10 @@
   <section>
     <div class="wrap">
       <div class="cta-band">
-        <h2>Javoningizni raqamlashtirishga tayyormisiz?</h2>
-        <p>Birinchi kitobingizni qoʻshish bir necha soniya oladi. Karta va roʻyxatdan oʻtish shart emas — Google yoki Telegram bilan ham kirishingiz mumkin.</p>
+        <h2 data-i18n="cta.title">Javoningizni raqamlashtirishga tayyormisiz?</h2>
+        <p data-i18n="cta.body">Birinchi kitobingizni qoʻshish bir necha soniya oladi. Karta va roʻyxatdan oʻtish shart emas — Google yoki Telegram bilan ham kirishingiz mumkin.</p>
         <a class="btn btn-secondary" href="https://app.kitobjavonim.uz" rel="noopener">
-          Kitobjavonimni ochish
+          <span data-i18n="cta.button">Kitobjavonimni ochish</span>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
         </a>
       </div>
@@ -272,27 +293,27 @@
         <img src="/assets/icon-128.png" alt="">
         Kitobjavonim
       </a>
-      <p>Shaxsiy kutubxonangizni tartibga soluvchi va kitobxonlarni bir-biri bilan bogʻlovchi ilova.</p>
+      <p data-i18n="footer.tagline">Shaxsiy kutubxonangizni tartibga soluvchi va kitobxonlarni bir-biri bilan bogʻlovchi ilova.</p>
     </div>
     <div class="footer-cols">
       <div class="footer-col">
-        <h4>Ilova</h4>
+        <h4 data-i18n="footer.appHeading">Ilova</h4>
         <ul>
-          <li><a href="#xususiyatlar">Kutubxona</a></li>
-          <li><a href="#almashuv">Almashuv</a></li>
-          <li><a href="#qanday-ishlaydi">Qanday ishlaydi</a></li>
-          <li><a href="https://app.kitobjavonim.uz" rel="noopener">Ilovani ochish</a></li>
+          <li><a href="#xususiyatlar" data-i18n="nav.library">Kutubxona</a></li>
+          <li><a href="#almashuv" data-i18n="nav.exchange">Almashuv</a></li>
+          <li><a href="#qanday-ishlaydi" data-i18n="nav.howItWorks">Qanday ishlaydi</a></li>
+          <li><a href="https://app.kitobjavonim.uz" rel="noopener" data-i18n="footer.openApp">Ilovani ochish</a></li>
         </ul>
       </div>
       <div class="footer-col">
-        <h4>Huquqiy</h4>
+        <h4 data-i18n="footer.legalHeading">Huquqiy</h4>
         <ul>
-          <li><a href="https://app.kitobjavonim.uz/legal/privacy" rel="noopener">Maxfiylik siyosati</a></li>
-          <li><a href="https://app.kitobjavonim.uz/legal/terms" rel="noopener">Foydalanish shartlari</a></li>
+          <li><a href="https://app.kitobjavonim.uz/legal/privacy" rel="noopener" data-i18n="footer.privacy">Maxfiylik siyosati</a></li>
+          <li><a href="https://app.kitobjavonim.uz/legal/terms" rel="noopener" data-i18n="footer.terms">Foydalanish shartlari</a></li>
         </ul>
       </div>
       <div class="footer-col">
-        <h4>Bogʻlanish</h4>
+        <h4 data-i18n="nav.contact">Bogʻlanish</h4>
         <ul>
           <li><a href="mailto:murojaat@kitobjavonim.uz">murojaat@kitobjavonim.uz</a></li>
         </ul>
@@ -301,7 +322,7 @@
   </div>
   <div class="wrap footer-bottom">
     <span>© <span id="year"></span> Kitobjavonim</span>
-    <span>Toshkent, Oʻzbekiston</span>
+    <span data-i18n="footer.location">Toshkent, Oʻzbekiston</span>
   </div>
 </footer>
 
