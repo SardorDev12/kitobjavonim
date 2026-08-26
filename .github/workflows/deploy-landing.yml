@@ -7,11 +7,16 @@ name: Deploy Landing Page
 # Restored after Cloudflare's own Git-integration build hung indefinitely at
 # "Initializing" on a real deploy attempt, with no diagnostic visible from
 # either the GitHub webhook side or the Cloudflare dashboard. This path
-# already proved itself working earlier (multiple successful deploys to
-# both kitobjavonim-landing-staging and kitobjavonim-landing) and doesn't
-# depend on Cloudflare's own build-container queue at all — it runs on a
-# GitHub-hosted runner and pushes via wrangler directly, so there's nothing
-# on Cloudflare's side to hang.
+# already proved itself working earlier and doesn't depend on Cloudflare's
+# own build-container queue at all — it runs on a GitHub-hosted runner and
+# pushes via wrangler directly, so there's nothing on Cloudflare's side to
+# hang.
+#
+# Unlike the app/admin Workers, there's a single kitobjavonim-landing
+# Worker for both develop and main — no staging split. This page has no
+# backend and no environment variables (see landing/README.md), so a
+# staging deploy would only ever be a byte-for-byte copy of production
+# deployed to a second Worker for no reason.
 on:
   push:
     branches: [develop, main]
@@ -32,6 +37,4 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: landing
           wranglerVersion: "4"
-          command: >-
-            deploy
-            ${{ github.ref_name != 'main' && '--name kitobjavonim-landing-staging' || '' }}
+          command: deploy
