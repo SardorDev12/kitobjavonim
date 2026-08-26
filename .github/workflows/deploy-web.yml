@@ -1,0 +1,59 @@
+name: Deploy Web App
+
+# Builds the Expo web export and deploys it straight to Cloudflare via
+# wrangler — same reasoning as deploy-landing.yml. Cloudflare's own Git
+# integration for this Worker builds on every push through Cloudflare's own
+# build queue, counted against the account-wide monthly build-minute cap;
+# GitHub Actions doesn't touch that queue at all, so building here instead
+# keeps this Worker off the cap entirely.
+#
+# main -> kitobjavonim (production), develop -> kitobjavonim-staging,
+# matching wrangler.jsonc's own "name" (reserved for production) and the
+# --name override documented in .env.staging.
+on:
+  push:
+    branches: [develop, main]
+    paths-ignore:
+      - "admin/**"
+      - "landing/**"
+      - "supabase/**"
+      - "*.md"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build web export
+        # Expo Router's default not-found page exports as +not-found.html;
+        # wrangler.jsonc's not_found_handling: "404-page" needs a literal
+        # 404.html at the asset root to serve real content instead of
+        # Cloudflare's generic blank 404, so the copy is part of the build,
+        # not optional.
+        run: |
+          npx expo export --platform web
+          cp dist/+not-found.html dist/404.html
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: ${{ github.ref_name == 'main' && 'https://zsrhzjujoahresqfhpks.supabase.co' || 'https://ahpsnvxpduaqrkvmpfck.supabase.co' }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ github.ref_name == 'main' && 'sb_publishable_jsqMsYY3fmBTkIyrcD8E7g_ve9Ef1Ww' || 'sb_publishable_nM9zD2eA5FtbkwEG_ISdnQ_W8ae4FQ3' }}
+          EXPO_PUBLIC_TELEGRAM_BOT_USERNAME: home_library_signin_bot
+          EXPO_PUBLIC_WEB_ORIGIN: ${{ github.ref_name == 'main' && 'https://app.kitobjavonim.uz' || 'https://test.kitobjavonim.uz' }}
+
+      - name: Deploy to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: "4"
+          command: >-
+            deploy
+            ${{ github.ref_name != 'main' && '--name kitobjavonim-staging' || '' }}

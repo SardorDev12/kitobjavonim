@@ -1,0 +1,48 @@
+name: Deploy Admin Panel
+
+# Same reasoning as deploy-web.yml / deploy-landing.yml — building here
+# instead of through Cloudflare's own Git integration keeps this Worker off
+# Cloudflare's monthly build-minute cap entirely.
+#
+# main -> kitobjavonim-admin (production), develop -> kitobjavonim-admin-staging,
+# matching admin/wrangler.jsonc's own "name" (reserved for production) and
+# the --name override admin/README.md documents for the staging project.
+on:
+  push:
+    branches: [develop, main]
+    paths:
+      - "admin/**"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        working-directory: admin
+        run: npm ci
+
+      - name: Build
+        working-directory: admin
+        run: npm run build
+        env:
+          VITE_SUPABASE_URL: ${{ github.ref_name == 'main' && 'https://zsrhzjujoahresqfhpks.supabase.co' || 'https://ahpsnvxpduaqrkvmpfck.supabase.co' }}
+          VITE_SUPABASE_ANON_KEY: ${{ github.ref_name == 'main' && 'sb_publishable_jsqMsYY3fmBTkIyrcD8E7g_ve9Ef1Ww' || 'sb_publishable_nM9zD2eA5FtbkwEG_ISdnQ_W8ae4FQ3' }}
+
+      - name: Deploy to Cloudflare
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: admin
+          wranglerVersion: "4"
+          command: >-
+            deploy
+            ${{ github.ref_name != 'main' && '--name kitobjavonim-admin-staging' || '' }}

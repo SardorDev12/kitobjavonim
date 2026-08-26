@@ -106,20 +106,33 @@ rather launch without it, delete the Telegram button from
 
 ## Deploying
 
-### Web → Cloudflare Pages
+### Web → Cloudflare Workers
 
-```bash
-npm run build:web
-```
+**`deploy-web.yml` (GitHub Actions)** is the live setup — runs
+`npx expo export --platform web`, copies Expo Router's `+not-found.html` to
+`404.html` (`wrangler.jsonc`'s `not_found_handling: "404-page"` needs that
+literal filename), then `wrangler deploy`. `main` → `kitobjavonim`
+(production), `develop` → `kitobjavonim-staging`. Needs
+`CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` as repo secrets; the
+`EXPO_PUBLIC_*` values are the same public anon keys already in
+`.env.production`/`.env.staging`, so they're set directly in the workflow
+rather than duplicated as secrets.
 
-Publish the `dist` folder. In the Cloudflare dashboard: build command
-`npm run build:web`, output directory `dist`, and add the `EXPO_PUBLIC_*`
-variables (see `.env.production`) under Settings → Environment variables.
+This replaced Cloudflare's own Git integration (dashboard build command
+`npm run build:web`, output directory `dist`) for the same reason
+`landing/README.md` documents: that build step counted against
+Cloudflare's account-wide monthly build-minute cap, and GitHub Actions
+doesn't touch that queue at all. Don't reconnect the Git integration for
+this project — if `deploy-web.yml` ever needs replacing, `npx expo export
+--platform web && cp dist/+not-found.html dist/404.html && npx wrangler
+deploy` reproduces it from a local machine.
+
 Custom domain: `app.kitobjavonim.uz` — the bare apex `kitobjavonim.uz` is
 the marketing landing page instead (`landing/`, below), not this app.
 
-Cloudflare Pages rather than Vercel on purpose — Vercel's Hobby tier is licensed
-for non-commercial use only, and this app has a marketplace in its roadmap.
+Cloudflare Workers rather than Vercel on purpose — Vercel's Hobby tier is
+licensed for non-commercial use only, and this app has a marketplace in
+its roadmap.
 
 ### Landing page → `landing/`
 
