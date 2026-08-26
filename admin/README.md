@@ -86,25 +86,29 @@ production are separate projects with separate users).
 
 ## Deploying
 
-**`deploy-admin.yml` (GitHub Actions)** is the live setup — runs
-`npm ci && npm run build` (`tsc --noEmit && vite build`) inside `admin/`,
-then `wrangler deploy`, on every push touching `admin/**` (or manually via
-the Actions tab's "Run workflow" button). `main` → `kitobjavonim-admin`
-(production), `develop` → `kitobjavonim-admin-staging` — the `--name`
-override on the non-`main` deploy, since `admin/wrangler.jsonc`'s own
-`name` field is `kitobjavonim-admin`, reserved for production. Needs
-`CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` as repo secrets; the
-`VITE_SUPABASE_*` values are the same public anon keys already in the main
-app's `.env.production`/`.env.staging`, so they're set directly in the
-workflow per branch rather than duplicated as secrets.
+Two ways to get this built and published — pick whichever fits:
 
-This replaced Cloudflare's own Git integration (Workers & Pages → connect
-repo → root directory `admin`, build command `npm run build`, output
-directory `dist`, with `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` set in
-that project's own Settings → Variables) — that build step counted against
-Cloudflare's account-wide monthly build-minute cap, same reasoning as
-`landing/README.md` and the root `README.md`'s web deploy. Don't reconnect
-it for either the production or staging project.
+**Cloudflare Git integration (no local machine needed).** Workers & Pages →
+connect the GitHub repo → track **`main`** (production) or **`develop`**
+(staging) → root directory `admin`, build command `npm run build`, output
+directory `dist`. Cloudflare builds and deploys on every push to that
+branch — the root directory setting is what keeps this build scoped to
+`admin/` alone, without needing a dedicated branch for it. Set
+`VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` in that project's own
+**Settings → Variables** *before* the first build — Vite inlines `VITE_*`
+values into the bundle at build time, so they have to exist when Cloudflare
+runs `npm run build`, not after. Adding or correcting a variable later
+doesn't retroactively fix an already-built deployment — it only takes
+effect on the *next* build, so a variable change needs a fresh push (or a
+manual retry that actually re-runs the build step, not just re-serves the
+existing one) before it does anything.
+
+The staging project (`kitobjavonim-admin-staging`) is connected this way,
+tracking `develop`, with its **Deploy command** and **Non-production
+branch deploy command** both overridden to `--name
+kitobjavonim-admin-staging` — `admin/wrangler.jsonc`'s own `name` field is
+`kitobjavonim-admin`, reserved for the production project, which tracks
+`main` instead.
 
 **Local build + wrangler CLI**, if you'd rather:
 
