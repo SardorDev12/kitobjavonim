@@ -1,62 +1,98 @@
-import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef } from 'react';
-import { Platform, View } from 'react-native';
+import * as Linking from 'expo-linking';
+import { router } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { EmptyState, LoadingState, Screen, Text } from '@/components/ui';
+import { EmptyState, LoadingState, Screen } from '@/components/ui';
 import { useI18n } from '@/lib/i18n';
-import { useTheme } from '@/theme';
+import { supabase } from '@/lib/supabase';
 
 const BOT_USERNAME = (process.env.EXPO_PUBLIC_TELEGRAM_BOT_USERNAME ?? '').replace(/^@/, '').trim();
 
+/** How long to wait for the bot to confirm before giving up. */
+const CONFIRM_TIMEOUT_MS = 5 * 60 * 1000;
+
+/** How often to poll as a fallback alongside the Realtime subscription. */
+const POLL_INTERVAL_MS = 2000;
+
+type Phase = 'starting' | 'ready' | 'waiting' | 'confirming' | 'timedOut' | 'error' | 'notConfigured';
+
+type PendingSession = {
+  token: string;
+  telegramUrl: string;
+};
+
 /**
- * Hosts the actual Telegram Login Widget — deliberately not the Edge Function.
+ * Bot deep-link Telegram sign-in — see
+ * supabase/functions/telegram-bot-webhook/README.md for the full mechanism
+ * and why this replaced the Login Widget.
  *
- * Telegram's widget checks the *embedding page's own domain* against whatever
- * was registered for the bot via BotFather's `/setdomain`, so it has to run
- * somewhere you control. It used to be served straight from the Edge Function,
- * which looked correct in every manual check, right up until a real browser
- * loaded it: Supabase will not return `text/html` from the shared
- * `*.supabase.co` domain on an ordinary GET — it substitutes `text/plain` with
- * `X-Content-Type-Options: nosniff`, so the browser showed raw source instead
- * of a rendered page. See the comment atop `supabase/functions/telegram-auth`
- * for how that was confirmed. Moving the widget here, onto the app's own
- * domain, is the actual fix — an Edge Function was never the right place for
- * it to live.
- *
- * `data-auth-url` still points at the Edge Function's `/callback`, which is
- * unaffected: it returns a redirect with no body, and the restriction above
- * only bites on a `text/html` response.
+ * The token is fetched up front (during "starting") so that tapping "Open
+ * Telegram" can call Linking.openURL as the very first thing that happens
+ * in that tap's own handler, with no `await` before it. That matters on
+ * web specifically: a browser's popup blocker allows window.open only
+ * inside the synchronous call stack of a real user gesture, and an await
+ * beforehand (e.g. creating the session row on tap) breaks that chain on
+ * Safari in particular.
  */
 export default function TelegramLoginScreen() {
-  const { redirect_to: redirectTo } = useLocalSearchParams<{ redirect_to?: string }>();
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const theme = useTheme();
   const { t } = useI18n();
+  const [phase, setPhase] = useState<Phase>(BOT_USERNAME ? 'starting' : 'notConfigured');
+  const [session, setSession] = useState<PendingSession | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const cancelWaitRef = useRef<() => void>(() => {});
 
-  const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
-  const callbackUrl = supabaseUrl ? `${supabaseUrl}/functions/v1/telegram-auth/callback` : null;
+  const createSession = useCallback(async () => {
+    setPhase('starting');
+    setErrorMessage(null);
+    try {
+      const { data, error } = await supabase.from('telegram_login_sessions').insert({}).select('token').single();
+      if (error || !data) throw error ?? new Error(t('error.generic'));
+
+      const token = data.token as string;
+      setSession({ token, telegramUrl: `https://t.me/${BOT_USERNAME}?start=${token}` });
+      setPhase('ready');
+    } catch (cause) {
+      setErrorMessage(cause instanceof Error ? cause.message : t('error.generic'));
+      setPhase('error');
+    }
+  }, [t]);
 
   useEffect(() => {
-    if (Platform.OS !== 'web' || !containerRef.current) return;
-    if (!BOT_USERNAME || !callbackUrl || !redirectTo) return;
+    if (BOT_USERNAME) createSession();
+    return () => cancelWaitRef.current();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    const authUrl = `${callbackUrl}?redirect_to=${encodeURIComponent(redirectTo)}`;
+  async function openTelegram() {
+    if (!session) return;
+    // First statement, no await before it — see the class comment above.
+    Linking.openURL(session.telegramUrl);
 
-    const script = document.createElement('script');
-    script.async = true;
-    script.src = 'https://telegram.org/js/telegram-widget.js?22';
-    script.setAttribute('data-telegram-login', BOT_USERNAME);
-    script.setAttribute('data-size', 'large');
-    script.setAttribute('data-userpic', 'false');
-    script.setAttribute('data-auth-url', authUrl);
-    script.setAttribute('data-request-access', 'write');
-    containerRef.current.appendChild(script);
+    setPhase('waiting');
+    const tokenHash = await waitForConfirmation(session.token, (cancel) => {
+      cancelWaitRef.current = cancel;
+    });
 
-    // The widget script swaps the container's contents for an iframe on load;
-    // nothing else mounts here, so there is nothing further to clean up.
-  }, [callbackUrl, redirectTo]);
+    if (!tokenHash) {
+      setPhase('timedOut');
+      return;
+    }
 
-  if (!BOT_USERNAME || !callbackUrl) {
+    setPhase('confirming');
+    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'magiclink' });
+    if (error) {
+      setErrorMessage(error.message);
+      setPhase('error');
+      return;
+    }
+
+    // The root layout's own auth-state listener redirects into the app from
+    // here; this is just a fallback in case this screen is still on top a
+    // moment later.
+    router.back();
+  }
+
+  if (phase === 'notConfigured') {
     return (
       <Screen>
         <EmptyState
@@ -68,36 +104,112 @@ export default function TelegramLoginScreen() {
     );
   }
 
-  if (!redirectTo) {
+  if (phase === 'starting' || phase === 'confirming') {
     return (
       <Screen>
-        <EmptyState tone="error" title={t('error.generic')} />
+        <LoadingState label={phase === 'confirming' ? t('auth.telegramConfirming') : t('common.loading')} />
       </Screen>
     );
   }
 
-  if (Platform.OS !== 'web') {
-    // Reached only inside the native in-app browser sheet, which renders real
-    // HTML from this same route once it loads — this covers the instant before
-    // that happens.
+  if (phase === 'ready') {
     return (
       <Screen>
-        <LoadingState label={t('common.loading')} />
+        <EmptyState
+          icon="paper-plane-outline"
+          title={t('auth.telegramReadyTitle')}
+          body={t('auth.telegramReadyBody')}
+          actionLabel={t('auth.telegramOpenButton')}
+          onAction={openTelegram}
+        />
+      </Screen>
+    );
+  }
+
+  if (phase === 'waiting') {
+    return (
+      <Screen>
+        <EmptyState
+          icon="paper-plane-outline"
+          title={t('auth.telegramWaitingTitle')}
+          body={t('auth.telegramWaitingBody')}
+          actionLabel={t('auth.telegramReopenButton')}
+          onAction={openTelegram}
+        />
+      </Screen>
+    );
+  }
+
+  if (phase === 'timedOut') {
+    return (
+      <Screen>
+        <EmptyState
+          title={t('auth.telegramTimedOutTitle')}
+          body={t('auth.telegramTimedOutBody')}
+          actionLabel={t('auth.telegramRetryButton')}
+          onAction={createSession}
+        />
       </Screen>
     );
   }
 
   return (
     <Screen>
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: theme.spacing.lg }}>
-        <Text variant="body" color="textMuted">
-          {t('auth.telegramConfirm')}
-        </Text>
-        {/* React Native Web forwards a View's ref to the underlying DOM node,
-            so this ref is safe to use as a real container for the widget's
-            injected <script>, even though View's public ref type does not say so. */}
-        <View ref={containerRef as never} />
-      </View>
+      <EmptyState
+        tone="error"
+        title={t('error.generic')}
+        body={errorMessage ?? undefined}
+        actionLabel={t('auth.telegramRetryButton')}
+        onAction={createSession}
+      />
     </Screen>
   );
+}
+
+/**
+ * Resolves with the confirmed session's token_hash, or null on timeout.
+ * `onCancel` is handed a function the caller can invoke to unsubscribe
+ * early (e.g. on unmount) without waiting out the full timeout.
+ */
+function waitForConfirmation(token: string, onCancel: (cancel: () => void) => void): Promise<string | null> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (value: string | null) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timeoutTimer);
+      clearInterval(pollTimer);
+      supabase.removeChannel(channel);
+      resolve(value);
+    };
+
+    onCancel(() => finish(null));
+
+    const timeoutTimer = setTimeout(() => finish(null), CONFIRM_TIMEOUT_MS);
+
+    const checkRow = (row?: { status: string; token_hash: string | null } | null) => {
+      if (row?.status === 'confirmed' && row.token_hash) finish(row.token_hash);
+    };
+
+    const channel = supabase
+      .channel(`telegram-login-${token}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'telegram_login_sessions', filter: `token=eq.${token}` },
+        (payload) => checkRow(payload.new as never)
+      )
+      .subscribe();
+
+    // Realtime is the fast path; this poll is a fallback in case it's ever
+    // misconfigured for an environment, so sign-in degrades to "a couple
+    // seconds slower" rather than "hangs until the timeout."
+    const pollTimer = setInterval(async () => {
+      const { data } = await supabase
+        .from('telegram_login_sessions')
+        .select('status, token_hash')
+        .eq('token', token)
+        .maybeSingle();
+      checkRow(data);
+    }, POLL_INTERVAL_MS);
+  });
 }

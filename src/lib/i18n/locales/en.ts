@@ -64,9 +64,18 @@ export const en = {
   'auth.nameRequired': 'Please enter your name',
   'auth.confirmEmail': 'We sent a confirmation link to {{email}}.',
 
-  'auth.telegramConfirm': 'Confirm your Telegram account to continue.',
   'auth.telegramNotConfigured': 'Telegram sign-in is not set up',
-  'auth.telegramNotConfiguredBody': 'EXPO_PUBLIC_TELEGRAM_BOT_USERNAME or the Supabase URL is missing.',
+  'auth.telegramNotConfiguredBody': 'EXPO_PUBLIC_TELEGRAM_BOT_USERNAME is missing.',
+  'auth.telegramReadyTitle': 'Sign in with Telegram',
+  'auth.telegramReadyBody': "You'll confirm in your own Telegram app — no password, no phone number typed here.",
+  'auth.telegramOpenButton': 'Open Telegram',
+  'auth.telegramWaitingTitle': 'Confirm in Telegram',
+  'auth.telegramWaitingBody': "Tap Start in the chat that opened. This screen will continue on its own once you've confirmed.",
+  'auth.telegramReopenButton': 'Open Telegram again',
+  'auth.telegramConfirming': 'Signing you in…',
+  'auth.telegramTimedOutTitle': "Didn't hear back",
+  'auth.telegramTimedOutBody': "We didn't get a confirmation in time. Try again.",
+  'auth.telegramRetryButton': 'Try again',
 
   'onboarding.title': 'Tell us a little about you',
   'onboarding.subtitle':

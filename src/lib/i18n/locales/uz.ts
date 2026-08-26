@@ -67,9 +67,18 @@ export const uz: LocaleCatalogue = {
   'auth.nameRequired': 'Ismingizni kiriting',
   'auth.confirmEmail': '{{email}} manziliga tasdiqlash havolasi yuborildi.',
 
-  'auth.telegramConfirm': 'Davom etish uchun Telegram hisobingizni tasdiqlang.',
   'auth.telegramNotConfigured': 'Telegram orqali kirish sozlanmagan',
-  'auth.telegramNotConfiguredBody': 'EXPO_PUBLIC_TELEGRAM_BOT_USERNAME yoki Supabase manzili yetishmayapti.',
+  'auth.telegramNotConfiguredBody': 'EXPO_PUBLIC_TELEGRAM_BOT_USERNAME yetishmayapti.',
+  'auth.telegramReadyTitle': 'Telegram orqali kiring',
+  'auth.telegramReadyBody': 'O‘z Telegram ilovangizda tasdiqlaysiz — bu yerda parol yoki telefon raqami kiritilmaydi.',
+  'auth.telegramOpenButton': 'Telegramni ochish',
+  'auth.telegramWaitingTitle': 'Telegramda tasdiqlang',
+  'auth.telegramWaitingBody': 'Ochilgan suhbatda Start tugmasini bosing. Tasdiqlaganingizdan so‘ng bu ekran o‘zi davom etadi.',
+  'auth.telegramReopenButton': 'Telegramni qayta ochish',
+  'auth.telegramConfirming': 'Kirilmoqda…',
+  'auth.telegramTimedOutTitle': 'Javob kelmadi',
+  'auth.telegramTimedOutBody': 'Tasdiqlash vaqtida kelmadi. Qayta urinib ko‘ring.',
+  'auth.telegramRetryButton': 'Qayta urinish',
 
   'onboarding.title': 'Oʻzingiz haqingizda qisqacha',
   'onboarding.subtitle':
