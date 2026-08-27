@@ -1,6 +1,5 @@
 import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Linking from 'expo-linking';
-import { router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { Platform } from 'react-native';
 
@@ -146,16 +145,46 @@ export async function isAppleSignInAvailable(): Promise<boolean> {
 }
 
 /**
- * Telegram — hands off to `/auth/telegram-login`, which owns the whole
- * bot-deep-link flow (see that screen and
- * supabase/functions/telegram-bot-webhook/README.md). Unlike Google/Apple
- * above, there's no redirect URI or browser session to manage here at all:
- * the confirmation happens over Realtime while this app stays in the
- * foreground (or backgrounds briefly for Telegram itself), never through a
- * URL coming back into the app.
+ * Telegram.
+ *
+ * Telegram has no OAuth endpoint Supabase can talk to directly: it posts a
+ * signed payload to a page on a domain registered against the bot. That page is
+ * `/auth/telegram-login` in this app — not the Edge Function. Supabase's shared
+ * `*.supabase.co` domain refuses to serve `text/html` on an ordinary GET (see
+ * the comment atop `supabase/functions/telegram-auth/index.ts`), so a widget
+ * hosted there renders as raw source instead of a page; it has to live
+ * somewhere the app controls. The Edge Function only verifies the signed
+ * result and redirects back here with a one-time code. See
+ * supabase/functions/telegram-auth/README.md for setup.
+ *
+ * On web the widget page is this same origin, so `location.origin` reaches it.
+ * Native has no origin of its own — it needs the deployed web app's URL, which
+ * is also where BotFather's `/setdomain` must point, since that is the actual
+ * page Telegram's widget script checks against.
  */
 export async function signInWithTelegram(): Promise<void> {
-  router.push('/auth/telegram-login');
+  const redirectTo = redirectUri();
+
+  if (Platform.OS === 'web') {
+    const startUrl = `${globalThis.location.origin}/auth/telegram-login?redirect_to=${encodeURIComponent(redirectTo)}`;
+    globalThis.location.assign(startUrl);
+    return;
+  }
+
+  const webOrigin = process.env.EXPO_PUBLIC_WEB_ORIGIN;
+  if (!webOrigin) {
+    throw new Error(
+      'Telegram sign-in needs EXPO_PUBLIC_WEB_ORIGIN set to the deployed web app’s URL ' +
+        '(the domain registered with BotFather) — the widget cannot run on a domain Telegram has not seen.'
+    );
+  }
+
+  const startUrl = `${webOrigin}/auth/telegram-login?redirect_to=${encodeURIComponent(redirectTo)}`;
+
+  const result = await WebBrowser.openAuthSessionAsync(startUrl, redirectTo);
+  if (result.type !== 'success') return;
+
+  await completeFromUrl(result.url);
 }
 
 export { completeFromUrl, redirectUri };

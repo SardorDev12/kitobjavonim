@@ -5,7 +5,7 @@ with a plain SQL function (see `supabase/migrations/0013_admin_panel.sql`
 for the ones that can): creating a new admin account with a password,
 banning a login outright, and deleting an account. All three need
 Supabase's Auth Admin API, which only works with the `service_role` key —
-so, same shape as `scan-cover` and `telegram-bot-webhook`, that key lives only in
+so, same shape as `scan-cover` and `telegram-auth`, that key lives only in
 this function and is never sent to any client.
 
 Called from the admin panel via
@@ -46,7 +46,7 @@ supabase secrets set ADMIN_ALLOWED_ORIGINS=https://admin.kitobjavonim.uz
 supabase functions deploy admin-users
 ```
 
-No `--no-verify-jwt` here (unlike `telegram-bot-webhook`) — the caller is always a
+No `--no-verify-jwt` here (unlike `telegram-auth`) — the caller is always a
 signed-in admin, so Supabase's own gateway checking the JWT first is an
 extra layer, not an obstacle.
 

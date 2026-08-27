@@ -93,14 +93,14 @@ detects this and offers manual entry instead.
 **Apple** — required by App Store review because another social login is offered.
 Same dashboard page; needs an Apple Developer account to generate the key.
 
-**Telegram** — not an OAuth provider, and not the Login Widget either: this
-app signs in via a bot deep link instead (`/auth/telegram-login` opens
-`https://t.me/<bot>?start=<token>`, and `supabase/functions/telegram-bot-webhook/`
-confirms it once the user taps Start), specifically to avoid the widget's
-domain lock and its phone-number-entry screen. Full setup is in the README
-next to that function. If you would rather launch without Telegram sign-in
-at all, delete the Telegram button from `src/app/(auth)/sign-in.tsx`;
-nothing else depends on it.
+**Telegram** — not an OAuth provider. The login widget is hosted by the app
+itself at `/auth/telegram-login`, not by Supabase — its shared domain refuses
+to serve `text/html`, so a widget hosted there renders as raw source instead
+of a page. The Edge Function in `supabase/functions/telegram-auth/` only
+verifies the signed result. Full setup, including why `localhost` cannot work
+with Telegram's widget at all, is in the README next to it. If you would
+rather launch without it, delete the Telegram button from
+`src/app/(auth)/sign-in.tsx`; nothing else depends on it.
 
 ---
 
@@ -311,7 +311,7 @@ src/
   theme/            design tokens, light + dark
 supabase/
   migrations/       schema, views, RLS, storage, seed data
-  functions/        telegram-bot-webhook Edge Function
+  functions/        telegram-auth Edge Function
   tests/            RLS test harness
 ```
 

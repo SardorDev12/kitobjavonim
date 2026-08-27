@@ -14,7 +14,7 @@ import { useTheme } from '@/theme';
  * stranded if that provider is ever unreachable or de-authorized.
  *
  * Neither provider leaves the account with a password — Telegram's sign-in
- * (supabase/functions/telegram-bot-webhook) mints a synthetic tg_<id>@telegram.local
+ * (supabase/functions/telegram-auth) mints a synthetic tg_<id>@telegram.local
  * address with no password at all, and a Google sign-in has a real email but
  * still no password, since OAuth never sets one. That split is what decides
  * whether the email field below is editable: a Google user already has a

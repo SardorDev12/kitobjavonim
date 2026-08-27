@@ -12,7 +12,7 @@ import { useLocationOptions } from '@/lib/queries/reference';
 import { useTheme } from '@/theme';
 
 // Google and Telegram sign-in both populate user_metadata.full_name (see
-// supabase/functions/telegram-bot-webhook); Telegram's own auth.users.email is a
+// supabase/functions/telegram-auth); Telegram's own auth.users.email is a
 // synthetic tg_<id>@telegram.local address, so it is the last resort, not
 // the first.
 function defaultDisplayName(user: User | null, fallback: string): string {
