@@ -18,8 +18,14 @@
  * source instead of a rendered page — which is also why HEAD requests and
  * curl without Accept-Encoding looked fine during testing: neither reflects
  * what happens on an actual page load. The widget now lives in the app itself
- * (`src/app/auth/telegram-login.tsx`), on a domain you control, and only the
- * signed redirect — which has no body for that rule to apply to — comes here.
+ * (`src/app/auth/telegram-login.tsx`), on a domain you control.
+ *
+ * The same restriction is why a completed native (custom-scheme) sign-in
+ * bounces back through that same page rather than being redirected to
+ * straight from here: Android's Chrome won't follow a server-issued redirect
+ * into a non-http scheme without a fresh user gesture, which only a
+ * same-document JS navigation carries, and that needs real HTML to run in —
+ * see `redirect()` below.
  *
  * The HMAC check is the security boundary: without it, anyone could POST any
  * Telegram id here and take over that account. Payloads older than 5 minutes are
@@ -73,34 +79,18 @@ function isAllowedRedirect(value: string): boolean {
   return ALLOWED_ORIGINS.includes(parsed.origin);
 }
 
-/**
- * Redirects by hand: Response.redirect rejects non-HTTP schemes in Deno.
- *
- * A plain `Location` header works for http(s) targets, but Android's Chrome
- * (what backs the in-app browser here) will silently refuse to follow a
- * server-issued redirect into a custom URL scheme — it requires a fresh user
- * gesture tied to that exact navigation, which a redirect several hops after
- * the original tap doesn't carry. The tab is left sitting on the last page it
- * loaded (this function's own origin) instead of handing control back to the
- * app. iOS's browser doesn't enforce this, which is why it only shows up on
- * Android. A same-document JS navigation does count as carrying the user's
- * intent, so custom schemes go out that way instead, with a manual link as a
- * fallback for anything that blocks even that.
- */
-function redirect(target: string): Response {
-  const isHttp = target.startsWith('http://') || target.startsWith('https://');
-  if (isHttp) {
-    return new Response(null, { status: 303, headers: { location: target } });
+/** Whether `redirect_to` is the app's own custom scheme rather than a web origin. */
+function isNativeTarget(redirectTo: string): boolean {
+  try {
+    return new URL(redirectTo).protocol === `${APP_SCHEME}:`;
+  } catch {
+    return false;
   }
+}
 
-  const escaped = target.replace(/"/g, '&quot;');
-  const html = `<!doctype html>
-<html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=${escaped}"></head>
-<body><script>location.replace("${escaped}");</script>
-<p><a href="${escaped}">Tap here to continue</a> if you are not redirected automatically.</p>
-</body></html>`;
-
-  return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } });
+/** Redirects by hand: Response.redirect rejects non-HTTP schemes in Deno. */
+function redirect(target: string): Response {
+  return new Response(null, { status: 303, headers: { location: target } });
 }
 
 function missingConfig(): string | null {
@@ -154,23 +144,30 @@ async function handleCallback(url: URL): Promise<Response> {
     return new Response('Invalid redirect target', { status: 400 });
   }
 
+  // Where a native sign-in bounces back through, since only a page on this
+  // origin can run the JS that a custom-scheme navigation needs. Sent by
+  // telegram-login.tsx as its own location.origin — checked against the same
+  // allow-list as redirectTo, since it ends up carrying the same token_hash.
+  const bounceOrigin = url.searchParams.get('origin');
+  const origin = bounceOrigin && ALLOWED_ORIGINS.includes(bounceOrigin) ? bounceOrigin : null;
+
   const payload: Record<string, string> = {};
   for (const [key, value] of url.searchParams) {
-    if (key !== 'redirect_to') payload[key] = value;
+    if (key !== 'redirect_to' && key !== 'origin') payload[key] = value;
   }
 
   const telegramUser = payload as unknown as TelegramUser;
-  if (!telegramUser.id || !telegramUser.hash) return fail('Incomplete Telegram response', redirectTo);
+  if (!telegramUser.id || !telegramUser.hash) return fail('Incomplete Telegram response', redirectTo, origin);
 
   if (!(await isSignatureValid(payload))) {
-    return fail('Could not verify the Telegram response', redirectTo);
+    return fail('Could not verify the Telegram response', redirectTo, origin);
   }
 
   // Math.abs so a clock skewed into the future is refused too, rather than
   // yielding a negative age that sails past the maximum.
   const age = Math.abs(Math.floor(Date.now() / 1000) - Number(telegramUser.auth_date));
   if (!Number.isFinite(age) || age > MAX_AUTH_AGE_SECONDS) {
-    return fail('That sign-in link has expired', redirectTo);
+    return fail('That sign-in link has expired', redirectTo, origin);
   }
 
   const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
@@ -199,7 +196,7 @@ async function handleCallback(url: URL): Promise<Response> {
   // failure as a returning user would turn a broken service-role key or an
   // unreachable database into a silent, unexplainable login failure.
   if (createError && !isAlreadyRegistered(createError)) {
-    return fail(createError.message, redirectTo);
+    return fail(createError.message, redirectTo, origin);
   }
 
   // generateLink hands back a one-time code the client exchanges for a real
@@ -212,7 +209,7 @@ async function handleCallback(url: URL): Promise<Response> {
   });
 
   if (linkError || !link.properties?.hashed_token) {
-    return fail(linkError?.message ?? 'Could not start a session', redirectTo);
+    return fail(linkError?.message ?? 'Could not start a session', redirectTo, origin);
   }
 
   if (telegramUser.username && link.user?.id) {
@@ -224,11 +221,30 @@ async function handleCallback(url: URL): Promise<Response> {
       .is('telegram_username', null);
   }
 
-  const target = new URL(redirectTo);
-  target.searchParams.set('token_hash', link.properties.hashed_token);
-  target.searchParams.set('type', 'magiclink');
+  return redirect(finalTarget(redirectTo, origin, { token_hash: link.properties.hashed_token, type: 'magiclink' }));
+}
 
-  return redirect(target.toString());
+/**
+ * Where a completed (or failed) sign-in goes.
+ *
+ * Web targets go straight there — a plain redirect between http(s) origins
+ * has no user-gesture requirement to satisfy. A native target only goes
+ * straight there if there's no bounce origin to use instead (an older cached
+ * build that doesn't send one yet); otherwise it goes to that origin's
+ * `/auth/telegram-login`, carrying the real target as `redirect_to` again so
+ * that page can finish the handoff with a JS navigation of its own.
+ */
+function finalTarget(redirectTo: string, origin: string | null, params: Record<string, string>): string {
+  if (origin && isNativeTarget(redirectTo)) {
+    const bounce = new URL('/auth/telegram-login', origin);
+    bounce.searchParams.set('redirect_to', redirectTo);
+    for (const [key, value] of Object.entries(params)) bounce.searchParams.set(key, value);
+    return bounce.toString();
+  }
+
+  const target = new URL(redirectTo);
+  for (const [key, value] of Object.entries(params)) target.searchParams.set(key, value);
+  return target.toString();
 }
 
 /** supabase-js has reported this differently across versions, so check all three. */
@@ -282,9 +298,7 @@ function timingSafeEqual(a: string, b: string): boolean {
 }
 
 /** Callers reach this only after `redirectTo` has been checked against the allow-list. */
-function fail(message: string, redirectTo: string | null): Response {
+function fail(message: string, redirectTo: string | null, origin: string | null): Response {
   if (!redirectTo) return new Response(message, { status: 400 });
-  const target = new URL(redirectTo);
-  target.searchParams.set('error_description', message);
-  return redirect(target.toString());
+  return redirect(finalTarget(redirectTo, origin, { error_description: message }));
 }

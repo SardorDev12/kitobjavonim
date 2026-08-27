@@ -68,6 +68,7 @@ export const uz: LocaleCatalogue = {
   'auth.confirmEmail': '{{email}} manziliga tasdiqlash havolasi yuborildi.',
 
   'auth.telegramConfirm': 'Davom etish uchun Telegram hisobingizni tasdiqlang.',
+  'auth.telegramContinue': 'Ilovaga o‘tish',
   'auth.telegramNotConfigured': 'Telegram orqali kirish sozlanmagan',
   'auth.telegramNotConfiguredBody': 'EXPO_PUBLIC_TELEGRAM_BOT_USERNAME yoki Supabase manzili yetishmayapti.',
 
