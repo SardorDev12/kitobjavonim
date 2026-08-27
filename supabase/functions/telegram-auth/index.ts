@@ -73,9 +73,34 @@ function isAllowedRedirect(value: string): boolean {
   return ALLOWED_ORIGINS.includes(parsed.origin);
 }
 
-/** Redirects by hand: Response.redirect rejects non-HTTP schemes in Deno. */
+/**
+ * Redirects by hand: Response.redirect rejects non-HTTP schemes in Deno.
+ *
+ * A plain `Location` header works for http(s) targets, but Android's Chrome
+ * (what backs the in-app browser here) will silently refuse to follow a
+ * server-issued redirect into a custom URL scheme — it requires a fresh user
+ * gesture tied to that exact navigation, which a redirect several hops after
+ * the original tap doesn't carry. The tab is left sitting on the last page it
+ * loaded (this function's own origin) instead of handing control back to the
+ * app. iOS's browser doesn't enforce this, which is why it only shows up on
+ * Android. A same-document JS navigation does count as carrying the user's
+ * intent, so custom schemes go out that way instead, with a manual link as a
+ * fallback for anything that blocks even that.
+ */
 function redirect(target: string): Response {
-  return new Response(null, { status: 303, headers: { location: target } });
+  const isHttp = target.startsWith('http://') || target.startsWith('https://');
+  if (isHttp) {
+    return new Response(null, { status: 303, headers: { location: target } });
+  }
+
+  const escaped = target.replace(/"/g, '&quot;');
+  const html = `<!doctype html>
+<html><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=${escaped}"></head>
+<body><script>location.replace("${escaped}");</script>
+<p><a href="${escaped}">Tap here to continue</a> if you are not redirected automatically.</p>
+</body></html>`;
+
+  return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } });
 }
 
 function missingConfig(): string | null {
