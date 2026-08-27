@@ -32,9 +32,24 @@ const WEBHOOK_SECRET = Deno.env.get('TELEGRAM_WEBHOOK_SECRET') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
+/** The app's deep-link scheme, matching `scheme` in app.config.js. */
+const APP_SCHEME = Deno.env.get('APP_SCHEME') ?? 'homelibrary';
+
+/**
+ * This environment's deployed web app URL — e.g. https://app.kitobjavonim.uz
+ * for production, https://test.kitobjavonim.uz for staging. Optional: the
+ * "back to the app" button in the confirmation message just omits the web
+ * option if this isn't set.
+ */
+const APP_WEB_URL = Deno.env.get('APP_WEB_URL') ?? '';
+
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
 const START_TOKEN_PATTERN = /^\/start\s+([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/i;
+
+type TelegramInlineKeyboard = {
+  inline_keyboard: Array<Array<{ text: string; url: string }>>;
+};
 
 type TelegramUpdate = {
   message?: {
@@ -169,9 +184,24 @@ Deno.serve(async (request) => {
     return new Response('OK', { status: 200 });
   }
 
-  await sendMessage(chatId, 'Kitobjavonimga xush kelibsiz! ⚡ Ilovaga qaytishingiz mumkin.');
+  await sendMessage(chatId, 'Kitobjavonimga xush kelibsiz! ⚡ Ilovaga qaytishingiz mumkin.', returnToAppButtons());
   return new Response('OK', { status: 200 });
 });
+
+/**
+ * "Back to the app" buttons for the confirmation message — the app doesn't
+ * need to be told the sign-in is done through this link at all (it's
+ * already resolving on its own via Realtime/polling from the moment this
+ * row was confirmed above), it's purely a convenience so the user doesn't
+ * have to remember to switch apps/tabs back manually. The native option
+ * always works if the app is installed; the web one is included only if
+ * this environment has APP_WEB_URL set.
+ */
+function returnToAppButtons(): TelegramInlineKeyboard {
+  const buttons = [{ text: '📱 Ilovaga qaytish', url: `${APP_SCHEME}://` }];
+  if (APP_WEB_URL) buttons.push({ text: '🌐 Veb-saytda ochish', url: APP_WEB_URL });
+  return { inline_keyboard: [buttons] };
+}
 
 /** supabase-js has reported this differently across versions, so check all three. */
 function isAlreadyRegistered(error: { message?: string; status?: number; code?: string }): boolean {
@@ -182,17 +212,26 @@ function isAlreadyRegistered(error: { message?: string; status?: number; code?: 
   );
 }
 
-async function sendMessage(chatId: number, text: string): Promise<void> {
+async function sendMessage(chatId: number, text: string, replyMarkup?: TelegramInlineKeyboard): Promise<void> {
   try {
-    await fetch(`${TELEGRAM_API}/sendMessage`, {
+    const response = await fetch(`${TELEGRAM_API}/sendMessage`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text }),
+      body: JSON.stringify({ chat_id: chatId, text, reply_markup: replyMarkup }),
     });
-  } catch {
+    // fetch() only throws on a network failure, not on a non-2xx response —
+    // a wrong TELEGRAM_BOT_TOKEN, for instance, fails silently unless this
+    // is checked and logged explicitly. Not worth failing the webhook over
+    // (see the comment on the catch below), but worth being visible in this
+    // function's own Supabase logs instead of just vanishing.
+    if (!response.ok) {
+      console.error('telegram sendMessage failed', response.status, await response.text());
+    }
+  } catch (cause) {
     // A failed confirmation message isn't worth failing the webhook over —
     // the session row is already updated (or wasn't, and the caller above
     // already handled that), so the app's own polling/Realtime still
     // resolves the sign-in either way.
+    console.error('telegram sendMessage threw', cause);
   }
 }
