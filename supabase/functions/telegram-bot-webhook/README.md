@@ -86,7 +86,8 @@ nothing to protect by hiding it.
 |---|---|---|---|
 | Function secret | `TELEGRAM_BOT_TOKEN` | yes | From BotFather. Also used to call `sendMessage`. |
 | Function secret | `TELEGRAM_WEBHOOK_SECRET` | yes | Shared secret Telegram echoes back on every webhook call — the actual auth boundary for this function. |
-| Function secret | `APP_WEB_URL` | no | This environment's deployed web app URL (e.g. `https://app.kitobjavonim.uz`) — adds a "back to the app" button to the confirmation message. Omit to send no button at all. There's no native-deep-link version of this button: Telegram only allows http(s)/tg/a couple of other schemes on an inline button and rejects anything else, confirmed live against a `homelibrary://` attempt. |
+| Function secret | `APP_SCHEME` | no | Deep-link scheme for the "back to the app" button, defaults to `homelibrary`. Match `scheme` in `app.config.js`. |
+| Function secret | `APP_WEB_URL` | no | This environment's deployed web app URL (e.g. `https://app.kitobjavonim.uz`) — adds a second "open in browser" button alongside the native one. Omit to only show the native button. |
 | App env | `EXPO_PUBLIC_TELEGRAM_BOT_USERNAME` | yes | Bot username, without the `@`. Used to build the deep link. |
 
 ## How a sign-in flows
@@ -101,9 +102,9 @@ nothing to protect by hiding it.
 4. This function verifies the secret header, looks up the token, mints a
    session via `generateLink`, and updates the row to
    `status = 'confirmed'` with the resulting `token_hash`. It also replies
-   in the chat confirming sign-in, with a "back to the app" button if
-   `APP_WEB_URL` is set — purely a convenience for switching back; nothing
-   about the sign-in itself depends on that button being tapped.
+   in the chat confirming sign-in, with a "back to the app" button (or two,
+   if `APP_WEB_URL` is set) — purely a convenience for switching back;
+   nothing about the sign-in itself depends on that button being tapped.
 5. Meanwhile the app has been watching that row (Supabase Realtime, with a
    short-interval poll as a fallback in case Realtime is ever
    misconfigured for an environment) since before the deep link was even
