@@ -124,9 +124,19 @@ Deno.serve(async (request) => {
 async function handleCallback(url: URL): Promise<Response> {
   const redirectTo = url.searchParams.get('redirect_to');
   if (!redirectTo || !isAllowedRedirect(redirectTo)) {
-    // Deliberately not redirected: if the target is not trusted, sending
-    // anything to it — including an error — is the thing being prevented.
-    return new Response('Invalid redirect target', { status: 400 });
+    // TEMPORARY DIAGNOSTIC — remove once the mismatch is found.
+    let origin = '(unparseable)';
+    try {
+      origin = new URL(redirectTo ?? '').origin;
+    } catch {
+      // leave the placeholder
+    }
+    return new Response(
+      `Invalid redirect target\nredirect_to origin: ${origin}\n` +
+        `TELEGRAM_ALLOWED_ORIGINS raw: ${JSON.stringify(Deno.env.get('TELEGRAM_ALLOWED_ORIGINS') ?? null)}\n` +
+        `Parsed allow-list: ${JSON.stringify(ALLOWED_ORIGINS)}`,
+      { status: 400 }
+    );
   }
 
   const payload: Record<string, string> = {};
