@@ -32,14 +32,14 @@ const WEBHOOK_SECRET = Deno.env.get('TELEGRAM_WEBHOOK_SECRET') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
-/** The app's deep-link scheme, matching `scheme` in app.config.js. */
-const APP_SCHEME = Deno.env.get('APP_SCHEME') ?? 'homelibrary';
-
 /**
  * This environment's deployed web app URL — e.g. https://app.kitobjavonim.uz
  * for production, https://test.kitobjavonim.uz for staging. Optional: the
- * "back to the app" button in the confirmation message just omits the web
- * option if this isn't set.
+ * confirmation message just has no "back to the app" button if this isn't
+ * set. Telegram only accepts http(s)/tg/a couple of other schemes on an
+ * inline button and flatly rejects anything else, so there's no
+ * custom-scheme (homelibrary://) deep-link option here — confirmed live,
+ * see the comment on returnToAppButtons below.
  */
 const APP_WEB_URL = Deno.env.get('APP_WEB_URL') ?? '';
 
@@ -189,18 +189,23 @@ Deno.serve(async (request) => {
 });
 
 /**
- * "Back to the app" buttons for the confirmation message — the app doesn't
- * need to be told the sign-in is done through this link at all (it's
- * already resolving on its own via Realtime/polling from the moment this
- * row was confirmed above), it's purely a convenience so the user doesn't
- * have to remember to switch apps/tabs back manually. The native option
- * always works if the app is installed; the web one is included only if
- * this environment has APP_WEB_URL set.
+ * "Back to the app" button for the confirmation message, if this
+ * environment has APP_WEB_URL set — purely a convenience so the user
+ * doesn't have to remember to switch apps/tabs back manually; the sign-in
+ * itself already resolves on its own via Realtime/polling from the moment
+ * the session row was confirmed above, whether or not this is tapped.
+ *
+ * Telegram only allows a handful of URL schemes on an inline button
+ * (http/https, tg, a couple of others) and flatly rejects anything else —
+ * confirmed live: a homelibrary:// button was refused with "Bad Request:
+ * inline keyboard button URL ... is invalid: Unsupported URL protocol".
+ * So there's no custom-scheme deep-link option here at all, only a normal
+ * https:// one — which is also why this returns undefined (no button)
+ * rather than an empty inline_keyboard when APP_WEB_URL isn't set.
  */
-function returnToAppButtons(): TelegramInlineKeyboard {
-  const buttons = [{ text: '📱 Ilovaga qaytish', url: `${APP_SCHEME}://` }];
-  if (APP_WEB_URL) buttons.push({ text: '🌐 Veb-saytda ochish', url: APP_WEB_URL });
-  return { inline_keyboard: [buttons] };
+function returnToAppButtons(): TelegramInlineKeyboard | undefined {
+  if (!APP_WEB_URL) return undefined;
+  return { inline_keyboard: [[{ text: '📱 Ilovaga qaytish', url: APP_WEB_URL }]] };
 }
 
 /** supabase-js has reported this differently across versions, so check all three. */
