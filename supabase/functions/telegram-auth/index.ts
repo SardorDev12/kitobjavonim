@@ -148,7 +148,17 @@ async function handleCallback(url: URL): Promise<Response> {
   if (!telegramUser.id || !telegramUser.hash) return fail('Incomplete Telegram response', redirectTo);
 
   if (!(await isSignatureValid(payload))) {
-    return fail('Could not verify the Telegram response', redirectTo);
+    // TEMPORARY DIAGNOSTIC — remove once the mismatch is found. Never prints
+    // the bot token itself, only whether it's set and the two hashes, which
+    // are not secret (the received one is already plain in the URL).
+    const expected = await computeExpectedHash(payload);
+    return new Response(
+      `Could not verify the Telegram response\n` +
+        `TELEGRAM_BOT_TOKEN set: ${Boolean(BOT_TOKEN)} (length ${BOT_TOKEN.length})\n` +
+        `received hash: ${payload.hash}\n` +
+        `expected hash: ${expected}`,
+      { status: 400 }
+    );
   }
 
   // Math.abs so a clock skewed into the future is refused too, rather than
@@ -230,8 +240,15 @@ function isAlreadyRegistered(error: { message?: string; status?: number; code?: 
  * field except `hash`, sorted by key, and HMAC it with SHA256(bot_token).
  */
 async function isSignatureValid(payload: Record<string, string>): Promise<boolean> {
-  const { hash, ...fields } = payload;
+  const { hash } = payload;
   if (!hash) return false;
+
+  const expected = await computeExpectedHash(payload);
+  return timingSafeEqual(expected, hash);
+}
+
+async function computeExpectedHash(payload: Record<string, string>): Promise<string> {
+  const { hash: _hash, ...fields } = payload;
 
   const dataCheckString = Object.keys(fields)
     .sort()
@@ -246,11 +263,9 @@ async function isSignatureValid(payload: Record<string, string>): Promise<boolea
   ]);
   const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(dataCheckString));
 
-  const expected = Array.from(new Uint8Array(signature))
+  return Array.from(new Uint8Array(signature))
     .map((byte) => byte.toString(16).padStart(2, '0'))
     .join('');
-
-  return timingSafeEqual(expected, hash);
 }
 
 /** Constant-time comparison so the HMAC cannot be guessed byte by byte. */
