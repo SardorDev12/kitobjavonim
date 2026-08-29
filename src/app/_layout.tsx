@@ -291,6 +291,13 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false, gestureEnabled: false }} />
         <Stack.Screen name="auth/callback" options={{ headerShown: false }} />
+        {/* No header (matches auth/callback, its sibling bounce screen) and an
+            explicit blank title — without one, the static web export bakes
+            the raw route path into <title>, and since this screen can
+            redirect away within a second, the root effect below that
+            normally overwrites it with "Kitobjavonim" may never get the
+            chance to visibly register first. */}
+        <Stack.Screen name="auth/telegram-login" options={{ headerShown: false, title: '' }} />
         {/* Both render their own header (back button + actions) rather than
             the native one — react-navigation's default back button only
             appears when there's in-app history to pop, which a direct link
