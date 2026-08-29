@@ -67,7 +67,6 @@ export const en = {
   'auth.telegramConfirm': 'Confirm your Telegram account to continue.',
   'auth.telegramContinue': 'Continue to the app',
   'auth.telegramSuccessTitle': "You're signed in",
-  'auth.telegramSuccessBody': 'Taking you back to the app…',
   'auth.telegramErrorTitle': 'Sign-in failed',
   'auth.telegramNotConfigured': 'Telegram sign-in is not set up',
   'auth.telegramNotConfiguredBody': 'EXPO_PUBLIC_TELEGRAM_BOT_USERNAME or the Supabase URL is missing.',
