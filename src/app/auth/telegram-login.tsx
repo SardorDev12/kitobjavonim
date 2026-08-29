@@ -112,9 +112,11 @@ export default function TelegramLoginScreen() {
             {isError ? t('auth.telegramErrorTitle') : t('auth.telegramSuccessTitle')}
           </Text>
 
-          <Text variant="body" color="textMuted" align="center" style={styles.finishingBody}>
-            {isError ? errorDescription : t('auth.telegramSuccessBody')}
-          </Text>
+          {isError ? (
+            <Text variant="body" color="textMuted" align="center" style={styles.finishingBody}>
+              {errorDescription}
+            </Text>
+          ) : null}
 
           <Button
             title={t('auth.telegramContinue')}

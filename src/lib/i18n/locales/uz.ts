@@ -70,7 +70,6 @@ export const uz: LocaleCatalogue = {
   'auth.telegramConfirm': 'Davom etish uchun Telegram hisobingizni tasdiqlang.',
   'auth.telegramContinue': 'Ilovaga o‘tish',
   'auth.telegramSuccessTitle': 'Tizimga kirdingiz',
-  'auth.telegramSuccessBody': 'Ilovaga qaytaryapmiz…',
   'auth.telegramErrorTitle': 'Kirish amalga oshmadi',
   'auth.telegramNotConfigured': 'Telegram orqali kirish sozlanmagan',
   'auth.telegramNotConfiguredBody': 'EXPO_PUBLIC_TELEGRAM_BOT_USERNAME yoki Supabase manzili yetishmayapti.',
