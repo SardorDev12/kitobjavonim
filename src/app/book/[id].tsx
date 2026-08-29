@@ -27,6 +27,7 @@ import {
   Toggle,
 } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { goToTab } from '@/features/tabs/activeTab';
 import { hasContactMethod } from '@/lib/contactMethod';
 import { describeError } from '@/lib/errors';
 import { formatAuthors, formatDate, formatPosition, formatPrice, normalizeIsbn, parseAuthors } from '@/lib/format';
@@ -181,6 +182,7 @@ export default function BookDetailScreen() {
     const remove = async () => {
       await deleteBook.mutateAsync(entry!.id);
       router.replace('/(tabs)');
+      goToTab('library');
     };
 
     // React Native's Alert is a no-op on web, so the browser's own confirm is
