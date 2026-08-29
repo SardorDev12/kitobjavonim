@@ -13,6 +13,14 @@ const IS_PREVIEW = process.env.APP_VARIANT === 'preview';
 // use it the same way (the OS-level app identity), so one value covers both.
 const appId = IS_PREVIEW ? 'uz.homelibrary.app.preview' : 'uz.homelibrary.app';
 
+// Also has to differ, for the same reason: two apps registering the same
+// homelibrary:// link means Android can't tell which one should catch a
+// Telegram sign-in redirect on a device that has both installed, and shows
+// its own "open with" picker instead of going straight back into the app.
+// Real users only ever have the production app, so this only ever bites a
+// device used for testing both builds side by side.
+const scheme = IS_PREVIEW ? 'homelibrary-staging' : 'homelibrary';
+
 module.exports = {
   expo: {
     name: IS_PREVIEW ? 'Kitobjavonim (Staging)' : 'Kitobjavonim',
@@ -21,7 +29,7 @@ module.exports = {
     version: '0.3.0',
     orientation: 'default',
     icon: IS_PREVIEW ? './assets/images/icon-preview.png' : './assets/images/icon.png',
-    scheme: 'homelibrary',
+    scheme,
     userInterfaceStyle: 'automatic',
     newArchEnabled: true,
     runtimeVersion: {

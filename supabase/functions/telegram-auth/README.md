@@ -91,7 +91,7 @@ native; web uses its own origin automatically.
 |---|---|---|---|
 | Function secret | `TELEGRAM_BOT_TOKEN` | yes | From BotFather. Also the HMAC key. |
 | Function secret | `TELEGRAM_ALLOWED_ORIGINS` | for web | Comma-separated web origins allowed to receive a completed sign-in. |
-| Function secret | `APP_SCHEME` | no | Deep-link scheme, defaults to `homelibrary`. Match `scheme` in `app.config.js`. |
+| Function secret | `APP_SCHEME` | no | Deep-link scheme, defaults to `homelibrary`. Match `scheme` in `app.config.js` — the staging/preview build uses `homelibrary-staging` instead, so set this to that value on the staging project. |
 | App env | `EXPO_PUBLIC_TELEGRAM_BOT_USERNAME` | yes | Bot username, without the `@`. |
 | App env | `EXPO_PUBLIC_WEB_ORIGIN` | native only | Where the widget page is deployed — must match `/setdomain`. |
 
