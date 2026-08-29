@@ -10,45 +10,6 @@ import { useTheme } from '@/theme';
 const BOT_USERNAME = (process.env.EXPO_PUBLIC_TELEGRAM_BOT_USERNAME ?? '').replace(/^@/, '').trim();
 
 /**
- * This app's custom schemes, mapped to their Android package ids — matches
- * `appId`/`scheme` in app.config.js for each variant. Used to target the
- * right app explicitly via an intent:// URL (see toAndroidIntentUrl below)
- * rather than a bare custom-scheme redirect, which Android turns into an
- * "open with" picker whenever more than one installed app claims the same
- * scheme — true today for staging and production alike, since staging only
- * gets its own separate scheme once it's rebuilt.
- */
-const ANDROID_PACKAGE_BY_SCHEME: Record<string, string> = {
-  'homelibrary:': 'uz.homelibrary.app',
-  'homelibrary-staging:': 'uz.homelibrary.app.preview',
-};
-
-/**
- * Chrome-on-Android-only syntax for opening a specific installed app by
- * package, bypassing any "open with" picker a bare custom-scheme URL would
- * trigger. Returns null for a scheme this app doesn't recognise, or on any
- * other platform — callers fall back to the plain URL in that case.
- */
-function toAndroidIntentUrl(target: string): string | null {
-  if (!/Android/i.test(globalThis.navigator?.userAgent ?? '')) return null;
-
-  let parsed: URL;
-  try {
-    parsed = new URL(target);
-  } catch {
-    return null;
-  }
-
-  const androidPackage = ANDROID_PACKAGE_BY_SCHEME[parsed.protocol];
-  if (!androidPackage) return null;
-
-  const scheme = parsed.protocol.slice(0, -1);
-  const rest = target.slice(parsed.protocol.length + 2); // strips "scheme://"
-  const fallback = encodeURIComponent(globalThis.location.href);
-  return `intent://${rest}#Intent;scheme=${scheme};package=${androidPackage};S.browser_fallback_url=${fallback};end`;
-}
-
-/**
  * Hosts the actual Telegram Login Widget — deliberately not the Edge Function.
  *
  * Telegram's widget checks the *embedding page's own domain* against whatever
@@ -92,8 +53,7 @@ export default function TelegramLoginScreen() {
     if (tokenHash) target.searchParams.set('token_hash', tokenHash);
     if (type) target.searchParams.set('type', type);
     if (errorDescription) target.searchParams.set('error_description', errorDescription);
-    const plain = target.toString();
-    return toAndroidIntentUrl(plain) ?? plain;
+    return target.toString();
   }
 
   useEffect(() => {
