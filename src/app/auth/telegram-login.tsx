@@ -1,6 +1,7 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef } from 'react';
-import { Platform, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { Button, EmptyState, LoadingState, Screen, Text } from '@/components/ui';
 import { useI18n } from '@/lib/i18n';
@@ -87,11 +88,40 @@ export default function TelegramLoginScreen() {
     // location.replace above fires on mount; this is only what shows for the
     // instant before it does, and as a fallback if that navigation is itself
     // blocked (mirroring the Edge Function's own manual-link fallback).
+    const isError = Boolean(errorDescription);
     return (
       <Screen>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: theme.spacing.lg }}>
-          <LoadingState label={t('common.loading')} />
-          <Button title={t('auth.telegramContinue')} onPress={() => globalThis.location.assign(nativeTarget())} />
+        <View style={[styles.finishing, { padding: theme.spacing.xl, gap: theme.spacing.md }]}>
+          <View
+            style={[
+              styles.iconWrap,
+              {
+                backgroundColor: isError ? theme.colors.dangerSoft : theme.colors.successSoft,
+                borderRadius: theme.radius.pill,
+              },
+            ]}
+          >
+            <Ionicons
+              name={isError ? 'alert-circle-outline' : 'checkmark-circle-outline'}
+              size={34}
+              color={isError ? theme.colors.danger : theme.colors.success}
+            />
+          </View>
+
+          <Text variant="heading" align="center">
+            {isError ? t('auth.telegramErrorTitle') : t('auth.telegramSuccessTitle')}
+          </Text>
+
+          <Text variant="body" color="textMuted" align="center" style={styles.finishingBody}>
+            {isError ? errorDescription : t('auth.telegramSuccessBody')}
+          </Text>
+
+          <Button
+            title={t('auth.telegramContinue')}
+            onPress={() => globalThis.location.assign(nativeTarget())}
+            variant={isError ? 'secondary' : 'primary'}
+            style={{ marginTop: theme.spacing.sm }}
+          />
         </View>
       </Screen>
     );
@@ -142,3 +172,9 @@ export default function TelegramLoginScreen() {
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({
+  finishing: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  iconWrap: { width: 72, height: 72, alignItems: 'center', justifyContent: 'center' },
+  finishingBody: { maxWidth: 320 },
+});
