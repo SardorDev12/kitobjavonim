@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import { useRouter } from 'expo-router';
@@ -11,8 +12,7 @@ import { emptyCandidate, type BookCandidate } from '@/lib/books/metadata';
 import { describeError } from '@/lib/errors';
 import { parseAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
-import { useCreateCategory, useSetBookCategories } from '@/lib/queries/categories';
-import { useAddBook, useUpdateReadingProgress, useUpdateUserBook } from '@/lib/queries/library';
+import { queryKeys } from '@/lib/queries/keys';
 import { supabase } from '@/lib/supabase';
 import type { ReadingStatus } from '@/types/database';
 import { useTheme } from '@/theme';
@@ -119,6 +119,161 @@ async function parseWorkbook(data: ArrayBuffer | string, type: 'array' | 'base64
   return { headers, rows, columns: detectColumns(headers) };
 }
 
+/** A stalled request (dropped connection, no response) must not hang the whole import forever. */
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('Timed out')), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (cause) => {
+        clearTimeout(timer);
+        reject(cause);
+      }
+    );
+  });
+}
+
+type ExistingEntry = { userBookId: string; bookId: string };
+
+/**
+ * Creates or reuses a book/copy, then writes progress/pages/categories for
+ * one row — talking to Supabase directly rather than through the app's
+ * shared add-book/reading-progress mutation hooks. Each of those invalidates
+ * the library list on every call, and since the PagerView tabs layout keeps
+ * the Library/Reading screens mounted in the background, that invalidation
+ * is a real refetch, not a no-op. Run through those hooks, 182 rows meant
+ * hundreds of extra background list refetches compounding as the library
+ * grew — the import got steadily slower and eventually stalled. This does
+ * one invalidation for the whole import instead, after the loop.
+ */
+async function importRow(
+  row: SheetRow,
+  title: string,
+  columns: Partial<Record<FieldKey, string>>,
+  userId: string,
+  existingByKey: Map<string, ExistingEntry>,
+  categoryIdByName: Map<string, string>
+): Promise<void> {
+  const authors = parseAuthors(toText(cell(row, columns, 'author')));
+  const startDate = toISODate(cell(row, columns, 'startDate'));
+  const endDate = toISODate(cell(row, columns, 'endDate'));
+  const status = inferStatus(cell(row, columns, 'status'), startDate, endDate);
+  const pages = toPageCount(cell(row, columns, 'pages'));
+
+  const key = `${title.toLowerCase()}|${authors.join(',').toLowerCase()}`;
+  const existing = existingByKey.get(key);
+
+  let userBookId: string;
+  let bookId: string;
+
+  if (existing) {
+    userBookId = existing.userBookId;
+    bookId = existing.bookId;
+  } else {
+    const candidate: BookCandidate = {
+      ...emptyCandidate(),
+      title,
+      authors,
+      publisher: toText(cell(row, columns, 'publisher')) || null,
+      page_count: pages,
+    };
+
+    // Mirrors ensureBook (src/lib/queries/library.ts) — no ISBN dedupe check
+    // here since an imported row never carries one.
+    const { data: book, error: bookError } = await supabase
+      .from('books')
+      .insert({
+        isbn13: candidate.isbn13,
+        isbn10: candidate.isbn10,
+        title: candidate.title,
+        subtitle: candidate.subtitle,
+        authors: candidate.authors,
+        publisher: candidate.publisher,
+        publication_year: candidate.publication_year,
+        language: candidate.language,
+        cover_url: candidate.cover_url,
+        page_count: candidate.page_count,
+        description: candidate.description,
+        source: candidate.source,
+        source_id: candidate.source_id,
+        created_by: userId,
+      })
+      .select('id')
+      .single();
+    if (bookError) throw bookError;
+    bookId = book.id as string;
+
+    const { data: userBook, error: userBookError } = await supabase
+      .from('user_books')
+      .insert({ user_id: userId, book_id: bookId })
+      .select('id')
+      .single();
+    if (userBookError) throw userBookError;
+    userBookId = userBook.id as string;
+
+    existingByKey.set(key, { userBookId, bookId });
+  }
+
+  // rating/review/date_finished are only valid once the book is actually
+  // finished (review_requires_finished, 0020_reading_progress.sql). Upsert
+  // covers both a brand-new copy (no row yet) and a reused one (already has
+  // one) uniformly.
+  const isFinished = status === 'finished';
+  const { error: progressError } = await supabase.from('reading_progress').upsert(
+    {
+      user_book_id: userBookId,
+      user_id: userId,
+      reading_status: status,
+      date_started: startDate,
+      date_finished: isFinished ? endDate : null,
+      rating: isFinished ? toRating(cell(row, columns, 'rating')) : null,
+      review: isFinished ? toText(cell(row, columns, 'review')) || null : null,
+    },
+    { onConflict: 'user_book_id,user_id' }
+  );
+  if (progressError) throw progressError;
+
+  if (pages && !existing) {
+    const { error: pagesError } = await supabase
+      .from('user_books')
+      .update({ total_pages: pages })
+      .eq('id', userBookId);
+    if (pagesError) throw pagesError;
+  }
+
+  const collectionText = toText(cell(row, columns, 'collection'));
+  if (collectionText) {
+    const names = collectionText
+      .split(',')
+      .map((name) => name.trim())
+      .filter(Boolean);
+    const categoryIds: string[] = [];
+    for (const name of names) {
+      const cacheKey = name.toLowerCase();
+      let id = categoryIdByName.get(cacheKey);
+      if (!id) {
+        const { data, error: categoryError } = await supabase.rpc('find_or_create_category', { p_name: name });
+        if (categoryError) throw categoryError;
+        id = data as string;
+        categoryIdByName.set(cacheKey, id);
+      }
+      categoryIds.push(id);
+    }
+    if (categoryIds.length > 0) {
+      const { error: attachError } = await supabase
+        .from('book_categories')
+        .insert(categoryIds.map((category_id) => ({ book_id: bookId, category_id })));
+      // Another owner of the same book (or an earlier row in this same
+      // import) may already have attached it — that is the desired end
+      // state anyway, same reasoning as useSetBookCategories's "added" branch.
+      if (attachError && attachError.code !== '23505') throw attachError;
+    }
+  }
+}
+
 type ImportOutcome = { imported: number; skipped: { row: number; reason: string }[] };
 
 export default function LibraryImportScreen() {
@@ -127,17 +282,12 @@ export default function LibraryImportScreen() {
   const router = useRouter();
   const { user } = useAuth();
 
+  const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
   const [parsing, setParsing] = useState(false);
   const [parsed, setParsed] = useState<ParsedFile | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [outcome, setOutcome] = useState<ImportOutcome | null>(null);
-
-  const addBook = useAddBook();
-  const updateProgress = useUpdateReadingProgress();
-  const updateUserBook = useUpdateUserBook();
-  const createCategory = useCreateCategory();
-  const setCategories = useSetBookCategories();
 
   async function pickFile() {
     setError(null);
@@ -220,74 +370,9 @@ export default function LibraryImportScreen() {
       }
 
       try {
-        const authors = parseAuthors(toText(cell(row, parsed.columns, 'author')));
-        const startDate = toISODate(cell(row, parsed.columns, 'startDate'));
-        const endDate = toISODate(cell(row, parsed.columns, 'endDate'));
-        const status = inferStatus(cell(row, parsed.columns, 'status'), startDate, endDate);
-        const pages = toPageCount(cell(row, parsed.columns, 'pages'));
-
-        const key = `${title.toLowerCase()}|${authors.join(',').toLowerCase()}`;
-        const existing = existingByKey.get(key);
-
-        let userBookId: string;
-        let bookId: string;
-
-        if (existing) {
-          userBookId = existing.userBookId;
-          bookId = existing.bookId;
-        } else {
-          const candidate: BookCandidate = {
-            ...emptyCandidate(),
-            title,
-            authors,
-            publisher: toText(cell(row, parsed.columns, 'publisher')) || null,
-            page_count: pages,
-          };
-          const created = await addBook.mutateAsync({ candidate, readingStatus: status });
-          userBookId = created.userBookId;
-          bookId = created.bookId;
-          existingByKey.set(key, { userBookId, bookId });
-        }
-
-        // rating/review/date_finished are only valid once the book is
-        // actually finished (review_requires_finished, 0020_reading_progress.sql).
-        const isFinished = status === 'finished';
-        await updateProgress.mutateAsync({
-          userBookId,
-          patch: {
-            reading_status: status,
-            date_started: startDate,
-            date_finished: isFinished ? endDate : null,
-            rating: isFinished ? toRating(cell(row, parsed.columns, 'rating')) : null,
-            review: isFinished ? toText(cell(row, parsed.columns, 'review')) || null : null,
-          },
-        });
-
-        if (pages && !existing) {
-          await updateUserBook.mutateAsync({ id: userBookId, patch: { total_pages: pages } });
-        }
-
-        const collectionText = toText(cell(row, parsed.columns, 'collection'));
-        if (collectionText) {
-          const names = collectionText
-            .split(',')
-            .map((name) => name.trim())
-            .filter(Boolean);
-          const categoryIds: string[] = [];
-          for (const name of names) {
-            const cacheKey = name.toLowerCase();
-            let id = categoryIdByName.get(cacheKey);
-            if (!id) {
-              id = await createCategory.mutateAsync(name);
-              categoryIdByName.set(cacheKey, id);
-            }
-            categoryIds.push(id);
-          }
-          if (categoryIds.length > 0) {
-            await setCategories.mutateAsync({ bookId, categoryIds, previous: [] });
-          }
-        }
-
+        // A dropped connection or an unresponsive request must not hang the
+        // rest of the import — skip the row and move on instead.
+        await withTimeout(importRow(row, title, parsed.columns, user.id, existingByKey, categoryIdByName), 20000);
         imported += 1;
       } catch (cause) {
         skipped.push({ row: i + 2, reason: describeError(cause, t) });
@@ -297,6 +382,14 @@ export default function LibraryImportScreen() {
     setProgress(null);
     setOutcome({ imported, skipped });
     setParsed(null);
+
+    // The one invalidation for everything the loop touched — see importRow's
+    // own comment for why this isn't done per row.
+    queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
+    queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
+    queryClient.invalidateQueries({ queryKey: queryKeys.reference.categories });
+    queryClient.invalidateQueries({ queryKey: queryKeys.profile.stats(user.id) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.plan.status(user.id) });
   }
 
   if (parsing) {
