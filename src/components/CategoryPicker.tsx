@@ -1,17 +1,22 @@
-import { StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { useI18n } from '@/lib/i18n';
+import { useCreateCategory } from '@/lib/queries/categories';
 import { useCategoryOptions } from '@/lib/queries/reference';
 import { useTheme } from '@/theme';
 
-import { Chip, Text } from './ui';
+import { Chip, Text, TextField } from './ui';
 
 /**
- * Multi-select over the category taxonomy.
+ * Multi-select over the category taxonomy, plus a way to add to it.
  *
  * Categories live on the shared `books` record, so tagging a book helps everyone
  * who owns a copy — and, more to the point, is what makes the category filter on
- * the Exchange screen return anything at all.
+ * the Exchange screen return anything at all. The 6 seeded ones (0022_custom_categories.sql)
+ * don't cover every shelf, so "+ New" resolves a typed name to an existing
+ * category (built-in or someone else's, case-insensitively) or creates one —
+ * see find_or_create_category() and useCreateCategory.
  */
 export function CategoryPicker({
   selected,
@@ -28,17 +33,38 @@ export function CategoryPicker({
   const theme = useTheme();
   const { t } = useI18n();
   const options = useCategoryOptions();
+  const createCategory = useCreateCategory();
+  const [creating, setCreating] = useState(false);
+  const [newName, setNewName] = useState('');
+
+  const atLimit = selected.length >= max;
 
   function toggle(value: string) {
     if (selected.includes(value)) {
       onChange(selected.filter((id) => id !== value));
       return;
     }
-    if (selected.length >= max) return;
+    if (atLimit) return;
     onChange([...selected, value]);
   }
 
-  const atLimit = selected.length >= max;
+  async function confirmNew() {
+    const name = newName.trim();
+    if (!name || atLimit) {
+      setCreating(false);
+      setNewName('');
+      return;
+    }
+    setCreating(false);
+    setNewName('');
+    try {
+      const id = await createCategory.mutateAsync(name);
+      if (!selected.includes(id)) onChange([...selected, id]);
+    } catch {
+      // The category options list itself surfaces this — nothing to add if
+      // the RPC failed, so there is nothing further to reconcile here.
+    }
+  }
 
   return (
     <View style={{ gap: theme.spacing.sm }}>
@@ -62,7 +88,31 @@ export function CategoryPicker({
             />
           );
         })}
+
+        {!creating && !atLimit ? (
+          <Chip label={t('book.newCategory')} icon="add-outline" onPress={() => setCreating(true)} />
+        ) : null}
       </View>
+
+      {creating ? (
+        <TextField
+          value={newName}
+          onChangeText={setNewName}
+          placeholder={t('book.newCategoryPlaceholder')}
+          autoFocus
+          returnKeyType="done"
+          onSubmitEditing={confirmNew}
+          onBlur={confirmNew}
+          maxLength={40}
+          trailing={
+            <Pressable onPress={confirmNew} hitSlop={8}>
+              <Text variant="label" color="primary">
+                {t('common.add')}
+              </Text>
+            </Pressable>
+          }
+        />
+      ) : null}
 
       {atLimit ? (
         <Text variant="caption" color="textSubtle">
@@ -74,5 +124,5 @@ export function CategoryPicker({
 }
 
 const styles = StyleSheet.create({
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' },
 });

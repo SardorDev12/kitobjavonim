@@ -118,22 +118,70 @@ set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
 \echo '### bob (owns no copy) categorising alice''s book (expect error)'
 \set ON_ERROR_STOP off
 insert into book_categories (book_id, category_id)
-values ('aaaaaaaa-0000-0000-0000-000000000001', 'business');
+values ('aaaaaaaa-0000-0000-0000-000000000001', 'family');
 \set ON_ERROR_STOP on
 
 set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
 
 \echo '### alice (owns a copy) categorising it (expect success)'
 insert into book_categories (book_id, category_id)
-values ('aaaaaaaa-0000-0000-0000-000000000001', 'business');
+values ('aaaaaaaa-0000-0000-0000-000000000001', 'family');
 
-\echo '### category now visible on the listing (expect {business})'
+\echo '### category now visible on the listing (expect {family})'
 select category_ids from listings where id = 'dddddddd-0000-0000-0000-000000000001';
 
-\echo '### alice can remove her classification (expect 0 left)'
+\echo '### alice can remove her classification — a built-in category is a real, shared delete (expect 0 left)'
 delete from book_categories
- where book_id = 'aaaaaaaa-0000-0000-0000-000000000001' and category_id = 'business';
+ where book_id = 'aaaaaaaa-0000-0000-0000-000000000001' and category_id = 'family';
 select count(*) from book_categories;
+
+reset role;
+
+-- ---------------------------------------------------------------------------
+-- Custom categories: find_or_create_category() and book_category_hidden
+-- ---------------------------------------------------------------------------
+set role authenticated;
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+
+\echo '### alice creates a custom category (expect a custom-* id)'
+select find_or_create_category('  Sci-Fi  ') as scifi_id \gset
+
+\echo '### bob typing the same name in different case reuses alice''s row, not a duplicate (expect true)'
+set request.jwt.claim.sub = '22222222-2222-2222-2222-222222222222';
+select find_or_create_category('sci-fi') = :'scifi_id' as same_id;
+
+\echo '### exactly one custom category exists after both calls (expect 1)'
+select count(*) from categories where created_by is not null;
+
+\echo '### bob attaches the custom category to alice''s book he now shares no copy of (expect error — same ownership rule as built-ins)'
+\set ON_ERROR_STOP off
+insert into book_categories (book_id, category_id)
+values ('aaaaaaaa-0000-0000-0000-000000000001', :'scifi_id');
+\set ON_ERROR_STOP on
+
+set request.jwt.claim.sub = '11111111-1111-1111-1111-111111111111';
+insert into book_categories (book_id, category_id)
+values ('aaaaaaaa-0000-0000-0000-000000000001', :'scifi_id');
+
+\echo '### alice hides the custom category for herself (expect success)'
+insert into book_category_hidden (book_id, category_id, user_id)
+values ('aaaaaaaa-0000-0000-0000-000000000001', :'scifi_id', '11111111-1111-1111-1111-111111111111');
+
+\echo '### alice cannot hide it on bob''s behalf (expect error)'
+\set ON_ERROR_STOP off
+insert into book_category_hidden (book_id, category_id, user_id)
+values ('aaaaaaaa-0000-0000-0000-000000000001', :'scifi_id', '22222222-2222-2222-2222-222222222222');
+\set ON_ERROR_STOP on
+
+\echo '### the underlying shared tag is untouched by alice''s personal hide (expect 1)'
+select count(*) from book_categories where category_id = :'scifi_id';
+
+\echo '### alice can unhide her own row (expect 0 left)'
+delete from book_category_hidden
+ where book_id = 'aaaaaaaa-0000-0000-0000-000000000001'
+   and category_id = :'scifi_id'
+   and user_id = '11111111-1111-1111-1111-111111111111';
+select count(*) from book_category_hidden;
 
 reset role;
 

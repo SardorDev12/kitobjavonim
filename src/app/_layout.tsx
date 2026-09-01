@@ -310,6 +310,7 @@ function RootNavigator() {
         <Stack.Screen name="add/manual" options={{ title: '' }} />
         <Stack.Screen name="add/configure" options={{ title: '' }} />
         <Stack.Screen name="bookshelves/index" options={{ title: '' }} />
+        <Stack.Screen name="library/import" options={{ title: '' }} />
         <Stack.Screen name="wishlist/index" options={{ title: '' }} />
         <Stack.Screen name="wishlist/add" options={{ title: '' }} />
         <Stack.Screen name="wishlist/[id]" options={{ title: '' }} />
