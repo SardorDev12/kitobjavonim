@@ -470,6 +470,9 @@ export const en = {
   'import.summary': '{{imported}} imported, {{skipped}} skipped',
   'import.rowMissingTitle': 'No title in this row',
   'import.rowLabel': 'Row {{row}}',
+  'import.cancel': 'Cancel import',
+  'import.cancelledNote': 'Import stopped early — the rest of the rows were not attempted.',
+  'import.categoryWarningsHeader': 'Imported, but the category couldn’t be tagged',
 } as const;
 
 export type MessageKey = keyof typeof en;

@@ -477,4 +477,7 @@ export const uz: LocaleCatalogue = {
   'import.summary': "{{imported}} ta import qilindi, {{skipped}} ta o'tkazib yuborildi",
   'import.rowMissingTitle': "Bu qatorda nom yo'q",
   'import.rowLabel': 'Qator {{row}}',
+  'import.cancel': "Importni to'xtatish",
+  'import.cancelledNote': "Import muddatidan oldin to'xtatildi — qolgan qatorlar ko'rib chiqilmadi.",
+  'import.categoryWarningsHeader': "Import qilindi, lekin kategoriya biriktirilmadi",
 };

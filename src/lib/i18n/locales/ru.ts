@@ -480,4 +480,7 @@ export const ru: LocaleCatalogue = {
   'import.summary': 'Импортировано: {{imported}}, пропущено: {{skipped}}',
   'import.rowMissingTitle': 'В этой строке нет названия',
   'import.rowLabel': 'Строка {{row}}',
+  'import.cancel': 'Отменить импорт',
+  'import.cancelledNote': 'Импорт остановлен раньше времени — остальные строки не обрабатывались.',
+  'import.categoryWarningsHeader': 'Импортировано, но категорию не удалось добавить',
 };

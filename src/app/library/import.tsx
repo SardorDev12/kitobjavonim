@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
 import * as XLSX from 'xlsx';
 
@@ -11,7 +11,7 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { emptyCandidate, type BookCandidate } from '@/lib/books/metadata';
 import { describeError } from '@/lib/errors';
 import { parseAuthors } from '@/lib/format';
-import { useI18n } from '@/lib/i18n';
+import { useI18n, type MessageKey, type TranslateParams } from '@/lib/i18n';
 import { queryKeys } from '@/lib/queries/keys';
 import { supabase } from '@/lib/supabase';
 import type { ReadingStatus } from '@/types/database';
@@ -155,8 +155,9 @@ async function importRow(
   columns: Partial<Record<FieldKey, string>>,
   userId: string,
   existingByKey: Map<string, ExistingEntry>,
-  categoryIdByName: Map<string, string>
-): Promise<void> {
+  categoryIdByName: Map<string, string>,
+  t: (key: MessageKey, params?: TranslateParams) => string
+): Promise<{ categoryWarning: string | null }> {
   const authors = parseAuthors(toText(cell(row, columns, 'author')));
   const startDate = toISODate(cell(row, columns, 'startDate'));
   const endDate = toISODate(cell(row, columns, 'endDate'));
@@ -244,37 +245,54 @@ async function importRow(
     if (pagesError) throw pagesError;
   }
 
+  // Categories are secondary to getting the book into the library, same
+  // reasoning as add/configure.tsx's own save() — a failure here (a stale
+  // schema cache before a migration has been applied, say) must not discard
+  // a book whose title/dates/rating already saved successfully above.
+  let categoryWarning: string | null = null;
   const collectionText = toText(cell(row, columns, 'collection'));
   if (collectionText) {
-    const names = collectionText
-      .split(',')
-      .map((name) => name.trim())
-      .filter(Boolean);
-    const categoryIds: string[] = [];
-    for (const name of names) {
-      const cacheKey = name.toLowerCase();
-      let id = categoryIdByName.get(cacheKey);
-      if (!id) {
-        const { data, error: categoryError } = await supabase.rpc('find_or_create_category', { p_name: name });
-        if (categoryError) throw categoryError;
-        id = data as string;
-        categoryIdByName.set(cacheKey, id);
+    try {
+      const names = collectionText
+        .split(',')
+        .map((name) => name.trim())
+        .filter(Boolean);
+      const categoryIds: string[] = [];
+      for (const name of names) {
+        const cacheKey = name.toLowerCase();
+        let id = categoryIdByName.get(cacheKey);
+        if (!id) {
+          const { data, error: categoryError } = await supabase.rpc('find_or_create_category', { p_name: name });
+          if (categoryError) throw categoryError;
+          id = data as string;
+          categoryIdByName.set(cacheKey, id);
+        }
+        categoryIds.push(id);
       }
-      categoryIds.push(id);
-    }
-    if (categoryIds.length > 0) {
-      const { error: attachError } = await supabase
-        .from('book_categories')
-        .insert(categoryIds.map((category_id) => ({ book_id: bookId, category_id })));
-      // Another owner of the same book (or an earlier row in this same
-      // import) may already have attached it — that is the desired end
-      // state anyway, same reasoning as useSetBookCategories's "added" branch.
-      if (attachError && attachError.code !== '23505') throw attachError;
+      if (categoryIds.length > 0) {
+        const { error: attachError } = await supabase
+          .from('book_categories')
+          .insert(categoryIds.map((category_id) => ({ book_id: bookId, category_id })));
+        // Another owner of the same book (or an earlier row in this same
+        // import) may already have attached it — that is the desired end
+        // state anyway, same reasoning as useSetBookCategories's "added" branch.
+        if (attachError && attachError.code !== '23505') throw attachError;
+      }
+    } catch (cause) {
+      categoryWarning = describeError(cause, t);
     }
   }
+
+  return { categoryWarning };
 }
 
-type ImportOutcome = { imported: number; skipped: { row: number; reason: string }[] };
+type RowNote = { row: number; reason: string };
+type ImportOutcome = {
+  imported: number;
+  skipped: RowNote[];
+  categoryWarnings: RowNote[];
+  cancelledEarly: boolean;
+};
 
 export default function LibraryImportScreen() {
   const theme = useTheme();
@@ -288,6 +306,24 @@ export default function LibraryImportScreen() {
   const [parsed, setParsed] = useState<ParsedFile | null>(null);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [outcome, setOutcome] = useState<ImportOutcome | null>(null);
+
+  // Leaving this screen mid-import used to leave the loop running silently
+  // in the background — each background write kept firing on its own
+  // schedule, and if a second run got started before the first one settled,
+  // Library would visibly refetch again each time an old run finally
+  // finished. mountedRef guards every setState below the loop from firing
+  // after the screen is gone; stopRequestedRef (set by either unmounting or
+  // the Cancel button) is checked once per row so a leftover run actually
+  // stops within a row instead of grinding through the rest unattended.
+  const mountedRef = useRef(true);
+  const stopRequestedRef = useRef(false);
+
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      stopRequestedRef.current = true;
+    };
+  }, []);
 
   async function pickFile() {
     setError(null);
@@ -331,8 +367,13 @@ export default function LibraryImportScreen() {
     }
   }
 
+  function cancelImport() {
+    stopRequestedRef.current = true;
+  }
+
   async function confirmImport() {
     if (!parsed || !user) return;
+    stopRequestedRef.current = false;
     setError(null);
     setProgress({ done: 0, total: parsed.rows.length });
 
@@ -344,24 +385,33 @@ export default function LibraryImportScreen() {
       .select('id, book_id, title, authors')
       .eq('user_id', user.id);
     if (existingError) {
-      setError(describeError(existingError, t));
-      setProgress(null);
+      if (mountedRef.current) {
+        setError(describeError(existingError, t));
+        setProgress(null);
+      }
       return;
     }
 
-    const existingByKey = new Map<string, { userBookId: string; bookId: string }>();
+    const existingByKey = new Map<string, ExistingEntry>();
     for (const row of existingRows as { id: string; book_id: string; title: string; authors: string[] }[]) {
       const key = `${row.title.trim().toLowerCase()}|${row.authors.join(',').toLowerCase()}`;
       existingByKey.set(key, { userBookId: row.id, bookId: row.book_id });
     }
 
     const categoryIdByName = new Map<string, string>();
-    const skipped: { row: number; reason: string }[] = [];
+    const skipped: RowNote[] = [];
+    const categoryWarnings: RowNote[] = [];
     let imported = 0;
+    let cancelledEarly = false;
 
     for (let i = 0; i < parsed.rows.length; i++) {
+      if (stopRequestedRef.current) {
+        cancelledEarly = true;
+        break;
+      }
+
       const row = parsed.rows[i];
-      setProgress({ done: i, total: parsed.rows.length });
+      if (mountedRef.current) setProgress({ done: i, total: parsed.rows.length });
 
       const title = toText(cell(row, parsed.columns, 'title'));
       if (!title) {
@@ -372,24 +422,33 @@ export default function LibraryImportScreen() {
       try {
         // A dropped connection or an unresponsive request must not hang the
         // rest of the import — skip the row and move on instead.
-        await withTimeout(importRow(row, title, parsed.columns, user.id, existingByKey, categoryIdByName), 20000);
+        const result = await withTimeout(
+          importRow(row, title, parsed.columns, user.id, existingByKey, categoryIdByName, t),
+          20000
+        );
         imported += 1;
+        if (result.categoryWarning) categoryWarnings.push({ row: i + 2, reason: result.categoryWarning });
       } catch (cause) {
         skipped.push({ row: i + 2, reason: describeError(cause, t) });
       }
     }
 
-    setProgress(null);
-    setOutcome({ imported, skipped });
-    setParsed(null);
-
     // The one invalidation for everything the loop touched — see importRow's
-    // own comment for why this isn't done per row.
+    // own comment for why this isn't done per row. Runs regardless of
+    // whether the screen is still around to show the result, so whatever
+    // was imported before a cancel/unmount shows up without a manual
+    // pull-to-refresh.
     queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
     queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
     queryClient.invalidateQueries({ queryKey: queryKeys.reference.categories });
     queryClient.invalidateQueries({ queryKey: queryKeys.profile.stats(user.id) });
     queryClient.invalidateQueries({ queryKey: queryKeys.plan.status(user.id) });
+
+    if (mountedRef.current) {
+      setProgress(null);
+      setOutcome({ imported, skipped, categoryWarnings, cancelledEarly });
+      setParsed(null);
+    }
   }
 
   if (parsing) {
@@ -405,6 +464,7 @@ export default function LibraryImportScreen() {
       <Screen>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: theme.spacing.md }}>
           <LoadingState label={t('import.importing', { done: progress.done, total: progress.total })} />
+          <Button title={t('import.cancel')} variant="secondary" onPress={cancelImport} />
         </View>
       </Screen>
     );
@@ -418,6 +478,32 @@ export default function LibraryImportScreen() {
           <Text variant="body" color="textMuted">
             {t('import.summary', { imported: outcome.imported, skipped: outcome.skipped.length })}
           </Text>
+          {outcome.cancelledEarly ? (
+            <Text variant="caption" color="textSubtle">
+              {t('import.cancelledNote')}
+            </Text>
+          ) : null}
+
+          {outcome.categoryWarnings.length > 0 ? (
+            <View style={{ gap: theme.spacing.sm }}>
+              <Text variant="label" color="textMuted">
+                {t('import.categoryWarningsHeader', { count: outcome.categoryWarnings.length })}
+              </Text>
+              <Card padded={false}>
+                {outcome.categoryWarnings.map((item, index) => (
+                  <View key={`${item.row}-${index}`}>
+                    {index > 0 ? <Divider inset={theme.spacing.lg} /> : null}
+                    <View style={{ padding: theme.spacing.lg }}>
+                      <Text variant="body">{t('import.rowLabel', { row: item.row })}</Text>
+                      <Text variant="caption" color="textMuted">
+                        {item.reason}
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </Card>
+            </View>
+          ) : null}
 
           {outcome.skipped.length > 0 ? (
             <Card padded={false}>
