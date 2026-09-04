@@ -330,8 +330,12 @@ function RootNavigator() {
           is handled separately, above, via NavigationBar.setStyle.
           Floored the same way Screen.tsx floors its own bottom padding —
           some OEM skins report a real-but-too-short inset, and a strip
-          shorter than the actual bar would leave part of it unpainted. */}
-      {Platform.OS === 'android' && insets.bottom > 0 ? (
+          shorter than the actual bar would leave part of it unpainted.
+          Skipped inside (tabs): its hand-rolled bottom bar ((tabs)/_layout.tsx)
+          already paints its own solid surface color all the way down through
+          the same inset, and sits well taller than this strip — painting this
+          on top of it hid the tab icons/labels entirely rather than helping. */}
+      {Platform.OS === 'android' && insets.bottom > 0 && (segments as readonly string[])[0] !== '(tabs)' ? (
         <View
           pointerEvents="none"
           style={{
