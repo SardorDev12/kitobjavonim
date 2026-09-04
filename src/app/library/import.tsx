@@ -464,7 +464,12 @@ export default function LibraryImportScreen() {
       <Screen>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: theme.spacing.md }}>
           <LoadingState label={t('import.importing', { done: progress.done, total: progress.total })} />
-          <Button title={t('import.cancel')} variant="secondary" onPress={cancelImport} />
+          <Button
+            title={t('import.cancel')}
+            variant="secondary"
+            onPress={cancelImport}
+            style={{ alignSelf: 'center' }}
+          />
         </View>
       </Screen>
     );
@@ -591,7 +596,7 @@ export default function LibraryImportScreen() {
             {error}
           </Text>
         ) : null}
-        <Button title={t('import.chooseFile')} onPress={pickFile} />
+        <Button title={t('import.chooseFile')} onPress={pickFile} style={{ alignSelf: 'center' }} />
       </View>
     </Screen>
   );
