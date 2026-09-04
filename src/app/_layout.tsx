@@ -18,7 +18,6 @@ import stagingFaviconAsset from '@/assets/images/favicon-preview.png';
 import { ErrorBoundary, installGlobalErrorReporting } from '@/components/ErrorBoundary';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { EmptyState, Screen } from '@/components/ui';
-import { MIN_ANDROID_BOTTOM_INSET } from '@/components/ui/Screen';
 import { UpdateAvailableModal } from '@/components/UpdateAvailableModal';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { I18nProvider, useI18n } from '@/lib/i18n';
@@ -328,9 +327,12 @@ function RootNavigator() {
           own icons/pill. Without it, the nav buttons sit directly over
           scrolling text/images and are often unreadable. Icon color itself
           is handled separately, above, via NavigationBar.setStyle.
-          Floored the same way Screen.tsx floors its own bottom padding —
-          some OEM skins report a real-but-too-short inset, and a strip
-          shorter than the actual bar would leave part of it unpainted.
+          Deliberately NOT floored to MIN_ANDROID_BOTTOM_INSET the way
+          Screen.tsx floors its own padding — that floor is a tap-target
+          safety margin for real footer buttons, not a measurement of the
+          nav bar's actual height, and using it here painted a strip visibly
+          taller than the real bar on at least one device. insets.bottom is
+          the OS's own report of the bar's height; trust it for painting.
           Skipped inside (tabs): its hand-rolled bottom bar ((tabs)/_layout.tsx)
           already paints its own solid surface color all the way down through
           the same inset, and sits well taller than this strip — painting this
@@ -343,7 +345,7 @@ function RootNavigator() {
             left: 0,
             right: 0,
             bottom: 0,
-            height: Math.max(insets.bottom, MIN_ANDROID_BOTTOM_INSET),
+            height: insets.bottom,
             backgroundColor: theme.colors.background,
           }}
         />

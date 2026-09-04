@@ -16,7 +16,7 @@ import { PullToRefreshIndicator } from '../PullToRefreshIndicator';
 // trusting a bottom inset that's silently too small; on devices that report
 // correctly, insets.bottom is already at or above this, so Math.max leaves
 // it untouched.
-export const MIN_ANDROID_BOTTOM_INSET = 96;
+const MIN_ANDROID_BOTTOM_INSET = 96;
 
 type ScreenProps = {
   children: ReactNode;
