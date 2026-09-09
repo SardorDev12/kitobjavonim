@@ -7,7 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, Platform, View, type AppStateStatus } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Web-only: swapped in for the staging tab's favicon at runtime (see the
 // hostname check below) — imported unconditionally so Metro bundles it into
@@ -131,6 +131,7 @@ function RootNavigator() {
   const segments = useSegments();
   const pathname = usePathname();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [navigationReady, setNavigationReady] = useState(false);
 
   useEffect(() => {
@@ -310,6 +311,7 @@ function RootNavigator() {
         <Stack.Screen name="add/manual" options={{ title: '' }} />
         <Stack.Screen name="add/configure" options={{ title: '' }} />
         <Stack.Screen name="bookshelves/index" options={{ title: '' }} />
+        <Stack.Screen name="library/import" options={{ title: '' }} />
         <Stack.Screen name="wishlist/index" options={{ title: '' }} />
         <Stack.Screen name="wishlist/add" options={{ title: '' }} />
         <Stack.Screen name="wishlist/[id]" options={{ title: '' }} />
@@ -317,6 +319,37 @@ function RootNavigator() {
         <Stack.Screen name="settings/security" options={{ title: '' }} />
         <Stack.Screen name="settings/household" options={{ title: '' }} />
       </Stack>
+      {/* Edge-to-edge (mandatory since SDK 54) draws Android's system nav
+          bar transparently over whatever the app renders underneath it —
+          expo-navigation-bar's setBackgroundColorAsync no longer exists to
+          fix that at the OS level, so this paints its own opaque strip
+          behind it, on top of the Stack's content but still under the OS's
+          own icons/pill. Without it, the nav buttons sit directly over
+          scrolling text/images and are often unreadable. Icon color itself
+          is handled separately, above, via NavigationBar.setStyle.
+          Deliberately NOT floored to MIN_ANDROID_BOTTOM_INSET the way
+          Screen.tsx floors its own padding — that floor is a tap-target
+          safety margin for real footer buttons, not a measurement of the
+          nav bar's actual height, and using it here painted a strip visibly
+          taller than the real bar on at least one device. insets.bottom is
+          the OS's own report of the bar's height; trust it for painting.
+          Skipped inside (tabs): its hand-rolled bottom bar ((tabs)/_layout.tsx)
+          already paints its own solid surface color all the way down through
+          the same inset, and sits well taller than this strip — painting this
+          on top of it hid the tab icons/labels entirely rather than helping. */}
+      {Platform.OS === 'android' && insets.bottom > 0 && (segments as readonly string[])[0] !== '(tabs)' ? (
+        <View
+          pointerEvents="none"
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            height: insets.bottom,
+            backgroundColor: theme.colors.background,
+          }}
+        />
+      ) : null}
     </>
   );
 }
