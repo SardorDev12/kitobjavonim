@@ -36,7 +36,7 @@ module.exports = {
       policy: 'appVersion',
     },
     updates: {
-      url: 'https://u.expo.dev/212fd706-666a-4cc5-8be7-bcb524ad9a82',
+      url: 'https://u.expo.dev/dfaf465c-ea3c-4e40-a4ab-8d1b7f9f9004',
     },
     ios: {
       supportsTablet: true,
@@ -115,7 +115,7 @@ module.exports = {
     },
     extra: {
       eas: {
-        projectId: '212fd706-666a-4cc5-8be7-bcb524ad9a82',
+        projectId: 'dfaf465c-ea3c-4e40-a4ab-8d1b7f9f9004',
       },
     },
   },
