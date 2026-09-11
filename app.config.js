@@ -24,7 +24,7 @@ const scheme = IS_PREVIEW ? 'homelibrary-staging' : 'homelibrary';
 module.exports = {
   expo: {
     name: IS_PREVIEW ? 'Kitobjavonim (Staging)' : 'Kitobjavonim',
-    slug: 'home-library',
+    slug: 'kitobjavonim',
     owner: 'sardordev12',
     version: '0.3.0',
     orientation: 'default',
