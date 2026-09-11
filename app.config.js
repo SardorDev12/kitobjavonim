@@ -26,7 +26,7 @@ module.exports = {
     name: IS_PREVIEW ? 'Kitobjavonim (Staging)' : 'Kitobjavonim',
     slug: 'kitobjavonim',
     owner: 'sardordev12',
-    version: '0.3.0',
+    version: '0.4.0',
     orientation: 'default',
     icon: IS_PREVIEW ? './assets/images/icon-preview.png' : './assets/images/icon.png',
     scheme,
