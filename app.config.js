@@ -25,7 +25,7 @@ module.exports = {
   expo: {
     name: IS_PREVIEW ? 'Kitobjavonim (Staging)' : 'Kitobjavonim',
     slug: 'home-library',
-    owner: 'sardordev23',
+    owner: 'sardordev12',
     version: '0.3.0',
     orientation: 'default',
     icon: IS_PREVIEW ? './assets/images/icon-preview.png' : './assets/images/icon.png',
