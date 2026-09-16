@@ -455,6 +455,10 @@ export const ru: LocaleCatalogue = {
 
   'import.title': 'Импорт книг',
   'import.explainer': 'Импортируйте книги из таблицы (.xlsx, .xls или .csv), экспортированной из другого приложения для чтения.',
+  'import.guideTitle': 'Формат файла',
+  'import.guideIntro':
+    'Названия столбцов определяются автоматически, без учёта регистра — лишние столбцы игнорируются. Обязателен только столбец с названием.',
+  'import.guideRequired': 'обязательно',
   'import.chooseFile': 'Выбрать файл',
   'import.missingTitleColumn': 'Не удалось найти столбец с названием в этом файле.',
   'import.previewTitle': 'Проверьте перед импортом',
