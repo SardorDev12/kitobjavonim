@@ -37,16 +37,16 @@ type FieldKey =
  * the only one that's required; everything else is best-effort.
  */
 const COLUMN_ALIASES: Record<FieldKey, string[]> = {
-  title: ['title', 'book title', 'name'],
+  title: ['title', 'book title', 'name', 'kitob'],
   status: ['reading status', 'status'],
-  author: ['author', 'authors', 'author(s)'],
+  author: ['author', 'authors', 'author(s)', 'muallif'],
   publisher: ['publisher'],
   startDate: ['start date', 'date started'],
   endDate: ['end date', 'date finished', 'finish date'],
   rating: ['rating'],
-  review: ['review', 'notes'],
+  review: ['review', 'notes', 'izoh'],
   pages: ['total pages', 'pages', 'page count'],
-  collection: ['collection', 'category', 'genre', 'genres'],
+  collection: ['collection', 'category', 'genre', 'genres', 'janr'],
 };
 
 /**
