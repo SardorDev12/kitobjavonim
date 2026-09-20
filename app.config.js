@@ -25,7 +25,7 @@ module.exports = {
   expo: {
     name: IS_PREVIEW ? 'Kitobjavonim (Staging)' : 'Kitobjavonim',
     slug: 'kitobjavonim',
-    owner: 'sardordev12',
+    owner: 'walterobrien1226',
     version: '0.4.0',
     orientation: 'default',
     icon: IS_PREVIEW ? './assets/images/icon-preview.png' : './assets/images/icon.png',
@@ -36,7 +36,7 @@ module.exports = {
       policy: 'appVersion',
     },
     updates: {
-      url: 'https://u.expo.dev/dfaf465c-ea3c-4e40-a4ab-8d1b7f9f9004',
+      url: 'https://u.expo.dev/8e7dc553-6986-45cd-8587-e420e18a7609',
     },
     ios: {
       supportsTablet: true,
@@ -115,7 +115,7 @@ module.exports = {
     },
     extra: {
       eas: {
-        projectId: 'dfaf465c-ea3c-4e40-a4ab-8d1b7f9f9004',
+        projectId: '8e7dc553-6986-45cd-8587-e420e18a7609',
       },
     },
   },
