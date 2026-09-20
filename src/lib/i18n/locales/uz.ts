@@ -454,6 +454,10 @@ export const uz: LocaleCatalogue = {
 
   'import.title': 'Kitoblarni import qilish',
   'import.explainer': "Boshqa ilovadan eksport qilingan jadval (.xlsx, .xls yoki .csv) orqali kitoblarni import qiling.",
+  'import.guideTitle': 'Fayl formati',
+  'import.guideIntro':
+    "Ustun nomlari avtomatik aniqlanadi, katta-kichik harflarga farq qilmaydi — ortiqcha ustunlar e'tiborga olinmaydi. Faqat nom ustuni majburiy.",
+  'import.guideRequired': 'majburiy',
   'import.chooseFile': 'Faylni tanlash',
   'import.missingTitleColumn': "Bu faylda nom ustuni topilmadi.",
   'import.previewTitle': "Import qilishdan oldin tekshiring",

@@ -37,16 +37,16 @@ type FieldKey =
  * the only one that's required; everything else is best-effort.
  */
 const COLUMN_ALIASES: Record<FieldKey, string[]> = {
-  title: ['title', 'book title', 'name'],
+  title: ['title', 'book title', 'name', 'kitob'],
   status: ['reading status', 'status'],
-  author: ['author', 'authors', 'author(s)'],
+  author: ['author', 'authors', 'author(s)', 'muallif'],
   publisher: ['publisher'],
   startDate: ['start date', 'date started'],
   endDate: ['end date', 'date finished', 'finish date'],
   rating: ['rating'],
-  review: ['review', 'notes'],
+  review: ['review', 'notes', 'izoh'],
   pages: ['total pages', 'pages', 'page count'],
-  collection: ['collection', 'category', 'genre', 'genres'],
+  collection: ['collection', 'category', 'genre', 'genres', 'janr'],
 };
 
 /**
@@ -68,6 +68,12 @@ function detectColumns(headers: string[]): Partial<Record<FieldKey, string>> {
     }
   }
   return detected;
+}
+
+/** Display-only capitalization for the format guide shown above the file
+ * picker — matching itself stays lowercase/case-insensitive via COLUMN_ALIASES. */
+function titleCaseAlias(alias: string): string {
+  return alias.replace(/(^|\s)\S/g, (c) => c.toUpperCase());
 }
 
 function cell(row: SheetRow, columns: Partial<Record<FieldKey, string>>, field: FieldKey): unknown {
@@ -582,15 +588,35 @@ export default function LibraryImportScreen() {
     );
   }
 
+  const guideLines = (Object.keys(COLUMN_ALIASES) as FieldKey[]).map((field) => {
+    const label = t(`import.field.${field}`);
+    const suffix = field === 'title' ? ` (${t('import.guideRequired')})` : '';
+    const aliases = COLUMN_ALIASES[field].map(titleCaseAlias).join(', ');
+    return `${label}${suffix}: ${aliases}`;
+  });
+
   return (
-    <Screen>
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: theme.spacing.lg, padding: theme.spacing.xl }}>
+    <Screen scroll>
+      <View style={{ gap: theme.spacing.lg, paddingTop: theme.spacing.xl }}>
         <Text variant="display" align="center">
           {t('import.title')}
         </Text>
         <Text variant="body" color="textMuted" align="center">
           {t('import.explainer')}
         </Text>
+
+        <Card>
+          <Text variant="label" color="textMuted">
+            {t('import.guideTitle')}
+          </Text>
+          <Text variant="caption" color="textMuted" style={{ marginTop: theme.spacing.xs }}>
+            {t('import.guideIntro')}
+          </Text>
+          <Text variant="body" style={{ marginTop: theme.spacing.sm }}>
+            {guideLines.join('\n')}
+          </Text>
+        </Card>
+
         {error ? (
           <Text variant="caption" color="danger" align="center">
             {error}

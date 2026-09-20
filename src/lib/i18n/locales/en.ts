@@ -447,6 +447,10 @@ export const en = {
 
   'import.title': 'Import books',
   'import.explainer': 'Import books from a spreadsheet (.xlsx, .xls, or .csv) exported by another reading app.',
+  'import.guideTitle': 'File format',
+  'import.guideIntro':
+    'Column names are matched automatically, case-insensitive — extra columns are ignored. Only a title column is required.',
+  'import.guideRequired': 'required',
   'import.chooseFile': 'Choose file',
   'import.missingTitleColumn': "Couldn't find a title column in this file.",
   'import.previewTitle': 'Review before importing',
