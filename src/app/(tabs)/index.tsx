@@ -1,5 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { isWithinInterval, startOfMonth, startOfWeek, startOfYear } from 'date-fns';
+import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Alert, FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -242,6 +243,7 @@ function SectionLabel({
 function HeroReadingCard({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: () => void }) {
   const theme = useTheme();
   const { t, locale } = useI18n();
+  const router = useRouter();
   const updateProgress = useUpdateReadingProgress();
 
   const progressLabel = useMemo(() => describeProgress(entry, t), [entry, t]);
@@ -257,7 +259,16 @@ function HeroReadingCard({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: (
 
   return (
     <Card style={theme.shadow.card}>
-      <View style={{ flexDirection: 'row', gap: theme.spacing.md }}>
+      {/* A separate Pressable, not Card's own onPress — the buttons below need
+          to keep working as their own tap targets, and nesting them inside a
+          single Pressable that also opens the book leaves the buttons' taps
+          racing the card's, same reasoning BookCard's own row never bundles
+          a whole card into one pressable when it holds inner controls. */}
+      <Pressable
+        onPress={() => router.push(`/book/${entry.id}`)}
+        accessibilityRole="button"
+        style={({ pressed }) => [{ flexDirection: 'row', gap: theme.spacing.md }, pressed && { opacity: 0.6 }]}
+      >
         <BookCover uri={entry.cover_url} title={entry.title} width={84} radius={theme.radius.sm} />
 
         <View style={{ flex: 1, gap: 2, paddingTop: 2 }}>
@@ -284,7 +295,7 @@ function HeroReadingCard({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: (
             </Text>
           ) : null}
         </View>
-      </View>
+      </Pressable>
 
       {percent != null ? <ProgressBar percent={percent} theme={theme} size="lg" /> : null}
 
@@ -305,6 +316,7 @@ function HeroReadingCard({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: (
 function ReadingRow({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: () => void }) {
   const theme = useTheme();
   const { t, locale } = useI18n();
+  const router = useRouter();
   const updateProgress = useUpdateReadingProgress();
 
   const progressLabel = useMemo(() => describeProgress(entry, t), [entry, t]);
@@ -320,7 +332,12 @@ function ReadingRow({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: () => 
 
   return (
     <Card style={theme.shadow.card}>
-      <View style={[{ flexDirection: 'row', gap: theme.spacing.md }]}>
+      {/* Own Pressable, not Card's onPress — see HeroReadingCard's identical comment. */}
+      <Pressable
+        onPress={() => router.push(`/book/${entry.id}`)}
+        accessibilityRole="button"
+        style={({ pressed }) => [{ flexDirection: 'row', gap: theme.spacing.md }, pressed && { opacity: 0.6 }]}
+      >
         <BookCover uri={entry.cover_url} title={entry.title} width={56} radius={theme.radius.sm} />
 
         <View style={{ flex: 1, gap: 2 }}>
@@ -348,7 +365,7 @@ function ReadingRow({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: () => 
             </Text>
           ) : null}
         </View>
-      </View>
+      </Pressable>
 
       <View style={{ flexDirection: 'row', gap: theme.spacing.sm, marginTop: theme.spacing.md }}>
         <Button title={t('reading.updateProgress')} variant="secondary" size="sm" onPress={onUpdate} style={{ flex: 1 }} />
