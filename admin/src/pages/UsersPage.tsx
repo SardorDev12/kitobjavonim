@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 
+import { PasswordInput } from '../components/PasswordInput';
 import { adminApi, type AdminUser } from '../lib/adminApi';
 
 export function UsersPage({ currentUserId }: { currentUserId: string }) {
@@ -172,14 +173,7 @@ function CreateAdminForm({ onDone, onCancel }: { onDone: () => void; onCancel: (
       </label>
       <label style={{ display: 'grid', gap: 4, fontSize: 13 }}>
         Password (12+ characters)
-        <input
-          className="input"
-          type="password"
-          minLength={12}
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <PasswordInput minLength={12} required value={password} onChange={(e) => setPassword(e.target.value)} />
       </label>
       {error ? <p style={{ margin: 0, fontSize: 13, color: 'var(--danger)' }}>{error}</p> : null}
       <div style={{ display: 'flex', gap: 8 }}>

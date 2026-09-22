@@ -29,6 +29,8 @@ export const en = {
   'common.optional': 'optional',
   'common.apply': 'Apply',
   'common.clear': 'Clear',
+  'common.showPassword': 'Show password',
+  'common.hidePassword': 'Hide password',
   'common.filters': 'Filters',
   'common.sort': 'Sort',
   'common.all': 'All',

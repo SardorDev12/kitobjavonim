@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 
+import { PasswordInput } from './components/PasswordInput';
 import { supabase } from './lib/supabaseClient';
 
 /**
@@ -53,9 +54,7 @@ export function LoginScreen({ notice }: { notice?: string }) {
 
         <label style={{ display: 'grid', gap: 4, fontSize: 13 }}>
           Password
-          <input
-            className="input"
-            type="password"
+          <PasswordInput
             autoComplete="current-password"
             required
             value={password}

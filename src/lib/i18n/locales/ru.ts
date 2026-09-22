@@ -28,6 +28,8 @@ export const ru: LocaleCatalogue = {
   'common.optional': 'необязательно',
   'common.apply': 'Применить',
   'common.clear': 'Очистить',
+  'common.showPassword': 'Показать пароль',
+  'common.hidePassword': 'Скрыть пароль',
   'common.filters': 'Фильтры',
   'common.sort': 'Сортировка',
   'common.all': 'Все',

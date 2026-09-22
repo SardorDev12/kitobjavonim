@@ -1,5 +1,7 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import {
+  Pressable,
   StyleSheet,
   TextInput,
   View,
@@ -8,6 +10,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 
+import { useI18n } from '@/lib/i18n';
 import { useTheme } from '@/theme';
 
 import { Text } from './Text';
@@ -31,10 +34,32 @@ export function TextField({
   multiline,
   onFocus,
   onBlur,
+  secureTextEntry,
   ...rest
 }: TextFieldProps) {
   const theme = useTheme();
+  const { t } = useI18n();
   const [focused, setFocused] = useState(false);
+  // Masked by default whenever the caller asks for secureTextEntry — this
+  // state only flips it off temporarily, never changes the caller's intent.
+  const [revealed, setRevealed] = useState(false);
+
+  // No explicit `trailing` from the caller ever collides with this: none of
+  // the password screens (sign-in/sign-up/change-password) pass one today,
+  // and a caller that needs its own trailing content on a password field can
+  // still pass one to override this default.
+  const resolvedTrailing =
+    trailing ??
+    (secureTextEntry ? (
+      <Pressable
+        onPress={() => setRevealed((value) => !value)}
+        accessibilityRole="button"
+        accessibilityLabel={revealed ? t('common.hidePassword') : t('common.showPassword')}
+        hitSlop={8}
+      >
+        <Ionicons name={revealed ? 'eye-off' : 'eye'} size={20} color={theme.colors.textMuted} />
+      </Pressable>
+    ) : undefined);
 
   const borderColor = error
     ? theme.colors.danger
@@ -65,6 +90,7 @@ export function TextField({
       >
         <TextInput
           {...rest}
+          secureTextEntry={secureTextEntry && !revealed}
           multiline={multiline}
           onFocus={(e) => {
             setFocused(true);
@@ -86,7 +112,7 @@ export function TextField({
             style,
           ]}
         />
-        {trailing ? <View style={{ paddingRight: theme.spacing.md }}>{trailing}</View> : null}
+        {resolvedTrailing ? <View style={{ paddingRight: theme.spacing.md }}>{resolvedTrailing}</View> : null}
       </View>
 
       {error ? (
