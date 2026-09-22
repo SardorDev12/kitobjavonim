@@ -8,6 +8,12 @@ name: EAS Update
 # plugins/package name) still needs a real build through the usual EAS flow,
 # since the installed binary itself doesn't change here.
 #
+# The "Check whether this push bumps the app version" step (below) is what
+# enforces that: a version bump is this project's own signal that a push
+# needs a real build, so when the push carries one, every later step is
+# skipped and no OTA update is published at all — see that step's own
+# comment for the reasoning.
+#
 # Single-branch model: everything ships from main, so there's no develop
 # push to derive the target channel from anymore. Every push instead
 # publishes to BOTH channels — preview (staging Supabase data) and
@@ -46,20 +52,50 @@ jobs:
             web_origin: https://app.kitobjavonim.uz
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check whether this push bumps the app version (native build required)
+        # A version bump is this project's own established signal that a
+        # change needs a fresh native build — see the "Bump app version to
+        # X.Y.Z" commits throughout history, always made right before/for a
+        # native-affecting change (new native dependency, permission,
+        # icon/splash/plugins/package name). runtimeVersion's "appVersion"
+        # policy means that new version creates a runtimeVersion boundary a
+        # currently-installed binary can't use anyway, so auto-publishing
+        # an OTA update under it here would be silently unreachable until a
+        # new build goes out — not wrong, just pointless, and easy to
+        # mistake for "the update shipped" when it didn't reach anyone.
+        # Skipping the publish instead makes that visible: nothing runs
+        # until a real build (workflow: EAS Build) carries the new version.
+        id: version_check
+        run: |
+          OLD_VERSION=$(git show HEAD^:app.config.js | grep -oP "version:\s*'\K[^']+" || echo "")
+          NEW_VERSION=$(grep -oP "version:\s*'\K[^']+" app.config.js || echo "")
+          echo "Version: $OLD_VERSION -> $NEW_VERSION"
+          if [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
+            echo "bumped=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "bumped=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - uses: actions/setup-node@v4
+        if: steps.version_check.outputs.bumped == 'false'
         with:
           node-version: 22
           cache: npm
 
       - run: npm ci
+        if: steps.version_check.outputs.bumped == 'false'
 
       - uses: expo/expo-github-action@v8
+        if: steps.version_check.outputs.bumped == 'false'
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Publish update (${{ matrix.channel }})
+        if: steps.version_check.outputs.bumped == 'false'
         # The commit message is passed via env, not interpolated straight into
         # `run:` — a multi-line message containing its own quotes (as one
         # eventually will) breaks out of the shell string GitHub Actions

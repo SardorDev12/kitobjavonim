@@ -222,7 +222,11 @@ build through the usual `eas build` flow above, for whichever profile(s)
 it affects; `runtimeVersion`'s `appVersion` policy is what stops an
 incompatible OTA update from being offered to a binary that can't run
 it — bump `version` in `app.config.js` when a native change ships, same as
-any other native-affecting release.
+any other native-affecting release. `eas-update.yml` checks for exactly
+that bump itself: if a push changes `app.config.js`'s `version`, the whole
+job is skipped rather than publishing an OTA update no currently-installed
+binary could use anyway — nothing auto-publishes again until a real build
+carries the new version.
 
 Requires an `EXPO_TOKEN` repository secret (GitHub → Settings → Secrets and
 variables → Actions) — generate one at
