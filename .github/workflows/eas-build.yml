@@ -11,6 +11,17 @@ name: EAS Build
 # with. eas.json's per-profile "env" block (unlike eas-update.yml's OTA
 # publishes) is respected by `eas build` automatically, so it doesn't need
 # repeating here.
+#
+# eas.json's "cli.appVersionSource" is "local" — app.config.js's
+# android.versionCode / ios.buildNumber are the only source of truth for
+# the store version number (see the "Switch Android version code to local,
+# manual tracking" commit for why: EAS's own "remote" counter drifted out
+# of sync with what Google Play actually had on record and kept producing
+# version codes Play had already rejected). For a "production" build, the
+# "Bump native version" step below increments those fields and commits the
+# result before the build runs, so every production build automatically
+# gets a version code/build number one higher than the last one committed
+# — no server-side counter involved, git is the only state.
 on:
   workflow_dispatch:
     inputs:
@@ -27,11 +38,16 @@ on:
         type: choice
         options: [android, ios, all]
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
 
       - uses: actions/setup-node@v4
         with:
@@ -39,6 +55,16 @@ jobs:
           cache: npm
 
       - run: npm ci
+
+      - name: Bump native version (production only)
+        if: inputs.profile == 'production'
+        run: |
+          node scripts/bump-native-version.js ${{ inputs.platform }}
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add app.config.js
+          git commit -m "Bump native version for production build (${{ inputs.platform }}) [skip ci]"
+          git push origin HEAD:${{ github.ref_name }}
 
       - uses: expo/expo-github-action@v8
         with:
