@@ -13,13 +13,13 @@ name: Deploy Landing Page
 # hang.
 #
 # Unlike the app/admin Workers, there's a single kitobjavonim-landing
-# Worker for both develop and main — no staging split. This page has no
-# backend and no environment variables (see landing/README.md), so a
-# staging deploy would only ever be a byte-for-byte copy of production
-# deployed to a second Worker for no reason.
+# Worker — no staging split. This page has no backend and no environment
+# variables (see landing/README.md), so a staging deploy would only ever
+# be a byte-for-byte copy of production deployed to a second Worker for no
+# reason.
 on:
   push:
-    branches: [develop, main]
+    branches: [main]
     paths:
       - "landing/**"
   workflow_dispatch:

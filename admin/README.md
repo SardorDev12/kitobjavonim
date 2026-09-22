@@ -13,7 +13,7 @@ consumer app at every layer:
   (`kitobjavonim-admin`) → its own subdomain. A compromise or outage on one
   side never touches the other.
 - **Same branch, separate deploy.** This app lives in `admin/` alongside
-  the consumer app on `develop`/`main` — a separate Cloudflare project
+  the consumer app on `main` — a separate Cloudflare project
   connected via Git tracks the same branch but with its root directory set
   to `admin`, so it only ever builds and deploys this folder, and never
   pulls in the consumer app's own build. (It used to live on its own
@@ -89,26 +89,25 @@ production are separate projects with separate users).
 Two ways to get this built and published — pick whichever fits:
 
 **Cloudflare Git integration (no local machine needed).** Workers & Pages →
-connect the GitHub repo → track **`main`** (production) or **`develop`**
-(staging) → root directory `admin`, build command `npm run build`, output
-directory `dist`. Cloudflare builds and deploys on every push to that
-branch — the root directory setting is what keeps this build scoped to
-`admin/` alone, without needing a dedicated branch for it. Set
-`VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` in that project's own
-**Settings → Variables** *before* the first build — Vite inlines `VITE_*`
-values into the bundle at build time, so they have to exist when Cloudflare
-runs `npm run build`, not after. Adding or correcting a variable later
-doesn't retroactively fix an already-built deployment — it only takes
-effect on the *next* build, so a variable change needs a fresh push (or a
-manual retry that actually re-runs the build step, not just re-serves the
-existing one) before it does anything.
+connect the GitHub repo → track **`main`** → root directory `admin`, build
+command `npm run build`, output directory `dist`. Cloudflare builds and
+deploys on every push to that branch — the root directory setting is what
+keeps this build scoped to `admin/` alone, without needing a dedicated
+branch for it. Set `VITE_SUPABASE_URL`/`VITE_SUPABASE_ANON_KEY` in that
+project's own **Settings → Variables** *before* the first build — Vite
+inlines `VITE_*` values into the bundle at build time, so they have to
+exist when Cloudflare runs `npm run build`, not after. Adding or
+correcting a variable later doesn't retroactively fix an already-built
+deployment — it only takes effect on the *next* build, so a variable
+change needs a fresh push (or a manual retry that actually re-runs the
+build step, not just re-serves the existing one) before it does anything.
 
-The staging project (`kitobjavonim-admin-staging`) is connected this way,
-tracking `develop`, with its **Deploy command** and **Non-production
-branch deploy command** both overridden to `--name
+The staging project (`kitobjavonim-admin-staging`) is connected this way
+too, also tracking `main` (single-branch model — there's no develop branch
+to track separately anymore), with its **Deploy command** and
+**Non-production branch deploy command** both overridden to `--name
 kitobjavonim-admin-staging` — `admin/wrangler.jsonc`'s own `name` field is
-`kitobjavonim-admin`, reserved for the production project, which tracks
-`main` instead.
+`kitobjavonim-admin`, reserved for the production project.
 
 **Local build + wrangler CLI**, if you'd rather:
 

@@ -58,9 +58,9 @@ npx serve .
 ## Deploying
 
 **`deploy-landing.yml` (GitHub Actions)** is the live setup — runs
-`wrangler deploy` on every push touching `landing/**` (from either
-`develop` or `main`, or manually via the Actions tab's "Run workflow"
-button), always to the single `kitobjavonim-landing` Worker. Needs
+`wrangler deploy` on every push touching `landing/**` (from `main`, or
+manually via the Actions tab's "Run workflow" button), always to the
+single `kitobjavonim-landing` Worker. Needs
 `CLOUDFLARE_API_TOKEN`/`CLOUDFLARE_ACCOUNT_ID` as repo secrets.
 
 Unlike the app/admin Workers, there's no separate staging deploy here —
