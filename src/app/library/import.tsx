@@ -8,10 +8,9 @@ import * as XLSX from 'xlsx';
 
 import { Button, Card, Divider, LoadingState, Screen, Text } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
-import { emptyCandidate, type BookCandidate } from '@/lib/books/metadata';
 import { describeError } from '@/lib/errors';
 import { parseAuthors } from '@/lib/format';
-import { useI18n, type MessageKey, type TranslateParams } from '@/lib/i18n';
+import { useI18n } from '@/lib/i18n';
 import { queryKeys } from '@/lib/queries/keys';
 import { supabase } from '@/lib/supabase';
 import type { ReadingStatus } from '@/types/database';
@@ -142,154 +141,64 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   });
 }
 
-type ExistingEntry = { userBookId: string; bookId: string };
+// Rows are sent to the server CHUNK_SIZE at a time (see confirmImport),
+// each chunk becoming one call to import_library_rows()
+// (supabase/migrations/0023_bulk_import.sql) instead of one call per row.
+// A large import (or many people importing at once — the scenario that
+// actually motivated this) used to mean thousands of individual REST round
+// trips, each competing for the same small pool of Postgres connections
+// Supabase's API layer holds; a chunk is one connection, one round trip,
+// for however many rows it carries.
+const CHUNK_SIZE = 150;
+
+type NormalizedRow = {
+  title: string;
+  authors: string[];
+  publisher: string | null;
+  pages: number | null;
+  status: ReadingStatus;
+  startDate: string | null;
+  endDate: string | null;
+  rating: number | null;
+  review: string | null;
+  collections: string[];
+};
+
+type ImportRpcResult = { idx: number; error: string | null; categoryWarning: string | null };
 
 /**
- * Creates or reuses a book/copy, then writes progress/pages/categories for
- * one row — talking to Supabase directly rather than through the app's
- * shared add-book/reading-progress mutation hooks. Each of those invalidates
- * the library list on every call, and since the PagerView tabs layout keeps
- * the Library/Reading screens mounted in the background, that invalidation
- * is a real refetch, not a no-op. Run through those hooks, 182 rows meant
- * hundreds of extra background list refetches compounding as the library
- * grew — the import got steadily slower and eventually stalled. This does
- * one invalidation for the whole import instead, after the loop.
+ * Pure — no I/O. All the actual writes (creating/reusing the book and copy,
+ * dedupe against the rest of this user's library, reading_progress,
+ * categories) happen server-side inside import_library_rows(), which
+ * mirrors the field-by-field rules this used to apply on the client one row
+ * at a time (rating/review only kept once finished, status inference, etc).
  */
-async function importRow(
-  row: SheetRow,
-  title: string,
-  columns: Partial<Record<FieldKey, string>>,
-  userId: string,
-  existingByKey: Map<string, ExistingEntry>,
-  categoryIdByName: Map<string, string>,
-  t: (key: MessageKey, params?: TranslateParams) => string
-): Promise<{ categoryWarning: string | null }> {
-  const authors = parseAuthors(toText(cell(row, columns, 'author')));
+function normalizeRow(row: SheetRow, columns: Partial<Record<FieldKey, string>>): NormalizedRow | null {
+  const title = toText(cell(row, columns, 'title'));
+  if (!title) return null;
+
   const startDate = toISODate(cell(row, columns, 'startDate'));
   const endDate = toISODate(cell(row, columns, 'endDate'));
   const status = inferStatus(cell(row, columns, 'status'), startDate, endDate);
-  const pages = toPageCount(cell(row, columns, 'pages'));
-
-  const key = `${title.toLowerCase()}|${authors.join(',').toLowerCase()}`;
-  const existing = existingByKey.get(key);
-
-  let userBookId: string;
-  let bookId: string;
-
-  if (existing) {
-    userBookId = existing.userBookId;
-    bookId = existing.bookId;
-  } else {
-    const candidate: BookCandidate = {
-      ...emptyCandidate(),
-      title,
-      authors,
-      publisher: toText(cell(row, columns, 'publisher')) || null,
-      page_count: pages,
-    };
-
-    // Mirrors ensureBook (src/lib/queries/library.ts) — no ISBN dedupe check
-    // here since an imported row never carries one.
-    const { data: book, error: bookError } = await supabase
-      .from('books')
-      .insert({
-        isbn13: candidate.isbn13,
-        isbn10: candidate.isbn10,
-        title: candidate.title,
-        subtitle: candidate.subtitle,
-        authors: candidate.authors,
-        publisher: candidate.publisher,
-        publication_year: candidate.publication_year,
-        language: candidate.language,
-        cover_url: candidate.cover_url,
-        page_count: candidate.page_count,
-        description: candidate.description,
-        source: candidate.source,
-        source_id: candidate.source_id,
-        created_by: userId,
-      })
-      .select('id')
-      .single();
-    if (bookError) throw bookError;
-    bookId = book.id as string;
-
-    const { data: userBook, error: userBookError } = await supabase
-      .from('user_books')
-      .insert({ user_id: userId, book_id: bookId })
-      .select('id')
-      .single();
-    if (userBookError) throw userBookError;
-    userBookId = userBook.id as string;
-
-    existingByKey.set(key, { userBookId, bookId });
-  }
-
-  // rating/review/date_finished are only valid once the book is actually
-  // finished (review_requires_finished, 0020_reading_progress.sql). Upsert
-  // covers both a brand-new copy (no row yet) and a reused one (already has
-  // one) uniformly.
-  const isFinished = status === 'finished';
-  const { error: progressError } = await supabase.from('reading_progress').upsert(
-    {
-      user_book_id: userBookId,
-      user_id: userId,
-      reading_status: status,
-      date_started: startDate,
-      date_finished: isFinished ? endDate : null,
-      rating: isFinished ? toRating(cell(row, columns, 'rating')) : null,
-      review: isFinished ? toText(cell(row, columns, 'review')) || null : null,
-    },
-    { onConflict: 'user_book_id,user_id' }
-  );
-  if (progressError) throw progressError;
-
-  if (pages && !existing) {
-    const { error: pagesError } = await supabase
-      .from('user_books')
-      .update({ total_pages: pages })
-      .eq('id', userBookId);
-    if (pagesError) throw pagesError;
-  }
-
-  // Categories are secondary to getting the book into the library, same
-  // reasoning as add/configure.tsx's own save() — a failure here (a stale
-  // schema cache before a migration has been applied, say) must not discard
-  // a book whose title/dates/rating already saved successfully above.
-  let categoryWarning: string | null = null;
   const collectionText = toText(cell(row, columns, 'collection'));
-  if (collectionText) {
-    try {
-      const names = collectionText
-        .split(',')
-        .map((name) => name.trim())
-        .filter(Boolean);
-      const categoryIds: string[] = [];
-      for (const name of names) {
-        const cacheKey = name.toLowerCase();
-        let id = categoryIdByName.get(cacheKey);
-        if (!id) {
-          const { data, error: categoryError } = await supabase.rpc('find_or_create_category', { p_name: name });
-          if (categoryError) throw categoryError;
-          id = data as string;
-          categoryIdByName.set(cacheKey, id);
-        }
-        categoryIds.push(id);
-      }
-      if (categoryIds.length > 0) {
-        const { error: attachError } = await supabase
-          .from('book_categories')
-          .insert(categoryIds.map((category_id) => ({ book_id: bookId, category_id })));
-        // Another owner of the same book (or an earlier row in this same
-        // import) may already have attached it — that is the desired end
-        // state anyway, same reasoning as useSetBookCategories's "added" branch.
-        if (attachError && attachError.code !== '23505') throw attachError;
-      }
-    } catch (cause) {
-      categoryWarning = describeError(cause, t);
-    }
-  }
 
-  return { categoryWarning };
+  return {
+    title,
+    authors: parseAuthors(toText(cell(row, columns, 'author'))),
+    publisher: toText(cell(row, columns, 'publisher')) || null,
+    pages: toPageCount(cell(row, columns, 'pages')),
+    status,
+    startDate,
+    endDate,
+    rating: toRating(cell(row, columns, 'rating')),
+    review: toText(cell(row, columns, 'review')) || null,
+    collections: collectionText
+      ? collectionText
+          .split(',')
+          .map((name) => name.trim())
+          .filter(Boolean)
+      : [],
+  };
 }
 
 type RowNote = { row: number; reason: string };
@@ -383,65 +292,74 @@ export default function LibraryImportScreen() {
     setError(null);
     setProgress({ done: 0, total: parsed.rows.length });
 
-    // One upfront read of the user's own library, rather than a query per
-    // row — re-running this import (or overlapping it with books already
-    // catalogued by hand) shouldn't create duplicate copies.
-    const { data: existingRows, error: existingError } = await supabase
-      .from('library_entries')
-      .select('id, book_id, title, authors')
-      .eq('user_id', user.id);
-    if (existingError) {
-      if (mountedRef.current) {
-        setError(describeError(existingError, t));
-        setProgress(null);
-      }
-      return;
-    }
-
-    const existingByKey = new Map<string, ExistingEntry>();
-    for (const row of existingRows as { id: string; book_id: string; title: string; authors: string[] }[]) {
-      const key = `${row.title.trim().toLowerCase()}|${row.authors.join(',').toLowerCase()}`;
-      existingByKey.set(key, { userBookId: row.id, bookId: row.book_id });
-    }
-
-    const categoryIdByName = new Map<string, string>();
     const skipped: RowNote[] = [];
     const categoryWarnings: RowNote[] = [];
     let imported = 0;
     let cancelledEarly = false;
 
-    for (let i = 0; i < parsed.rows.length; i++) {
+    // sourceRow mirrors the +2 the old per-row loop used (header row +
+    // 1-indexing), so a message still points at the actual spreadsheet row
+    // even though rows are now batched. Title-less rows are filtered out
+    // here rather than sent to the server at all.
+    const entries: { sourceRow: number; payload: NormalizedRow }[] = [];
+    parsed.rows.forEach((row, i) => {
+      const normalized = normalizeRow(row, parsed.columns);
+      if (!normalized) {
+        skipped.push({ row: i + 2, reason: t('import.rowMissingTitle') });
+        return;
+      }
+      entries.push({ sourceRow: i + 2, payload: normalized });
+    });
+
+    // Sent CHUNK_SIZE rows at a time — see CHUNK_SIZE's own comment and
+    // 0023_bulk_import.sql for why this replaced one Supabase call per row.
+    for (let start = 0; start < entries.length; start += CHUNK_SIZE) {
       if (stopRequestedRef.current) {
         cancelledEarly = true;
         break;
       }
 
-      const row = parsed.rows[i];
-      if (mountedRef.current) setProgress({ done: i, total: parsed.rows.length });
-
-      const title = toText(cell(row, parsed.columns, 'title'));
-      if (!title) {
-        skipped.push({ row: i + 2, reason: t('import.rowMissingTitle') });
-        continue;
-      }
+      const chunk = entries.slice(start, start + CHUNK_SIZE);
+      if (mountedRef.current) setProgress({ done: start, total: parsed.rows.length });
 
       try {
         // A dropped connection or an unresponsive request must not hang the
-        // rest of the import — skip the row and move on instead.
-        const result = await withTimeout(
-          importRow(row, title, parsed.columns, user.id, existingByKey, categoryIdByName, t),
-          20000
+        // rest of the import — skip this whole chunk and move to the next
+        // one instead. Timeout scales with chunk size since one call now
+        // covers many rows' writes.
+        const { data, error: rpcError } = await withTimeout(
+          Promise.resolve(
+            supabase.rpc('import_library_rows', { p_rows: chunk.map((entry) => entry.payload) })
+          ),
+          Math.max(30000, chunk.length * 300)
         );
-        imported += 1;
-        if (result.categoryWarning) categoryWarnings.push({ row: i + 2, reason: result.categoryWarning });
+        if (rpcError) throw rpcError;
+
+        for (const result of (data ?? []) as ImportRpcResult[]) {
+          const entry = chunk[result.idx - 1];
+          if (!entry) continue;
+          if (result.error) {
+            skipped.push({ row: entry.sourceRow, reason: result.error });
+          } else {
+            imported += 1;
+            if (result.categoryWarning) {
+              categoryWarnings.push({ row: entry.sourceRow, reason: result.categoryWarning });
+            }
+          }
+        }
       } catch (cause) {
-        skipped.push({ row: i + 2, reason: describeError(cause, t) });
+        const reason = describeError(cause, t);
+        for (const entry of chunk) {
+          skipped.push({ row: entry.sourceRow, reason });
+        }
       }
     }
 
-    // The one invalidation for everything the loop touched — see importRow's
-    // own comment for why this isn't done per row. Runs regardless of
-    // whether the screen is still around to show the result, so whatever
+    // The one invalidation for everything the loop touched, same reasoning
+    // as before batching: the PagerView tabs layout keeps Library/Reading
+    // mounted in the background, so invalidating per chunk (let alone per
+    // row) would mean real, repeated background refetches. Runs regardless
+    // of whether the screen is still around to show the result, so whatever
     // was imported before a cancel/unmount shows up without a manual
     // pull-to-refresh.
     queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
