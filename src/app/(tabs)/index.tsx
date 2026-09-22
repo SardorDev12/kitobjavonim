@@ -12,7 +12,7 @@ import { goToTab } from '@/features/tabs/activeTab';
 import { formatAuthors, formatDate } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { selectLibrary, useLibrary, useUpdateReadingProgress, useUpdateUserBook } from '@/lib/queries/library';
-import { useTheme } from '@/theme';
+import { useLayout, useTheme } from '@/theme';
 import type { LibraryEntry } from '@/types/database';
 
 /**
@@ -27,6 +27,7 @@ import type { LibraryEntry } from '@/types/database';
  */
 export default function ReadingTrackerScreen() {
   const theme = useTheme();
+  const { maxContentWidth } = useLayout();
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
 
@@ -76,7 +77,8 @@ export default function ReadingTrackerScreen() {
   // ships fine on real devices) — not a ScrollView + separate header prop,
   // which measured 0 height on at least one real Android device.
   return (
-    <View style={[styles.fill, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
+    <View style={[styles.fill, styles.center, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
+    <View style={[styles.fill, { width: '100%', maxWidth: maxContentWidth }]}>
       <View style={{ gap: theme.spacing.md, paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.md }}>
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <View style={{ gap: theme.spacing.xs, flex: 1 }}>
@@ -183,6 +185,7 @@ export default function ReadingTrackerScreen() {
           }
         />
       )}
+    </View>
 
       <ProgressSheet visible={activeEntry !== null} onClose={() => setActiveEntry(null)} entry={activeEntry} />
       <StatsSheet visible={statsOpen} onClose={() => setStatsOpen(false)} stats={finishedStats} />
@@ -190,7 +193,13 @@ export default function ReadingTrackerScreen() {
   );
 }
 
-const styles = StyleSheet.create({ fill: { flex: 1, flexGrow: 1 } });
+const styles = StyleSheet.create({
+  fill: { flex: 1, flexGrow: 1 },
+  // Same web-container treatment as library.tsx's own "center" style — see
+  // its comment for why this screen (a FlatList owner, not a Screen user)
+  // has to apply maxContentWidth by hand.
+  center: { alignItems: 'center' },
+});
 
 function StatChip({
   icon,

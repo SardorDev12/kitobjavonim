@@ -17,7 +17,7 @@ import { useI18n } from '@/lib/i18n';
 import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 import { selectLibrary, useLibrary, type LibraryFilter, type LibrarySort } from '@/lib/queries/library';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
-import { useTheme } from '@/theme';
+import { useLayout, useTheme } from '@/theme';
 
 const SORTS: LibrarySort[] = ['recent', 'title', 'author', 'finished', 'shelf'];
 type ViewMode = 'list' | 'gallery';
@@ -43,6 +43,7 @@ function sanitizeFilterOrder(stored: unknown): LibraryFilter[] {
 
 export default function LibraryScreen() {
   const theme = useTheme();
+  const { maxContentWidth } = useLayout();
   const { t } = useI18n();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -143,7 +144,8 @@ export default function LibraryScreen() {
   }
 
   return (
-    <View style={[styles.fill, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
+    <View style={[styles.fill, styles.center, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
+    <View style={[styles.fill, { width: '100%', maxWidth: maxContentWidth }]}>
       <View style={[styles.header, { paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.md }]}>
         <View style={styles.titleRow}>
           <View style={styles.titleText}>
@@ -314,6 +316,7 @@ export default function LibraryScreen() {
         }
       />
       </View>
+    </View>
 
       <Sheet visible={sortOpen} onClose={() => setSortOpen(false)} title={t('common.sort')}>
         {SORTS.map((option) => (
@@ -342,6 +345,12 @@ export default function LibraryScreen() {
 
 const styles = StyleSheet.create({
   fill: { flex: 1, flexGrow: 1 },
+  // Centers the maxWidth-capped content box below (see maxContentWidth,
+  // same treatment Screen.tsx gives every screen that uses it) — this
+  // screen owns a FlatList instead of Screen's ScrollView (see that
+  // component's own docstring for why), so it has to apply the same
+  // web-container treatment by hand.
+  center: { alignItems: 'center' },
   header: { gap: 12 },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   titleText: { flex: 1, gap: 2 },

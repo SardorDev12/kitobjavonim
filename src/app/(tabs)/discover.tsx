@@ -15,7 +15,7 @@ import { useI18n } from '@/lib/i18n';
 import { emptyListingFilters, useListings, type ListingFilters } from '@/lib/queries/listings';
 import { useCategoryOptions, useLocationOptions } from '@/lib/queries/reference';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
-import { useTheme } from '@/theme';
+import { useLayout, useTheme } from '@/theme';
 import { BOOK_CONDITIONS, type BookCondition } from '@/types/database';
 
 const LANGUAGE_OPTIONS = [
@@ -27,6 +27,7 @@ type ViewMode = 'list' | 'gallery';
 
 export default function DiscoverScreen() {
   const theme = useTheme();
+  const { maxContentWidth } = useLayout();
   const { t } = useI18n();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -90,7 +91,8 @@ export default function DiscoverScreen() {
       : gutter;
 
   return (
-    <View style={[styles.fill, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
+    <View style={[styles.fill, styles.center, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
+    <View style={[styles.fill, { width: '100%', maxWidth: maxContentWidth }]}>
       <View style={[styles.header, { paddingHorizontal: horizontalPadding, paddingTop: theme.spacing.md }]}>
         <View style={styles.titleRow}>
           <View style={styles.titleText}>
@@ -287,6 +289,7 @@ export default function DiscoverScreen() {
           </>
         )}
       </View>
+    </View>
 
       <FiltersSheet
         visible={filtersOpen}
@@ -395,6 +398,8 @@ function FiltersSheet({
 
 const styles = StyleSheet.create({
   fill: { flex: 1, flexGrow: 1 },
+  // Same web-container treatment as library.tsx/index.tsx's "center" style.
+  center: { alignItems: 'center' },
   header: { gap: 8 },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   titleText: { flex: 1 },
