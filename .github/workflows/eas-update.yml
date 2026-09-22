@@ -8,16 +8,22 @@ name: EAS Update
 # plugins/package name) still needs a real build through the usual EAS flow,
 # since the installed binary itself doesn't change here.
 #
-# develop -> "preview" channel, main -> "production" channel — a straight
-# 1:1 mapping. These are two separate installs on the device (distinct
-# Android package names/app icons, set in app.config.js via APP_VARIANT —
-# see eas.json's "preview" profile), each permanently pointed at its own
-# Supabase project, so there is no more "re-point the one test device at
-# whichever data set" step this used to need when both variants shared a
-# single install.
+# Single-branch model: everything ships from main, so there's no develop
+# push to derive the target channel from anymore. Every push instead
+# publishes to BOTH channels — preview (staging Supabase data) and
+# production (production data) — via the matrix below. Each installed app
+# (distinct Android package names/app icons, set in app.config.js via
+# APP_VARIANT — see eas.json's "preview" profile) only ever pulls from its
+# own channel, so the two publishes don't interfere with each other.
+#
+# The real cost of dropping the develop/main split: there is no longer a
+# "verify on staging, then promote" window before production receives a
+# change — both channels update from the same commit, at the same time.
+# Testing before merging to main (a preview build, or the web preview
+# deploy) is what has to catch problems now instead.
 on:
   push:
-    branches: [develop, main]
+    branches: [main]
     paths-ignore:
       - "admin/**"
       - "landing/**"
@@ -27,6 +33,17 @@ on:
 jobs:
   update:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - channel: preview
+            supabase_url: https://ahpsnvxpduaqrkvmpfck.supabase.co
+            supabase_anon_key: sb_publishable_nM9zD2eA5FtbkwEG_ISdnQ_W8ae4FQ3
+            web_origin: https://test.kitobjavonim.uz
+          - channel: production
+            supabase_url: https://zsrhzjujoahresqfhpks.supabase.co
+            supabase_anon_key: sb_publishable_jsqMsYY3fmBTkIyrcD8E7g_ve9Ef1Ww
+            web_origin: https://app.kitobjavonim.uz
     steps:
       - uses: actions/checkout@v4
 
@@ -42,7 +59,7 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: Publish update
+      - name: Publish update (${{ matrix.channel }})
         # The commit message is passed via env, not interpolated straight into
         # `run:` — a multi-line message containing its own quotes (as one
         # eventually will) breaks out of the shell string GitHub Actions
@@ -51,12 +68,12 @@ jobs:
         # it once avoids that regardless of what the message contains.
         run: >
           eas update
-          --channel ${{ github.ref_name == 'main' && 'production' || 'preview' }}
+          --channel ${{ matrix.channel }}
           --message "$UPDATE_MESSAGE"
           --non-interactive
         env:
-          UPDATE_MESSAGE: "[${{ github.ref_name }}] ${{ github.event.head_commit.message }}"
-          EXPO_PUBLIC_SUPABASE_URL: ${{ github.ref_name == 'main' && 'https://zsrhzjujoahresqfhpks.supabase.co' || 'https://ahpsnvxpduaqrkvmpfck.supabase.co' }}
-          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ github.ref_name == 'main' && 'sb_publishable_jsqMsYY3fmBTkIyrcD8E7g_ve9Ef1Ww' || 'sb_publishable_nM9zD2eA5FtbkwEG_ISdnQ_W8ae4FQ3' }}
+          UPDATE_MESSAGE: "[${{ matrix.channel }}] ${{ github.event.head_commit.message }}"
+          EXPO_PUBLIC_SUPABASE_URL: ${{ matrix.supabase_url }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ matrix.supabase_anon_key }}
           EXPO_PUBLIC_TELEGRAM_BOT_USERNAME: home_library_signin_bot
-          EXPO_PUBLIC_WEB_ORIGIN: ${{ github.ref_name == 'main' && 'https://app.kitobjavonim.uz' || 'https://test.kitobjavonim.uz' }}
+          EXPO_PUBLIC_WEB_ORIGIN: ${{ matrix.web_origin }}

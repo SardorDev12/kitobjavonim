@@ -205,14 +205,16 @@ back; each then updates itself independently forever after via OTA.
 
 JS-only changes (most of them) don't need a new native build at all once a
 build with `expo-updates` installed is on the device — `.github/workflows/
-eas-update.yml` publishes one automatically on every push: a `develop` push
-goes to the `preview` channel with **staging** Supabase data, a `main` push
-goes to the `production` channel with **production** data. Each installed
-app only ever pulls from its own channel, so this is a straight 1:1
-mapping, same promotion step (`develop` first, `main` once confirmed good)
-as the web deploys already use. (`eas update` doesn't read `eas.json`'s
-build-time `env` blocks — those only apply to `eas build` — so the workflow
-sets the right `EXPO_PUBLIC_*` values explicitly per branch.)
+eas-update.yml` publishes one automatically on every push to `main`, to
+**both** the `preview` channel (staging Supabase data) and the
+`production` channel (production data) at once. Each installed app only
+ever pulls from its own channel, so the two publishes don't interfere with
+each other — but there's no longer a "verify on staging, then promote"
+window before production gets a change, since both ship from the same
+commit simultaneously. Test locally or on a preview build before merging
+to `main`. (`eas update` doesn't read `eas.json`'s build-time `env`
+blocks — those only apply to `eas build` — so the workflow sets the right
+`EXPO_PUBLIC_*` values explicitly per channel.)
 
 A change that touches native code (a new native dependency, a permission,
 `app.config.js`'s icon/splash/plugins/package name) still needs a real
