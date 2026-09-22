@@ -42,6 +42,7 @@ module.exports = {
       supportsTablet: true,
       bundleIdentifier: appId,
       usesAppleSignIn: true,
+      buildNumber: '1',
       infoPlist: {
         NSCameraUsageDescription:
           "The camera is used to scan a book's ISBN barcode so its details can be filled in automatically.",
@@ -51,6 +52,15 @@ module.exports = {
     },
     android: {
       package: appId,
+      // eas.json's "cli.appVersionSource" is "local", so this is the single
+      // source of truth for Android's version code — EAS Build reads it
+      // from here instead of tracking its own counter on Expo's servers.
+      // Bump it by hand, in the same commit as any `version` bump above,
+      // same convention as the "Bump app version to X.Y.Z" commits already
+      // in history. 10 because Google Play's own records (checked directly
+      // in the Play Console) show version code 9 already used/uploaded —
+      // this starts one above that.
+      versionCode: 10,
       // Only the production package is registered as a Firebase Android app
       // (google-services.json is keyed to it by package name — the Google
       // Services Gradle plugin hard-fails the build if there's no matching

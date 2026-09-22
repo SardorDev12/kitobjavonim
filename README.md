@@ -228,6 +228,15 @@ job is skipped rather than publishing an OTA update no currently-installed
 binary could use anyway — nothing auto-publishes again until a real build
 carries the new version.
 
+Before a production build, also bump `android.versionCode` (and, once iOS
+ships, `ios.buildNumber`) in `app.config.js`, in the same commit. `eas.json`'s
+`cli.appVersionSource` is `"local"`, so these are the only source of truth
+for the store version number — EAS Build no longer tracks its own counter
+on Expo's servers. Check Google Play Console's highest already-used version
+code before picking the new one; it will refuse a build whose version code
+it has seen before, and the two can drift out of sync if you ever go back to
+`"remote"`.
+
 Requires an `EXPO_TOKEN` repository secret (GitHub → Settings → Secrets and
 variables → Actions) — generate one at
 [expo.dev](https://expo.dev/accounts/[account]/settings/access-tokens).
