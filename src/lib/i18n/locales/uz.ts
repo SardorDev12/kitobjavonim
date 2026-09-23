@@ -34,6 +34,8 @@ export const uz: LocaleCatalogue = {
   'common.clear': 'Tozalash',
   'common.showPassword': 'Parolni ko\'rsatish',
   'common.hidePassword': 'Parolni yashirish',
+  'sidebar.collapse': 'Yon panelni yopish',
+  'sidebar.expand': 'Yon panelni ochish',
   'common.filters': 'Filtrlar',
   'common.sort': 'Saralash',
   'common.all': 'Hammasi',

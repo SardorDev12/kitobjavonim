@@ -31,6 +31,8 @@ export const en = {
   'common.clear': 'Clear',
   'common.showPassword': 'Show password',
   'common.hidePassword': 'Hide password',
+  'sidebar.collapse': 'Collapse sidebar',
+  'sidebar.expand': 'Expand sidebar',
   'common.filters': 'Filters',
   'common.sort': 'Sort',
   'common.all': 'All',
