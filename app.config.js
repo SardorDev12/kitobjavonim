@@ -26,7 +26,7 @@ module.exports = {
     name: IS_PREVIEW ? 'Kitobjavonim (Staging)' : 'Kitobjavonim',
     slug: 'kitobjavonim',
     owner: 'walterobrien1226',
-    version: '0.5.0',
+    version: '0.5.1',
     orientation: 'default',
     icon: IS_PREVIEW ? './assets/images/icon-preview.png' : './assets/images/icon.png',
     scheme,
@@ -57,10 +57,8 @@ module.exports = {
       // from here instead of tracking its own counter on Expo's servers.
       // Bump it by hand, in the same commit as any `version` bump above,
       // same convention as the "Bump app version to X.Y.Z" commits already
-      // in history. 10 because Google Play's own records (checked directly
-      // in the Play Console) show version code 9 already used/uploaded —
-      // this starts one above that.
-      versionCode: 10,
+      // in history.
+      versionCode: 11,
       // Only the production package is registered as a Firebase Android app
       // (google-services.json is keyed to it by package name — the Google
       // Services Gradle plugin hard-fails the build if there's no matching
@@ -92,6 +90,9 @@ module.exports = {
       'expo-apple-authentication',
       'expo-updates',
       'expo-navigation-bar',
+      // Android-only manifest edit (see the plugin's own comment) — no
+      // effect on iOS, safe to run for both variants unconditionally.
+      './plugins/withDisableForceDark',
       // See the googleServicesFile comment above — these need a matching
       // Firebase Android app to not crash on init, which only the
       // production package has today.
