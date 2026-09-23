@@ -454,7 +454,7 @@ export const ru: LocaleCatalogue = {
   'plan.unlimited': 'Без ограничений',
 
   'update.available': 'Доступно обновление',
-  'update.availableBody': 'Доступна новая версия Shelfie с исправлениями и улучшениями.',
+  'update.availableBody': 'Доступна новая версия Kitobjavonim с исправлениями и улучшениями.',
   'update.updateNow': 'Обновить сейчас',
   'update.notNow': 'Не сейчас',
 
