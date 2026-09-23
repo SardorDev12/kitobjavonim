@@ -134,7 +134,23 @@ export default function ConfigureScreen() {
       // just added is actually on — not wherever they started the add flow
       // from (search, scan, or manual entry all reach this same save()).
       goToTab('library');
-      router.replace(`/book/${userBookId}`);
+
+      // Native: goToTab() only flips the already-mounted PagerView's page —
+      // it never touches the router/stack, so this screen (configure.tsx)
+      // is still the current stack entry and still needs replacing so back
+      // doesn't return to it.
+      //
+      // Web: goToTab() itself just did a router.replace('/(tabs)/library')
+      // (its own web fallback, since there's no PagerView there — see
+      // activeTab.ts). A second replace() called right after would
+      // overwrite that same history entry before it ever became a real,
+      // separate "back" target — replace doesn't add a new entry, so two
+      // in a row just collapse into one, discarding the first's effect
+      // entirely. push() on top of it instead leaves that already-replaced
+      // library entry intact one level down, which is exactly what back is
+      // supposed to land on.
+      if (Platform.OS === 'web') router.push(`/book/${userBookId}`);
+      else router.replace(`/book/${userBookId}`);
     } catch (cause) {
       setError(describeError(cause, t));
     }
