@@ -223,6 +223,7 @@ export const en = {
   'add.scanHint': 'Point the camera at the barcode',
   'add.scanLookup': 'Looking up {{isbn}}…',
   'add.scanNotFound': 'No match for that barcode',
+  'add.scanLookupError': "Couldn't check that barcode — check your connection and try again",
   'add.cameraPermission': 'Camera access needed',
   'add.cameraPermissionBody': 'Allow the camera so barcodes can be scanned.',
   'add.grantPermission': 'Allow camera',

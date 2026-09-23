@@ -5,8 +5,10 @@ import type { MetadataSource } from '@/types/database';
  * Book metadata lookup.
  *
  * Two free providers, queried in order: Google Books first for its better
- * coverage and thumbnails, Open Library as a fallback. Neither requires an API
- * key at the volumes this app will do.
+ * coverage and thumbnails, Open Library as a fallback. Google Books works
+ * without a key, but its unauthenticated quota is shared across every
+ * caller on the same IP and gets rate-limited (429) in practice well within
+ * a single scanning session — see GOOGLE_BOOKS_API_KEY below.
  *
  * A caveat worth knowing rather than discovering later: coverage of books
  * published in Uzbekistan, and of Uzbek- and Russian-language editions
@@ -39,21 +41,61 @@ const OPEN_LIBRARY = 'https://openlibrary.org';
 /** Providers can be slow or down; a hung request would block the add flow. */
 const TIMEOUT_MS = 8000;
 
-async function fetchJson<T>(url: string): Promise<T | null> {
+/**
+ * Optional — unset, Google Books shares a small, easily-exhausted
+ * unauthenticated quota across every caller on the same IP (seen in practice
+ * as a 429 on an otherwise perfectly valid ISBN). A free key from Google
+ * Cloud Console (enable the "Books API", no billing needed) raises that
+ * quota substantially; set it as EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY.
+ */
+const GOOGLE_BOOKS_API_KEY = process.env.EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY;
+
+function withKey(url: string): string {
+  return GOOGLE_BOOKS_API_KEY ? `${url}&key=${GOOGLE_BOOKS_API_KEY}` : url;
+}
+
+/**
+ * Thrown by lookupByIsbn when every provider request failed at the
+ * transport level (rate-limited, timed out, offline) rather than genuinely
+ * returning "no match." The caller can then tell a user "couldn't check
+ * right now, try again" apart from "no book matches this barcode" — those
+ * used to be indistinguishable (both just a null candidate), which made a
+ * transient Google Books 429 look identical to, and get reported as, the
+ * feature being broken.
+ */
+export class LookupUnavailableError extends Error {}
+
+type FetchResult<T> = { ok: true; data: T } | { ok: false };
+
+async function fetchJson<T>(url: string): Promise<FetchResult<T>> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
     const response = await fetch(url, { signal: controller.signal });
-    if (!response.ok) return null;
-    return (await response.json()) as T;
+    if (!response.ok) return { ok: false };
+    return { ok: true, data: (await response.json()) as T };
   } catch {
-    // A failed lookup must never be fatal — the user can still enter the book
-    // by hand, and that path is always offered alongside the results.
-    return null;
+    return { ok: false };
   } finally {
     clearTimeout(timer);
   }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * One retry after a short pause — Google's unauthenticated quota is a
+ * rolling per-second-ish limiter in practice, so a request that gets a 429
+ * often succeeds a moment later without anything else changing.
+ */
+async function fetchJsonWithRetry<T>(url: string): Promise<FetchResult<T>> {
+  const first = await fetchJson<T>(url);
+  if (first.ok) return first;
+  await sleep(500);
+  return fetchJson<T>(url);
 }
 
 // -----------------------------------------------------------------------------
@@ -158,19 +200,25 @@ export async function searchBooks(query: string, signal?: AbortSignal): Promise<
   if (trimmed.length < 2) return [];
 
   // A query that is really an ISBN should go down the exact-match path.
+  // lookupByIsbn can throw when every provider is unreachable — this caller
+  // has no use for that distinction (there is no "retry" affordance on a
+  // search box the way there is on the scan screen), so treat it the same
+  // as a clean miss and fall through to the general text search below.
   const asIsbn = normalizeIsbn(trimmed);
   if (asIsbn.length === 10 || asIsbn.length === 13) {
-    const exact = await lookupByIsbn(asIsbn);
+    const exact = await lookupByIsbn(asIsbn).catch(() => null);
     if (exact) return [exact];
   }
 
   if (signal?.aborted) return [];
 
   const google = await fetchJson<{ items?: GoogleVolume[] }>(
-    `${GOOGLE_BOOKS}?q=${encodeURIComponent(trimmed)}&maxResults=20&printType=books`
+    withKey(`${GOOGLE_BOOKS}?q=${encodeURIComponent(trimmed)}&maxResults=20&printType=books`)
   );
 
-  const results = (google?.items ?? []).map(fromGoogle).filter((b): b is BookCandidate => b !== null);
+  const results = (google.ok ? (google.data.items ?? []) : [])
+    .map(fromGoogle)
+    .filter((b): b is BookCandidate => b !== null);
   if (results.length > 0 || signal?.aborted) return dedupe(results);
 
   const openLibrary = await fetchJson<{ docs?: OpenLibraryDoc[] }>(
@@ -178,25 +226,36 @@ export async function searchBooks(query: string, signal?: AbortSignal): Promise<
   );
 
   return dedupe(
-    (openLibrary?.docs ?? []).map(fromOpenLibrary).filter((b): b is BookCandidate => b !== null)
+    (openLibrary.ok ? (openLibrary.data.docs ?? []) : [])
+      .map(fromOpenLibrary)
+      .filter((b): b is BookCandidate => b !== null)
   );
 }
 
+/**
+ * Looks up a book by ISBN. Returns null for a genuine "no book has this
+ * ISBN" (both providers answered, neither had a match); throws
+ * LookupUnavailableError if every provider request itself failed
+ * (rate-limited, offline, timed out) — see that class's comment for why the
+ * distinction matters to the caller.
+ */
 export async function lookupByIsbn(rawIsbn: string): Promise<BookCandidate | null> {
   const isbn = normalizeIsbn(rawIsbn);
   if (isbn.length !== 10 && isbn.length !== 13) return null;
 
-  const google = await fetchJson<{ items?: GoogleVolume[] }>(`${GOOGLE_BOOKS}?q=isbn:${isbn}`);
-  const fromGoogleBooks = google?.items?.[0] ? fromGoogle(google.items[0]) : null;
+  const google = await fetchJsonWithRetry<{ items?: GoogleVolume[] }>(withKey(`${GOOGLE_BOOKS}?q=isbn:${isbn}`));
+  const fromGoogleBooks = google.ok && google.data.items?.[0] ? fromGoogle(google.data.items[0]) : null;
   if (fromGoogleBooks) {
     return { ...fromGoogleBooks, isbn13: fromGoogleBooks.isbn13 ?? (isbn.length === 13 ? isbn : null) };
   }
 
-  const openLibrary = await fetchJson<{ docs?: OpenLibraryDoc[] }>(
-    `${OPEN_LIBRARY}/search.json?isbn=${isbn}&limit=1`
-  );
-  const doc = openLibrary?.docs?.[0];
-  if (!doc) return null;
+  const openLibrary = await fetchJson<{ docs?: OpenLibraryDoc[] }>(`${OPEN_LIBRARY}/search.json?isbn=${isbn}&limit=1`);
+  const doc = openLibrary.ok ? openLibrary.data.docs?.[0] : undefined;
+
+  if (!doc) {
+    if (!google.ok && !openLibrary.ok) throw new LookupUnavailableError();
+    return null;
+  }
 
   const candidate = fromOpenLibrary(doc);
   if (!candidate) return null;

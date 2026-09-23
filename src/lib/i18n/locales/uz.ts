@@ -226,6 +226,7 @@ export const uz: LocaleCatalogue = {
   'add.scanHint': 'Kamerani shtrix-kodga qarating',
   'add.scanLookup': '{{isbn}} qidirilmoqda…',
   'add.scanNotFound': 'Bu shtrix-kod boʻyicha mos kitob topilmadi',
+  'add.scanLookupError': "Shtrix-kodni tekshirib boʻlmadi — internetni tekshirib, qayta urinib koʻring",
   'add.cameraPermission': 'Kameraga ruxsat kerak',
   'add.cameraPermissionBody': 'Shtrix-kodlarni skanerlash uchun kameraga ruxsat bering.',
   'add.grantPermission': 'Kameraga ruxsat berish',

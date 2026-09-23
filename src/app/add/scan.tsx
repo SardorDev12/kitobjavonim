@@ -8,7 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button, EmptyState, Text } from '@/components/ui';
 import { setPendingBook } from '@/features/add/pendingBook';
-import { lookupByIsbn } from '@/lib/books/metadata';
+import { LookupUnavailableError, lookupByIsbn } from '@/lib/books/metadata';
 import { isValidIsbn, normalizeIsbn } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { useTheme } from '@/theme';
@@ -26,7 +26,7 @@ export default function ScanScreen() {
   const insets = useSafeAreaInsets();
 
   const [permission, requestPermission] = useCameraPermissions();
-  const [status, setStatus] = useState<'scanning' | 'looking-up' | 'not-found'>('scanning');
+  const [status, setStatus] = useState<'scanning' | 'looking-up' | 'not-found' | 'lookup-error'>('scanning');
   const [lastIsbn, setLastIsbn] = useState<string | null>(null);
 
   // The camera fires continuously while a barcode is in frame. Without a latch,
@@ -48,15 +48,24 @@ export default function ScanScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       }
 
-      const candidate = await lookupByIsbn(isbn);
+      try {
+        const candidate = await lookupByIsbn(isbn);
 
-      if (candidate) {
-        setPendingBook(candidate);
-        router.replace('/add/configure');
-        return;
+        if (candidate) {
+          setPendingBook(candidate);
+          router.replace('/add/configure');
+          return;
+        }
+
+        setStatus('not-found');
+      } catch (error) {
+        // A provider being rate-limited or unreachable is not the same as
+        // "no book has this barcode" — telling them apart means a scan that
+        // fails for a transient reason doesn't read as the feature itself
+        // being broken.
+        setStatus(error instanceof LookupUnavailableError ? 'lookup-error' : 'not-found');
       }
 
-      setStatus('not-found');
       busy.current = false;
     },
     [router]
@@ -138,9 +147,11 @@ export default function ScanScreen() {
               <ActivityIndicator color="#fff" />
               <Text style={styles.overlayText}>{t('add.scanLookup', { isbn: lastIsbn ?? '' })}</Text>
             </View>
-          ) : status === 'not-found' ? (
+          ) : status === 'not-found' || status === 'lookup-error' ? (
             <>
-              <Text style={styles.overlayText}>{t('add.scanNotFound')}</Text>
+              <Text style={styles.overlayText}>
+                {status === 'lookup-error' ? t('add.scanLookupError') : t('add.scanNotFound')}
+              </Text>
               <View style={[styles.actions, { gap: theme.spacing.sm }]}>
                 <Button title={t('add.manual')} onPress={addManually} />
                 <Button

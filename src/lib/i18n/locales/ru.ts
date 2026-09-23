@@ -226,6 +226,7 @@ export const ru: LocaleCatalogue = {
   'add.scanHint': 'Наведите камеру на штрихкод',
   'add.scanLookup': 'Ищем {{isbn}}…',
   'add.scanNotFound': 'По этому штрихкоду ничего не найдено',
+  'add.scanLookupError': 'Не удалось проверить штрихкод — проверьте соединение и попробуйте снова',
   'add.cameraPermission': 'Нужен доступ к камере',
   'add.cameraPermissionBody': 'Разрешите доступ к камере, чтобы сканировать штрихкоды.',
   'add.grantPermission': 'Разрешить камеру',
