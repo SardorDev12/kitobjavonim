@@ -452,7 +452,7 @@ export const uz: LocaleCatalogue = {
   'plan.unlimited': 'Cheksiz',
 
   'update.available': 'Yangilanish mavjud',
-  'update.availableBody': 'Kitobjavonimning tuzatishlar va yaxshilanishlar bilan yangi versiyasi mavjud.',
+  'update.availableBody': "Shelfie'ning tuzatishlar va yaxshilanishlar bilan yangi versiyasi mavjud.",
   'update.updateNow': 'Hozir yangilash',
   'update.notNow': 'Hozir emas',
 

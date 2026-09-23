@@ -445,7 +445,7 @@ export const en = {
   'plan.unlimited': 'Unlimited',
 
   'update.available': 'Update available',
-  'update.availableBody': 'A newer version of Kitobjavonim is available with fixes and improvements.',
+  'update.availableBody': 'A newer version of Shelfie is available with fixes and improvements.',
   'update.updateNow': 'Update now',
   'update.notNow': 'Not now',
 

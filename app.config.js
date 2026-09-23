@@ -23,7 +23,7 @@ const scheme = IS_PREVIEW ? 'homelibrary-staging' : 'homelibrary';
 
 module.exports = {
   expo: {
-    name: IS_PREVIEW ? 'Kitobjavonim (Staging)' : 'Kitobjavonim',
+    name: IS_PREVIEW ? 'Shelfie (Staging)' : 'Shelfie',
     slug: 'kitobjavonim',
     owner: 'walterobrien1226',
     version: '0.5.1',

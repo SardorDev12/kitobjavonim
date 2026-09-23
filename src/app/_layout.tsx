@@ -190,7 +190,7 @@ function RootNavigator() {
     if (Platform.OS === 'web') {
       const hostname = window.location.hostname;
       const isStaging = hostname.startsWith('test.') || hostname.includes('staging');
-      document.title = isStaging ? 'Kitobjavonim (Test)' : 'Kitobjavonim';
+      document.title = isStaging ? 'Shelfie (Test)' : 'Shelfie';
 
       if (isStaging) {
         const favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
@@ -296,7 +296,7 @@ function RootNavigator() {
             explicit blank title — without one, the static web export bakes
             the raw route path into <title>, and since this screen can
             redirect away within a second, the root effect below that
-            normally overwrites it with "Kitobjavonim" may never get the
+            normally overwrites it with "Shelfie" may never get the
             chance to visibly register first. */}
         <Stack.Screen name="auth/telegram-login" options={{ headerShown: false, title: '' }} />
         {/* Both render their own header (back button + actions) rather than
