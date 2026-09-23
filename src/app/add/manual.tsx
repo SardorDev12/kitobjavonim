@@ -131,7 +131,11 @@ export default function ManualEntryScreen() {
 
   function proceed(candidate: BookCandidate) {
     setPendingBook(candidate);
-    router.push('/add/configure');
+    // replace, not push — same reasoning as scan.tsx's identical call: this
+    // form shouldn't linger in the stack underneath configure.tsx, or a
+    // successful save's own router.replace(`/book/${id}`) only swaps out
+    // configure.tsx and leaves this form as what "back" lands on next.
+    router.replace('/add/configure');
   }
 
   function next() {

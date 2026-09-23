@@ -128,6 +128,12 @@ export default function ConfigureScreen() {
         }
       }
 
+      // Switches the tabs layout's own active page to Library before
+      // leaving it, so that whenever the user backs out of the book detail
+      // page they just landed on, they land on the shelf the book they
+      // just added is actually on — not wherever they started the add flow
+      // from (search, scan, or manual entry all reach this same save()).
+      goToTab('library');
       router.replace(`/book/${userBookId}`);
     } catch (cause) {
       setError(describeError(cause, t));
