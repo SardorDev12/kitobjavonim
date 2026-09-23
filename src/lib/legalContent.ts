@@ -4,12 +4,12 @@ export type LegalSection = { heading: string; body: string[] };
 export type LegalDoc = { title: string; updated: string; intro: string; sections: LegalSection[] };
 
 /**
- * Support address referenced by the legal pages below. Set up a real mailbox
- * at this address (or change it) before relying on these pages in
- * production — a policy that names an unmonitored address is worse than
- * naming none.
+ * The one official support address — also used by profile.tsx's "contact
+ * us" row and the landing page. Keep it to this single export rather than
+ * a second hardcoded copy anywhere else; that's exactly how it drifted out
+ * of sync (support@ here vs. murojaat@ elsewhere) before.
  */
-export const SUPPORT_EMAIL = 'support@kitobjavonim.uz';
+export const SUPPORT_EMAIL = 'murojaat@kitobjavonim.uz';
 
 const LAST_UPDATED = '2026-08-13';
 

@@ -7,11 +7,10 @@ import { Avatar, Button, Card, Divider, ListRow, Screen, Sheet, Text } from '@/c
 import { useAuth } from '@/features/auth/AuthProvider';
 import { formatMonthYear } from '@/lib/format';
 import { LOCALE_LABELS, LOCALES, useI18n, type Locale } from '@/lib/i18n';
+import { SUPPORT_EMAIL } from '@/lib/legalContent';
 import { useProfileStats, useUpdateProfile } from '@/lib/queries/profile';
 import { useLocationOptions } from '@/lib/queries/reference';
 import { THEME_MODES, useTheme, type ThemeMode } from '@/theme';
-
-const INQUIRY_EMAIL = 'murojaat@kitobjavonim.uz';
 
 export default function ProfileScreen() {
   const theme = useTheme();
@@ -149,7 +148,7 @@ export default function ProfileScreen() {
           <ListRow
             icon="mail-outline"
             label={t('profile.sendInquiry')}
-            onPress={() => void Linking.openURL(`mailto:${INQUIRY_EMAIL}`)}
+            onPress={() => void Linking.openURL(`mailto:${SUPPORT_EMAIL}`)}
           />
         </Card>
 
