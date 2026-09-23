@@ -6,7 +6,20 @@ import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { AddShelfSheet } from '@/components/AddShelfSheet';
 import { BookCover } from '@/components/BookCover';
 import { CategoryPicker } from '@/components/CategoryPicker';
-import { AuthorsField, Button, Card, Chip, EmptyState, Screen, Select, Sheet, Text, TextField, Toggle } from '@/components/ui';
+import {
+  AuthorsField,
+  BackHeader,
+  Button,
+  Card,
+  Chip,
+  EmptyState,
+  Screen,
+  Select,
+  Sheet,
+  Text,
+  TextField,
+  Toggle,
+} from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { setPendingBook, usePendingBook } from '@/features/add/pendingBook';
 import { goToTab } from '@/features/tabs/activeTab';
@@ -84,9 +97,12 @@ export default function ConfigureScreen() {
 
   if (!candidate) {
     return (
-      <Screen>
-        <EmptyState title={t('error.notFound')} />
-      </Screen>
+      <View style={styles.fill}>
+        <BackHeader />
+        <Screen>
+          <EmptyState title={t('error.notFound')} />
+        </Screen>
+      </View>
     );
   }
 
@@ -170,26 +186,28 @@ export default function ConfigureScreen() {
   const showDuplicateGate = duplicate !== null && !duplicateAcknowledged;
 
   return (
-    <Screen
-      scroll
-      footer={
-        <View style={{ gap: theme.spacing.sm }}>
-          <Button
-            title={showDuplicateGate ? t('add.addAnyway') : t('add.addToLibrary')}
-            fullWidth
-            loading={addBook.isPending}
-            onPress={showDuplicateGate ? () => setDuplicateAcknowledged(true) : save}
-          />
-          <Button
-            title={t('wishlist.addToWishlist')}
-            variant="ghost"
-            fullWidth
-            loading={addToWishlist.isPending}
-            onPress={addToWishlistInstead}
-          />
-        </View>
-      }
-    >
+    <View style={styles.fill}>
+      <BackHeader />
+      <Screen
+        scroll
+        footer={
+          <View style={{ gap: theme.spacing.sm }}>
+            <Button
+              title={showDuplicateGate ? t('add.addAnyway') : t('add.addToLibrary')}
+              fullWidth
+              loading={addBook.isPending}
+              onPress={showDuplicateGate ? () => setDuplicateAcknowledged(true) : save}
+            />
+            <Button
+              title={t('wishlist.addToWishlist')}
+              variant="ghost"
+              fullWidth
+              loading={addToWishlist.isPending}
+              onPress={addToWishlistInstead}
+            />
+          </View>
+        }
+      >
       <View style={{ gap: theme.spacing.xl, paddingTop: theme.spacing.md }}>
         <View style={[styles.book, { gap: theme.spacing.lg }]}>
           <BookCover uri={candidate.cover_url} title={candidate.title} width={92} radius={theme.radius.md} />
@@ -315,7 +333,8 @@ export default function ConfigureScreen() {
         candidate={candidate}
         onSave={(patch) => setPendingBook({ ...candidate, ...patch })}
       />
-    </Screen>
+      </Screen>
+    </View>
   );
 }
 
@@ -536,6 +555,7 @@ function CandidateEditSheet({
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   book: { flexDirection: 'row', alignItems: 'flex-start' },
   bookText: { flex: 1, gap: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

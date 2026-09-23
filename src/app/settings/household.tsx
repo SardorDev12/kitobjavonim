@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert, Platform, Pressable, Share, StyleSheet, View } from 'react-native';
 
-import { Avatar, Button, Card, Divider, LoadingState, Screen, Text, TextField } from '@/components/ui';
+import { Avatar, BackHeader, Button, Card, Divider, LoadingState, Screen, Text, TextField } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { describeError } from '@/lib/errors';
 import { useI18n } from '@/lib/i18n';
@@ -122,16 +122,21 @@ export default function HouseholdScreen() {
 
   if (isPending) {
     return (
-      <Screen>
-        <LoadingState />
-      </Screen>
+      <View style={styles.fill}>
+        <BackHeader />
+        <Screen>
+          <LoadingState />
+        </Screen>
+      </View>
     );
   }
 
   if (!info) {
     return (
-      <Screen scroll>
-        <View style={[styles.container, { gap: theme.spacing.xl, paddingTop: theme.spacing.md }]}>
+      <View style={styles.fill}>
+        <BackHeader />
+        <Screen scroll>
+          <View style={[styles.container, { gap: theme.spacing.xl, paddingTop: theme.spacing.md }]}>
           <View style={{ gap: theme.spacing.sm }}>
             <Text variant="display">{t('household.title')}</Text>
             <Text variant="body" color="textMuted">
@@ -187,17 +192,20 @@ export default function HouseholdScreen() {
               {error}
             </Text>
           ) : null}
-        </View>
-      </Screen>
+          </View>
+        </Screen>
+      </View>
     );
   }
 
   const isOwner = info.role === 'owner';
 
   return (
-    <Screen scroll>
-      <View style={[styles.container, { gap: theme.spacing.xl, paddingTop: theme.spacing.md }]}>
-        <Text variant="display">{info.household.name}</Text>
+    <View style={styles.fill}>
+      <BackHeader />
+      <Screen scroll>
+        <View style={[styles.container, { gap: theme.spacing.xl, paddingTop: theme.spacing.md }]}>
+          <Text variant="display">{info.household.name}</Text>
 
         <Card>
           <Text variant="label" color="textMuted">
@@ -288,12 +296,14 @@ export default function HouseholdScreen() {
           loading={leaveHousehold.isPending}
           onPress={() => confirm(t('household.leaveConfirm'), handleLeave)}
         />
-      </View>
-    </Screen>
+        </View>
+      </Screen>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   container: { maxWidth: 560, width: '100%', alignSelf: 'center' },
   actionsRow: { flexDirection: 'row' },
   memberRow: { flexDirection: 'row', alignItems: 'center' },

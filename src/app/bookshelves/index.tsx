@@ -2,7 +2,19 @@ import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 
-import { Button, Card, Divider, EmptyState, LoadingState, Screen, Sheet, Text, TextField, Toggle } from '@/components/ui';
+import {
+  BackHeader,
+  Button,
+  Card,
+  Divider,
+  EmptyState,
+  LoadingState,
+  Screen,
+  Sheet,
+  Text,
+  TextField,
+  Toggle,
+} from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { describeError } from '@/lib/errors';
 import { formatPosition } from '@/lib/format';
@@ -65,58 +77,64 @@ export default function BookshelvesScreen() {
 
   if (isPending) {
     return (
-      <Screen>
-        <LoadingState />
-      </Screen>
+      <View style={styles.fill}>
+        <BackHeader />
+        <Screen>
+          <LoadingState />
+        </Screen>
+      </View>
     );
   }
 
   return (
-    <Screen
-      scroll
-      footer={<Button title={t('shelves.addShelf')} icon="add" fullWidth onPress={() => setAddShelfOpen(true)} />}
-    >
-      <View style={{ gap: theme.spacing.lg, paddingBottom: theme.spacing.lg }}>
-        <View style={{ gap: theme.spacing.xs }}>
-          <Text variant="display">{t('shelves.title')}</Text>
-          <Text variant="body" color="textMuted">
-            {t('shelves.subtitle')}
-          </Text>
+    <View style={styles.fill}>
+      <BackHeader />
+      <Screen
+        scroll
+        footer={<Button title={t('shelves.addShelf')} icon="add" fullWidth onPress={() => setAddShelfOpen(true)} />}
+      >
+        <View style={{ gap: theme.spacing.lg, paddingBottom: theme.spacing.lg }}>
+          <View style={{ gap: theme.spacing.xs }}>
+            <Text variant="display">{t('shelves.title')}</Text>
+            <Text variant="body" color="textMuted">
+              {t('shelves.subtitle')}
+            </Text>
+          </View>
+
+          {(shelves ?? []).length === 0 ? (
+            <EmptyState icon="albums-outline" title={t('shelves.empty')} body={t('shelves.emptyBody')} />
+          ) : (
+            (shelves ?? []).map((shelf) => (
+              <ShelfCard key={shelf.id} shelf={shelf} booksPerPosition={booksPerPosition} />
+            ))
+          )}
         </View>
 
-        {(shelves ?? []).length === 0 ? (
-          <EmptyState icon="albums-outline" title={t('shelves.empty')} body={t('shelves.emptyBody')} />
-        ) : (
-          (shelves ?? []).map((shelf) => (
-            <ShelfCard key={shelf.id} shelf={shelf} booksPerPosition={booksPerPosition} />
-          ))
-        )}
-      </View>
-
-      <Sheet visible={addShelfOpen} onClose={() => setAddShelfOpen(false)} title={t('shelves.addShelf')}>
-        <View style={{ gap: theme.spacing.lg }}>
-          <TextField
-            label={t('shelves.shelfName')}
-            placeholder={t('shelves.shelfNamePlaceholder')}
-            value={shelfName}
-            onChangeText={setShelfName}
-            autoFocus
-            onSubmitEditing={submitShelf}
-            returnKeyType="done"
-          />
-          {household ? (
-            <Toggle label={t('household.share')} hint={household.household.name} value={shareShelf} onChange={setShareShelf} />
-          ) : null}
-          <Button
-            title={t('common.add')}
-            fullWidth
-            loading={createShelf.isPending}
-            disabled={!shelfName.trim()}
-            onPress={submitShelf}
-          />
-        </View>
-      </Sheet>
-    </Screen>
+        <Sheet visible={addShelfOpen} onClose={() => setAddShelfOpen(false)} title={t('shelves.addShelf')}>
+          <View style={{ gap: theme.spacing.lg }}>
+            <TextField
+              label={t('shelves.shelfName')}
+              placeholder={t('shelves.shelfNamePlaceholder')}
+              value={shelfName}
+              onChangeText={setShelfName}
+              autoFocus
+              onSubmitEditing={submitShelf}
+              returnKeyType="done"
+            />
+            {household ? (
+              <Toggle label={t('household.share')} hint={household.household.name} value={shareShelf} onChange={setShareShelf} />
+            ) : null}
+            <Button
+              title={t('common.add')}
+              fullWidth
+              loading={createShelf.isPending}
+              disabled={!shelfName.trim()}
+              onPress={submitShelf}
+            />
+          </View>
+        </Sheet>
+      </Screen>
+    </View>
   );
 }
 
@@ -338,6 +356,7 @@ function ShelfCard({
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   flex: { flex: 1 },
   shelfHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   positionRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },

@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 
-import { AuthorsField, Button, Screen, Text, TextField, Toggle } from '@/components/ui';
+import { AuthorsField, BackHeader, Button, Screen, Text, TextField, Toggle } from '@/components/ui';
 import { describeError } from '@/lib/errors';
 import { parseAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
@@ -51,59 +51,62 @@ export default function WishlistAddScreen() {
   }
 
   return (
-    <Screen
-      scroll
-      footer={
-        <Button
-          title={t('wishlist.add')}
-          fullWidth
-          loading={addItem.isPending}
-          disabled={!title.trim()}
-          onPress={save}
-        />
-      }
-    >
-      <View style={{ gap: theme.spacing.lg, paddingTop: theme.spacing.md }}>
-        <View style={{ gap: theme.spacing.xs }}>
-          <Text variant="display">{t('wishlist.add')}</Text>
-          <Text variant="body" color="textMuted">
-            {t('wishlist.addSubtitle')}
-          </Text>
-        </View>
-
-        <TextField
-          label={t('manual.bookTitle')}
-          value={title}
-          onChangeText={(value) => {
-            setTitle(value);
-            if (titleError) setTitleError(null);
-          }}
-          error={titleError}
-          autoFocus
-        />
-
-        <AuthorsField
-          label={t('manual.authors')}
-          hint={t('manual.authorsHint')}
-          value={authors}
-          onChangeText={setAuthors}
-        />
-
-        {household ? (
-          <Toggle
-            label={t('household.share')}
-            hint={household.household.name}
-            value={shareItem}
-            onChange={setShareItem}
+    <View style={{ flex: 1 }}>
+      <BackHeader />
+      <Screen
+        scroll
+        footer={
+          <Button
+            title={t('wishlist.add')}
+            fullWidth
+            loading={addItem.isPending}
+            disabled={!title.trim()}
+            onPress={save}
           />
-        ) : null}
+        }
+      >
+        <View style={{ gap: theme.spacing.lg, paddingTop: theme.spacing.md }}>
+          <View style={{ gap: theme.spacing.xs }}>
+            <Text variant="display">{t('wishlist.add')}</Text>
+            <Text variant="body" color="textMuted">
+              {t('wishlist.addSubtitle')}
+            </Text>
+          </View>
 
-        {error ? (
-          <Text variant="caption" color="danger">
-            {error}
-          </Text>
-        ) : null}
-      </View>
-    </Screen>
+          <TextField
+            label={t('manual.bookTitle')}
+            value={title}
+            onChangeText={(value) => {
+              setTitle(value);
+              if (titleError) setTitleError(null);
+            }}
+            error={titleError}
+            autoFocus
+          />
+
+          <AuthorsField
+            label={t('manual.authors')}
+            hint={t('manual.authorsHint')}
+            value={authors}
+            onChangeText={setAuthors}
+          />
+
+          {household ? (
+            <Toggle
+              label={t('household.share')}
+              hint={household.household.name}
+              value={shareItem}
+              onChange={setShareItem}
+            />
+          ) : null}
+
+          {error ? (
+            <Text variant="caption" color="danger">
+              {error}
+            </Text>
+          ) : null}
+        </View>
+      </Screen>
+    </View>
   );
 }

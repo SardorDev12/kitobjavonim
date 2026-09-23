@@ -308,16 +308,22 @@ function RootNavigator() {
         <Stack.Screen name="legal/privacy" options={{ headerShown: false }} />
         <Stack.Screen name="legal/terms" options={{ headerShown: false }} />
         <Stack.Screen name="add/scan" options={{ presentation: 'modal', title: '' }} />
-        <Stack.Screen name="add/manual" options={{ title: '' }} />
-        <Stack.Screen name="add/configure" options={{ title: '' }} />
-        <Stack.Screen name="bookshelves/index" options={{ title: '' }} />
-        <Stack.Screen name="library/import" options={{ title: '' }} />
-        <Stack.Screen name="wishlist/index" options={{ title: '' }} />
-        <Stack.Screen name="wishlist/add" options={{ title: '' }} />
-        <Stack.Screen name="wishlist/[id]" options={{ title: '' }} />
-        <Stack.Screen name="settings/profile" options={{ title: '' }} />
-        <Stack.Screen name="settings/security" options={{ title: '' }} />
-        <Stack.Screen name="settings/household" options={{ title: '' }} />
+        {/* These all render their own BackHeader below (like book/[id]/
+            listing/[id] above) instead of the native one — the native
+            header spans the full browser width uncapped on wide web, while
+            everything else on the page is centered and capped to
+            maxContentWidth, so its back button sat flush to the real page
+            edge instead of lining up with the content below it. */}
+        <Stack.Screen name="add/manual" options={{ headerShown: false, title: '' }} />
+        <Stack.Screen name="add/configure" options={{ headerShown: false, title: '' }} />
+        <Stack.Screen name="bookshelves/index" options={{ headerShown: false, title: '' }} />
+        <Stack.Screen name="library/import" options={{ headerShown: false, title: '' }} />
+        <Stack.Screen name="wishlist/index" options={{ headerShown: false, title: '' }} />
+        <Stack.Screen name="wishlist/add" options={{ headerShown: false, title: '' }} />
+        <Stack.Screen name="wishlist/[id]" options={{ headerShown: false, title: '' }} />
+        <Stack.Screen name="settings/profile" options={{ headerShown: false, title: '' }} />
+        <Stack.Screen name="settings/security" options={{ headerShown: false, title: '' }} />
+        <Stack.Screen name="settings/household" options={{ headerShown: false, title: '' }} />
       </Stack>
       {/* Edge-to-edge (mandatory since SDK 54) draws Android's system nav
           bar transparently over whatever the app renders underneath it —

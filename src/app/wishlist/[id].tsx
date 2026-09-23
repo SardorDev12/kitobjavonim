@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, Platform, View } from 'react-native';
 
-import { AuthorsField, Button, EmptyState, LoadingState, Screen, Text, TextField, Toggle } from '@/components/ui';
+import { AuthorsField, BackHeader, Button, EmptyState, LoadingState, Screen, Text, TextField, Toggle } from '@/components/ui';
 import { describeError } from '@/lib/errors';
 import { parseAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
@@ -53,17 +53,23 @@ export default function WishlistEditScreen() {
 
   if (isPending) {
     return (
-      <Screen>
-        <LoadingState />
-      </Screen>
+      <View style={{ flex: 1 }}>
+        <BackHeader />
+        <Screen>
+          <LoadingState />
+        </Screen>
+      </View>
     );
   }
 
   if (!entry) {
     return (
-      <Screen>
-        <EmptyState title={t('error.notFound')} />
-      </Screen>
+      <View style={{ flex: 1 }}>
+        <BackHeader />
+        <Screen>
+          <EmptyState title={t('error.notFound')} />
+        </Screen>
+      </View>
     );
   }
 
@@ -109,53 +115,56 @@ export default function WishlistEditScreen() {
   }
 
   return (
-    <Screen
-      scroll
-      footer={<Button title={t('common.save')} fullWidth loading={updateItem.isPending} onPress={save} />}
-    >
-      <View style={{ gap: theme.spacing.lg, paddingTop: theme.spacing.md }}>
-        <Text variant="display">{t('wishlist.editTitle')}</Text>
+    <View style={{ flex: 1 }}>
+      <BackHeader />
+      <Screen
+        scroll
+        footer={<Button title={t('common.save')} fullWidth loading={updateItem.isPending} onPress={save} />}
+      >
+        <View style={{ gap: theme.spacing.lg, paddingTop: theme.spacing.md }}>
+          <Text variant="display">{t('wishlist.editTitle')}</Text>
 
-        <TextField
-          label={t('manual.bookTitle')}
-          value={title}
-          onChangeText={(value) => {
-            setTitle(value);
-            if (titleError) setTitleError(null);
-          }}
-          error={titleError}
-        />
-
-        <AuthorsField
-          label={t('manual.authors')}
-          hint={t('manual.authorsHint')}
-          value={authors}
-          onChangeText={setAuthors}
-        />
-
-        {household ? (
-          <Toggle
-            label={t('household.share')}
-            hint={household.household.name}
-            value={shareItem}
-            onChange={setShareItem}
+          <TextField
+            label={t('manual.bookTitle')}
+            value={title}
+            onChangeText={(value) => {
+              setTitle(value);
+              if (titleError) setTitleError(null);
+            }}
+            error={titleError}
           />
-        ) : null}
 
-        <Button
-          title={t('wishlist.remove')}
-          variant="danger"
-          fullWidth
-          loading={deleteItem.isPending}
-          onPress={confirmRemove}
-        />
+          <AuthorsField
+            label={t('manual.authors')}
+            hint={t('manual.authorsHint')}
+            value={authors}
+            onChangeText={setAuthors}
+          />
 
-        {error ? (
-          <Text variant="caption" color="danger">
-            {error}
-          </Text>
-        ) : null}
-      </View>
-    </Screen>
+          {household ? (
+            <Toggle
+              label={t('household.share')}
+              hint={household.household.name}
+              value={shareItem}
+              onChange={setShareItem}
+            />
+          ) : null}
+
+          <Button
+            title={t('wishlist.remove')}
+            variant="danger"
+            fullWidth
+            loading={deleteItem.isPending}
+            onPress={confirmRemove}
+          />
+
+          {error ? (
+            <Text variant="caption" color="danger">
+              {error}
+            </Text>
+          ) : null}
+        </View>
+      </Screen>
+    </View>
   );
 }

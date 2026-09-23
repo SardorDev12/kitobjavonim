@@ -4,7 +4,7 @@ import { useRef, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { BookCover } from '@/components/BookCover';
-import { AuthorsField, Button, Screen, Select, Text, TextField } from '@/components/ui';
+import { AuthorsField, BackHeader, Button, Screen, Select, Text, TextField } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { setPendingBook } from '@/features/add/pendingBook';
 import { emptyCandidate, type BookCandidate } from '@/lib/books/metadata';
@@ -183,12 +183,14 @@ export default function ManualEntryScreen() {
   }
 
   return (
-    <Screen
-      scroll
-      scrollRef={scrollRef}
-      footer={<Button title={t('common.next')} fullWidth onPress={next} disabled={!title.trim()} />}
-    >
-      <View style={[styles.container, { gap: theme.spacing.lg, paddingTop: theme.spacing.md }]}>
+    <View style={styles.fill}>
+      <BackHeader />
+      <Screen
+        scroll
+        scrollRef={scrollRef}
+        footer={<Button title={t('common.next')} fullWidth onPress={next} disabled={!title.trim()} />}
+      >
+        <View style={[styles.container, { gap: theme.spacing.lg, paddingTop: theme.spacing.md }]}>
         <Text variant="display">{t('manual.title')}</Text>
 
         {/* The drop target is this outer View, not the Pressable inside it —
@@ -330,12 +332,14 @@ export default function ManualEntryScreen() {
           clearable
           clearLabel={t('common.none')}
         />
-      </View>
-    </Screen>
+        </View>
+      </Screen>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   container: { maxWidth: 560, width: '100%', alignSelf: 'center' },
   pair: { flexDirection: 'row' },
   pairItem: { flex: 1 },

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { Button, Card, Screen, Text, TextField } from '@/components/ui';
+import { BackHeader, Button, Card, Screen, Text, TextField } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { describeError } from '@/lib/errors';
 import { useI18n } from '@/lib/i18n';
@@ -71,8 +71,10 @@ export default function SecurityScreen() {
   }
 
   return (
-    <Screen scroll scrollRef={scrollRef}>
-      <View style={[styles.container, { gap: theme.spacing.lg, paddingTop: theme.spacing.xl }]}>
+    <View style={styles.fill}>
+      <BackHeader />
+      <Screen scroll scrollRef={scrollRef}>
+        <View style={[styles.container, { gap: theme.spacing.lg, paddingTop: theme.spacing.xl }]}>
         <View style={{ gap: theme.spacing.sm }}>
           <Text variant="display">{t('security.title')}</Text>
           <Text variant="body" color="textMuted">
@@ -148,11 +150,13 @@ export default function SecurityScreen() {
         ) : null}
 
         <Button title={t('common.save')} fullWidth loading={saving} onPress={save} />
-      </View>
-    </Screen>
+        </View>
+      </Screen>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   container: { maxWidth: 480, width: '100%', alignSelf: 'center' },
 });

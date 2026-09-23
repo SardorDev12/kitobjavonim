@@ -1,14 +1,11 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Pressable, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { View } from 'react-native';
 
 import { goToTab } from '@/features/tabs/activeTab';
-import { useI18n } from '@/lib/i18n';
 import type { LegalDoc } from '@/lib/legalContent';
 import { useTheme } from '@/theme';
 
-import { Screen, Text } from './ui';
+import { BackHeader, Screen, Text } from './ui';
 
 /**
  * Shared renderer for the privacy policy and terms pages. Custom header
@@ -19,9 +16,7 @@ import { Screen, Text } from './ui';
  */
 export function LegalPage({ doc }: { doc: LegalDoc }) {
   const theme = useTheme();
-  const { t } = useI18n();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
 
   function goBack() {
     if (router.canGoBack()) router.back();
@@ -33,19 +28,7 @@ export function LegalPage({ doc }: { doc: LegalDoc }) {
 
   return (
     <View style={{ flex: 1 }}>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingTop: insets.top + theme.spacing.sm,
-          paddingHorizontal: theme.spacing.lg,
-          paddingBottom: theme.spacing.sm,
-        }}
-      >
-        <Pressable onPress={goBack} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common.back')}>
-          <Ionicons name="chevron-back" size={26} color={theme.colors.text} />
-        </Pressable>
-      </View>
+      <BackHeader onBack={goBack} />
 
       <Screen scroll>
         <View style={{ gap: theme.spacing.xl, paddingBottom: theme.spacing.xl }}>

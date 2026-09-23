@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
 import * as XLSX from 'xlsx';
 
-import { Button, Card, Divider, LoadingState, Screen, Text } from '@/components/ui';
+import { BackHeader, Button, Card, Divider, LoadingState, Screen, Text } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { describeError } from '@/lib/errors';
 import { parseAuthors } from '@/lib/format';
@@ -377,31 +377,39 @@ export default function LibraryImportScreen() {
 
   if (parsing) {
     return (
-      <Screen>
-        <LoadingState label={t('common.loading')} />
-      </Screen>
+      <View style={{ flex: 1 }}>
+        <BackHeader />
+        <Screen>
+          <LoadingState label={t('common.loading')} />
+        </Screen>
+      </View>
     );
   }
 
   if (progress) {
     return (
-      <Screen>
-        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: theme.spacing.md }}>
-          <LoadingState label={t('import.importing', { done: progress.done, total: progress.total })} />
-          <Button
-            title={t('import.cancel')}
-            variant="secondary"
-            onPress={cancelImport}
-            style={{ alignSelf: 'center' }}
-          />
-        </View>
-      </Screen>
+      <View style={{ flex: 1 }}>
+        <BackHeader />
+        <Screen>
+          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: theme.spacing.md }}>
+            <LoadingState label={t('import.importing', { done: progress.done, total: progress.total })} />
+            <Button
+              title={t('import.cancel')}
+              variant="secondary"
+              onPress={cancelImport}
+              style={{ alignSelf: 'center' }}
+            />
+          </View>
+        </Screen>
+      </View>
     );
   }
 
   if (outcome) {
     return (
-      <Screen scroll>
+      <View style={{ flex: 1 }}>
+        <BackHeader />
+        <Screen scroll>
         <View style={{ gap: theme.spacing.lg, paddingTop: theme.spacing.xl }}>
           <Text variant="display">{t('import.title')}</Text>
           <Text variant="body" color="textMuted">
@@ -452,7 +460,8 @@ export default function LibraryImportScreen() {
 
           <Button title={t('common.done')} fullWidth onPress={() => router.back()} />
         </View>
-      </Screen>
+        </Screen>
+      </View>
     );
   }
 
@@ -461,7 +470,9 @@ export default function LibraryImportScreen() {
     const preview = parsed.rows.slice(0, 5);
 
     return (
-      <Screen scroll>
+      <View style={{ flex: 1 }}>
+        <BackHeader />
+        <Screen scroll>
         <View style={{ gap: theme.spacing.lg, paddingTop: theme.spacing.xl }}>
           <Text variant="display">{t('import.previewTitle')}</Text>
           <Text variant="body" color="textMuted">
@@ -502,7 +513,8 @@ export default function LibraryImportScreen() {
             <Button title={t('common.cancel')} variant="secondary" fullWidth onPress={() => setParsed(null)} />
           </View>
         </View>
-      </Screen>
+        </Screen>
+      </View>
     );
   }
 
@@ -514,34 +526,37 @@ export default function LibraryImportScreen() {
   });
 
   return (
-    <Screen scroll>
-      <View style={{ gap: theme.spacing.lg, paddingTop: theme.spacing.xl }}>
-        <Text variant="display" align="center">
-          {t('import.title')}
-        </Text>
-        <Text variant="body" color="textMuted" align="center">
-          {t('import.explainer')}
-        </Text>
+    <View style={{ flex: 1 }}>
+      <BackHeader />
+      <Screen scroll>
+        <View style={{ gap: theme.spacing.lg, paddingTop: theme.spacing.xl }}>
+          <Text variant="display" align="center">
+            {t('import.title')}
+          </Text>
+          <Text variant="body" color="textMuted" align="center">
+            {t('import.explainer')}
+          </Text>
 
-        <Card>
-          <Text variant="label" color="textMuted">
-            {t('import.guideTitle')}
-          </Text>
-          <Text variant="caption" color="textMuted" style={{ marginTop: theme.spacing.xs }}>
-            {t('import.guideIntro')}
-          </Text>
-          <Text variant="body" style={{ marginTop: theme.spacing.sm }}>
-            {guideLines.join('\n')}
-          </Text>
-        </Card>
+          <Card>
+            <Text variant="label" color="textMuted">
+              {t('import.guideTitle')}
+            </Text>
+            <Text variant="caption" color="textMuted" style={{ marginTop: theme.spacing.xs }}>
+              {t('import.guideIntro')}
+            </Text>
+            <Text variant="body" style={{ marginTop: theme.spacing.sm }}>
+              {guideLines.join('\n')}
+            </Text>
+          </Card>
 
-        {error ? (
-          <Text variant="caption" color="danger" align="center">
-            {error}
-          </Text>
-        ) : null}
-        <Button title={t('import.chooseFile')} onPress={pickFile} style={{ alignSelf: 'center' }} />
-      </View>
-    </Screen>
+          {error ? (
+            <Text variant="caption" color="danger" align="center">
+              {error}
+            </Text>
+          ) : null}
+          <Button title={t('import.chooseFile')} onPress={pickFile} style={{ alignSelf: 'center' }} />
+        </View>
+      </Screen>
+    </View>
   );
 }

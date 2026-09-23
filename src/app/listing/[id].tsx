@@ -3,12 +3,12 @@ import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Linking, Platform, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/BookCover';
 import { ListingSheet } from '@/components/ListingSheet';
 import {
   Avatar,
+  BackHeader,
   Button,
   Card,
   Chip,
@@ -37,7 +37,6 @@ export default function ListingDetailScreen() {
   const theme = useTheme();
   const { t, locale } = useI18n();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user, profile } = useAuth();
 
@@ -96,22 +95,16 @@ export default function ListingDetailScreen() {
   }
 
   const header = (
-    <View
-      style={[
-        styles.header,
-        { paddingTop: insets.top + theme.spacing.sm, paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.sm },
-      ]}
-    >
-      <Pressable onPress={goBack} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common.back')}>
-        <Ionicons name="chevron-back" size={26} color={theme.colors.text} />
-      </Pressable>
-
-      {listing ? (
-        <Pressable onPress={() => setMenuOpen(true)} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common.more')}>
-          <Ionicons name="ellipsis-horizontal" size={22} color={theme.colors.text} />
-        </Pressable>
-      ) : null}
-    </View>
+    <BackHeader
+      onBack={goBack}
+      right={
+        listing ? (
+          <Pressable onPress={() => setMenuOpen(true)} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common.more')}>
+            <Ionicons name="ellipsis-horizontal" size={22} color={theme.colors.text} />
+          </Pressable>
+        ) : null
+      }
+    />
   );
 
   if (isPending) {
@@ -528,7 +521,6 @@ function ReportSheet({
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   hero: { flexDirection: 'row', alignItems: 'flex-start', paddingTop: 8 },
   heroText: { flex: 1, gap: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

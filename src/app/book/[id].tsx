@@ -2,7 +2,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { AddShelfSheet } from '@/components/AddShelfSheet';
 import { BookCover } from '@/components/BookCover';
@@ -10,6 +9,7 @@ import { CategoryPicker } from '@/components/CategoryPicker';
 import { ListingSheet } from '@/components/ListingSheet';
 import {
   AuthorsField,
+  BackHeader,
   Button,
   Card,
   Chip,
@@ -51,10 +51,8 @@ import { BOOK_CONDITIONS, READING_STATUSES, type ReadingStatus } from '@/types/d
 
 export default function BookDetailScreen() {
   const theme = useTheme();
-  const { maxContentWidth } = useLayout();
   const { t, locale } = useI18n();
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user, profile } = useAuth();
 
@@ -85,29 +83,16 @@ export default function BookDetailScreen() {
   }
 
   const header = (
-    <View
-      style={[
-        styles.headerOuter,
-        { paddingTop: insets.top + theme.spacing.sm, paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.sm },
-      ]}
-    >
-      {/* header sits above Screen as its own sibling (below), not inside its
-          children, so it doesn't get Screen's own maxContentWidth treatment
-          for free — capped and centered here the same way, so the back/menu
-          buttons land above the same left/right edges as the content below
-          instead of sitting at the true page edges on wide web. */}
-      <View style={[styles.header, { width: '100%', maxWidth: maxContentWidth }]}>
-        <Pressable onPress={goBack} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common.back')}>
-          <Ionicons name="chevron-back" size={26} color={theme.colors.text} />
-        </Pressable>
-
-        {entry ? (
+    <BackHeader
+      onBack={goBack}
+      right={
+        entry ? (
           <Pressable onPress={() => setMenuOpen(true)} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common.more')}>
             <Ionicons name="ellipsis-horizontal" size={22} color={theme.colors.text} />
           </Pressable>
-        ) : null}
-      </View>
-    </View>
+        ) : null
+      }
+    />
   );
 
   if (isPending) {
@@ -841,8 +826,6 @@ function ReviewSheet({
 
 const styles = StyleSheet.create({
   fill: { flex: 1 },
-  headerOuter: { alignItems: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   hero: { flexDirection: 'row', alignItems: 'flex-start', paddingTop: 8 },
   heroText: { flex: 1, gap: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

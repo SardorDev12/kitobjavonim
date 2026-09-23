@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
-import { Button, Card, EmptyState, LoadingState, Screen, Text } from '@/components/ui';
+import { BackHeader, Button, Card, EmptyState, LoadingState, Screen, Text } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { formatAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
@@ -23,38 +23,44 @@ export default function WishlistScreen() {
 
   if (isPending) {
     return (
-      <Screen>
-        <LoadingState />
-      </Screen>
+      <View style={styles.fill}>
+        <BackHeader />
+        <Screen>
+          <LoadingState />
+        </Screen>
+      </View>
     );
   }
 
   return (
-    <Screen
-      scroll
-      footer={<Button title={t('wishlist.add')} icon="add" fullWidth onPress={() => router.push('/wishlist/add')} />}
-    >
-      <View style={{ gap: theme.spacing.lg, paddingBottom: theme.spacing.lg }}>
-        <View style={{ gap: theme.spacing.xs }}>
-          <Text variant="display">{t('wishlist.title')}</Text>
-          <Text variant="body" color="textMuted">
-            {t('wishlist.subtitle')}
-          </Text>
-        </View>
+    <View style={styles.fill}>
+      <BackHeader />
+      <Screen
+        scroll
+        footer={<Button title={t('wishlist.add')} icon="add" fullWidth onPress={() => router.push('/wishlist/add')} />}
+      >
+        <View style={{ gap: theme.spacing.lg, paddingBottom: theme.spacing.lg }}>
+          <View style={{ gap: theme.spacing.xs }}>
+            <Text variant="display">{t('wishlist.title')}</Text>
+            <Text variant="body" color="textMuted">
+              {t('wishlist.subtitle')}
+            </Text>
+          </View>
 
-        {(items ?? []).length === 0 ? (
-          <EmptyState
-            icon="heart-outline"
-            title={t('wishlist.empty')}
-            body={t('wishlist.emptyBody')}
-            actionLabel={t('wishlist.add')}
-            onAction={() => router.push('/wishlist/add')}
-          />
-        ) : (
-          (items ?? []).map((item) => <WishlistRow key={item.id} entry={item} onPress={() => router.push(`/wishlist/${item.id}`)} />)
-        )}
-      </View>
-    </Screen>
+          {(items ?? []).length === 0 ? (
+            <EmptyState
+              icon="heart-outline"
+              title={t('wishlist.empty')}
+              body={t('wishlist.emptyBody')}
+              actionLabel={t('wishlist.add')}
+              onAction={() => router.push('/wishlist/add')}
+            />
+          ) : (
+            (items ?? []).map((item) => <WishlistRow key={item.id} entry={item} onPress={() => router.push(`/wishlist/${item.id}`)} />)
+          )}
+        </View>
+      </Screen>
+    </View>
   );
 }
 
@@ -96,6 +102,7 @@ function WishlistRow({ entry, onPress }: { entry: WishlistEntry; onPress: () => 
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   row: { flexDirection: 'row', alignItems: 'center' },
   body: { flex: 1, gap: 2 },
 });

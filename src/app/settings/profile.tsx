@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
-import { Avatar, Button, Card, Screen, Select, Text, TextField, Toggle } from '@/components/ui';
+import { Avatar, BackHeader, Button, Card, Screen, Select, Text, TextField, Toggle } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { hasContactMethod } from '@/lib/contactMethod';
 import { describeError } from '@/lib/errors';
@@ -92,19 +92,21 @@ export default function EditProfileScreen() {
   }
 
   return (
-    <Screen
-      scroll
-      scrollRef={scrollRef}
-      footer={
-        <Button
-          title={t('common.save')}
-          fullWidth
-          loading={updateProfile.isPending || createDistrict.isPending}
-          onPress={save}
-        />
-      }
-    >
-      <View style={[styles.container, { gap: theme.spacing.lg, paddingTop: theme.spacing.md }]}>
+    <View style={styles.fill}>
+      <BackHeader />
+      <Screen
+        scroll
+        scrollRef={scrollRef}
+        footer={
+          <Button
+            title={t('common.save')}
+            fullWidth
+            loading={updateProfile.isPending || createDistrict.isPending}
+            onPress={save}
+          />
+        }
+      >
+        <View style={[styles.container, { gap: theme.spacing.lg, paddingTop: theme.spacing.md }]}>
         <Text variant="display">{t('profile.edit')}</Text>
 
         {/* Uploaded and saved immediately rather than on Save — the picker is
@@ -244,12 +246,14 @@ export default function EditProfileScreen() {
             {error}
           </Text>
         ) : null}
-      </View>
-    </Screen>
+        </View>
+      </Screen>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  fill: { flex: 1 },
   container: { maxWidth: 560, width: '100%', alignSelf: 'center' },
   avatarRow: { flexDirection: 'row', alignItems: 'center' },
 });
