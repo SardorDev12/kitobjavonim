@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Avatar, Button, Card, Screen, Select, Text, TextField, Toggle } from '@/components/ui';
@@ -11,7 +11,7 @@ import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
 import { useImageDropZone } from '@/lib/useImageDropZone';
 import { useRemoveAvatar, useUploadAvatar } from '@/lib/queries/photos';
 import { useUpdateProfile } from '@/lib/queries/profile';
-import { useLocationOptions } from '@/lib/queries/reference';
+import { useCreateDistrict, useLocationOptions } from '@/lib/queries/reference';
 import { useTheme } from '@/theme';
 
 export default function EditProfileScreen() {
@@ -22,13 +22,14 @@ export default function EditProfileScreen() {
   const { profile } = useAuth();
   const locations = useLocationOptions();
   const updateProfile = useUpdateProfile();
+  const createDistrict = useCreateDistrict();
   const uploadAvatar = useUploadAvatar();
   const removeAvatar = useRemoveAvatar();
 
   const [name, setName] = useState(profile?.display_name ?? '');
   const [bio, setBio] = useState(profile?.bio ?? '');
   const [regionId, setRegionId] = useState<string | null>(profile?.region_id ?? null);
-  const [districtId, setDistrictId] = useState<string | null>(profile?.district_id ?? null);
+  const [districtName, setDistrictName] = useState('');
   const [telegram, setTelegram] = useState(profile?.telegram_username ?? '');
   const [showTelegram, setShowTelegram] = useState(profile?.show_telegram ?? true);
   const [phone, setPhone] = useState(profile?.phone ?? '');
@@ -36,7 +37,16 @@ export default function EditProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
 
-  const districts = locations.districtsFor(regionId);
+  // Same reasoning as onboarding.tsx's identical effect: locations is a
+  // separately-cached query that may still be loading on first mount, so
+  // the existing district's name can't just be read once into useState's
+  // initializer the way the id used to be.
+  const districtInitialized = useRef(false);
+  useEffect(() => {
+    if (districtInitialized.current || locations.isPending) return;
+    districtInitialized.current = true;
+    setDistrictName(locations.nameOf(profile?.district_id ?? null));
+  }, [locations, profile?.district_id]);
 
   const { ref: avatarDropRef, isDragOver: avatarDragOver } = useImageDropZone(
     (file) => uploadAvatar.mutate({ file, currentAvatarUrl: profile?.avatar_url ?? null }),
@@ -60,6 +70,11 @@ export default function EditProfileScreen() {
     setError(null);
 
     try {
+      const districtId =
+        regionId && districtName.trim()
+          ? await createDistrict.mutateAsync({ name: districtName.trim(), regionId })
+          : null;
+
       await updateProfile.mutateAsync({
         display_name: name.trim(),
         bio: bio.trim() || null,
@@ -81,7 +96,12 @@ export default function EditProfileScreen() {
       scroll
       scrollRef={scrollRef}
       footer={
-        <Button title={t('common.save')} fullWidth loading={updateProfile.isPending} onPress={save} />
+        <Button
+          title={t('common.save')}
+          fullWidth
+          loading={updateProfile.isPending || createDistrict.isPending}
+          onPress={save}
+        />
       }
     >
       <View style={[styles.container, { gap: theme.spacing.lg, paddingTop: theme.spacing.md }]}>
@@ -157,21 +177,19 @@ export default function EditProfileScreen() {
           options={locations.regions}
           onChange={(value) => {
             setRegionId(value);
-            setDistrictId(null);
+            setDistrictName('');
           }}
           clearable
           clearLabel={t('common.none')}
         />
 
-        <Select
+        <TextField
           label={t('onboarding.district')}
-          placeholder={t('onboarding.selectDistrict')}
-          value={districtId}
-          options={districts}
-          onChange={setDistrictId}
-          disabled={!regionId || districts.length === 0}
-          clearable
-          clearLabel={t('common.none')}
+          placeholder={t('onboarding.districtPlaceholder')}
+          value={districtName}
+          onChangeText={setDistrictName}
+          editable={!!regionId}
+          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <View style={{ gap: theme.spacing.md }}>

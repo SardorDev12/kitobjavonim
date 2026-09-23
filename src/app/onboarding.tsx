@@ -1,5 +1,5 @@
 import type { User } from '@supabase/supabase-js';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button, Screen, Select, Text, TextField, Toggle } from '@/components/ui';
@@ -8,7 +8,7 @@ import { describeError } from '@/lib/errors';
 import { useI18n } from '@/lib/i18n';
 import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
 import { useUpdateProfile } from '@/lib/queries/profile';
-import { useLocationOptions } from '@/lib/queries/reference';
+import { useCreateDistrict, useLocationOptions } from '@/lib/queries/reference';
 import { useTheme } from '@/theme';
 
 // Google and Telegram sign-in both populate user_metadata.full_name (see
@@ -36,10 +36,11 @@ export default function OnboardingScreen() {
   const { user, profile } = useAuth();
   const locations = useLocationOptions();
   const updateProfile = useUpdateProfile();
+  const createDistrict = useCreateDistrict();
 
   const [name, setName] = useState(profile?.display_name ?? '');
   const [regionId, setRegionId] = useState<string | null>(profile?.region_id ?? null);
-  const [districtId, setDistrictId] = useState<string | null>(profile?.district_id ?? null);
+  const [districtName, setDistrictName] = useState('');
   const [telegram, setTelegram] = useState(profile?.telegram_username ?? '');
   const [showTelegram, setShowTelegram] = useState(profile?.show_telegram ?? true);
   const [phone, setPhone] = useState(profile?.phone ?? '');
@@ -48,7 +49,18 @@ export default function OnboardingScreen() {
   const [skipping, setSkipping] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
-  const districts = locations.districtsFor(regionId);
+  // locations (a separate, independently-cached query) may still be loading
+  // the first time this screen mounts — right after sign-up, nothing else
+  // has necessarily fetched it yet — so the existing district's name can't
+  // just be read once into useState's initializer the way the id used to
+  // be. Runs once, as soon as locations data is actually available; the ref
+  // stops it from ever overwriting whatever the user has since typed.
+  const districtInitialized = useRef(false);
+  useEffect(() => {
+    if (districtInitialized.current || locations.isPending) return;
+    districtInitialized.current = true;
+    setDistrictName(locations.nameOf(profile?.district_id ?? null));
+  }, [locations, profile?.district_id]);
 
   async function skip() {
     setSkipping(true);
@@ -74,6 +86,11 @@ export default function OnboardingScreen() {
     setError(null);
 
     try {
+      const districtId =
+        regionId && districtName.trim()
+          ? await createDistrict.mutateAsync({ name: districtName.trim(), regionId })
+          : null;
+
       await updateProfile.mutateAsync({
         display_name: name.trim(),
         region_id: regionId,
@@ -115,21 +132,19 @@ export default function OnboardingScreen() {
             onChange={(value) => {
               setRegionId(value);
               // The old district belongs to the old region.
-              setDistrictId(null);
+              setDistrictName('');
             }}
             clearable
             clearLabel={t('common.none')}
           />
 
-          <Select
+          <TextField
             label={t('onboarding.district')}
-            placeholder={t('onboarding.selectDistrict')}
-            value={districtId}
-            options={districts}
-            onChange={setDistrictId}
-            disabled={!regionId || districts.length === 0}
-            clearable
-            clearLabel={t('common.none')}
+            placeholder={t('onboarding.districtPlaceholder')}
+            value={districtName}
+            onChangeText={setDistrictName}
+            editable={!!regionId}
+            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
           />
 
           <TextField
@@ -180,7 +195,7 @@ export default function OnboardingScreen() {
           <Button
             title={t('onboarding.finish')}
             fullWidth
-            loading={updateProfile.isPending && !skipping}
+            loading={(updateProfile.isPending || createDistrict.isPending) && !skipping}
             disabled={skipping}
             onPress={finish}
           />
@@ -190,7 +205,7 @@ export default function OnboardingScreen() {
             variant="ghost"
             fullWidth
             loading={skipping}
-            disabled={updateProfile.isPending && !skipping}
+            disabled={(updateProfile.isPending || createDistrict.isPending) && !skipping}
             onPress={skip}
           />
         </View>

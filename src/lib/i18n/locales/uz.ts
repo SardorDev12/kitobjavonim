@@ -82,7 +82,7 @@ export const uz: LocaleCatalogue = {
   'onboarding.region': 'Viloyat',
   'onboarding.district': 'Tuman',
   'onboarding.selectRegion': 'Viloyatni tanlang',
-  'onboarding.selectDistrict': 'Tumanni tanlang',
+  'onboarding.districtPlaceholder': 'masalan, Chilonzor',
   'onboarding.telegram': 'Telegram foydalanuvchi nomi',
   'onboarding.telegramHint': '@ belgisisiz — koʻpchilik siz bilan shu orqali bogʻlanadi.',
   'onboarding.showTelegram': 'Telegramimni qiziqqanlarga koʻrsatish',

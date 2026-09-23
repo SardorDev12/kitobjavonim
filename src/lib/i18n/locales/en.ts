@@ -79,7 +79,7 @@ export const en = {
   'onboarding.region': 'Region',
   'onboarding.district': 'District',
   'onboarding.selectRegion': 'Select a region',
-  'onboarding.selectDistrict': 'Select a district',
+  'onboarding.districtPlaceholder': 'e.g. Chilonzor',
   'onboarding.telegram': 'Telegram username',
   'onboarding.telegramHint': 'Without the @ — this is how most people will reach you.',
   'onboarding.showTelegram': 'Show my Telegram to interested buyers',

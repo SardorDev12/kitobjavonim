@@ -78,7 +78,7 @@ export const ru: LocaleCatalogue = {
   'onboarding.region': 'Область',
   'onboarding.district': 'Район',
   'onboarding.selectRegion': 'Выберите область',
-  'onboarding.selectDistrict': 'Выберите район',
+  'onboarding.districtPlaceholder': 'например, Чиланзар',
   'onboarding.telegram': 'Имя пользователя в Telegram',
   'onboarding.telegramHint': 'Без @ — так с вами свяжется большинство.',
   'onboarding.showTelegram': 'Показывать мой Telegram заинтересованным',
