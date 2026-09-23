@@ -9,6 +9,18 @@
 # class, so disallowing inline styles would break the entire app's
 # rendering, not just tighten security.
 #
+# The lone sha256 hash in script-src is the Telegram Login Widget's own
+# doing: telegram-login.tsx only ever injects a <script src=...> pointing
+# at telegram.org (already covered by the host allowance), but the widget
+# script that loads from there then injects one small literal inline
+# <script> of its own to finish rendering the button/iframe. There's no
+# way to add 'unsafe-inline' just for Telegram's script without opening it
+# up for everyone else's too, so this pins the one exact script Telegram's
+# widget is known to inject, by content hash, instead — the browser's own
+# CSP violation error reports the required hash directly when it changes
+# (Telegram has shipped the same one for a long time, but a future widget
+# version could rotate it).
+#
 # img-src allows any https: origin rather than naming hosts one by one —
 # book covers come from Google Books, Open Library, and user uploads to
 # Supabase storage, and Google/Open Library's own cover CDNs are not fixed,
@@ -18,4 +30,4 @@
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: geolocation=(), microphone=(), payment=(), usb=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://telegram.org; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://www.googleapis.com https://openlibrary.org https://covers.openlibrary.org; frame-src https://telegram.org https://oauth.telegram.org; base-uri 'self'; form-action 'self'; object-src 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://telegram.org 'sha256-67fhrP0+BkBqmgGGXTtgiVO/9EQs3QruYNU/7fnRkI8='; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co https://www.googleapis.com https://openlibrary.org https://covers.openlibrary.org; frame-src https://telegram.org https://oauth.telegram.org; base-uri 'self'; form-action 'self'; object-src 'none'
