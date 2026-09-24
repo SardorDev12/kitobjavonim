@@ -39,6 +39,20 @@ const queryClient = new QueryClient({
   },
 });
 
+/**
+ * Bump whenever a backend change makes an already-persisted cached query
+ * meaningfully wrong, not just outdated — e.g. an RLS policy change that
+ * alters what a cached reference-data query should return. Persistence
+ * survives app restarts independent of staleTime, so a device that fetched
+ * `reference.categories` before 0026_private_custom_categories.sql shipped
+ * (RLS: custom genres became private to their creator) kept serving the
+ * old, fully-public list for up to REFERENCE_STALE_TIME (24h) after the
+ * migration ran in production — a real bug report from exactly that gap.
+ * Changing this string discards every device's persisted cache on next
+ * launch instead of waiting for it to age out on its own.
+ */
+const CACHE_BUSTER = '2';
+
 const persister = createAsyncStoragePersister({
   storage: AsyncStorage,
   key: 'home-library.query-cache',
@@ -93,14 +107,14 @@ export default function RootLayout() {
                 persistOptions={{
                   persister,
                   maxAge: 1000 * 60 * 60 * 24 * 7,
+                  buster: CACHE_BUSTER,
                   dehydrateOptions: {
                     shouldDehydrateQuery: (query) => {
                       // Listings belong to other people and go stale quickly; only
                       // the user's own library and the reference tables are worth
                       // keeping on disk for offline reading.
                       const root = query.queryKey[0];
-                      const isOfflineWorthy =
-                        root === 'library' || root === 'bookshelves' || root === 'wishlist' || root === 'reference';
+                      const isOfflineWorthy = root === 'library' || root === 'wishlist' || root === 'reference';
 
                       // The status check is not optional. React Query will happily
                       // dehydrate a query that is still pending, and its in-flight
