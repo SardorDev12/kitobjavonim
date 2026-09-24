@@ -132,7 +132,21 @@ export default function AddScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={[
           results.length === 0 && styles.fill,
-          { paddingTop: theme.spacing.md, paddingBottom: theme.spacing['2xl'] + keyboardHeight },
+          {
+            paddingTop: theme.spacing.md,
+            // The empty state (icon/title/body/button) vertically centers
+            // itself within this flexGrow:1 box (EmptyState's own
+            // flex:1 + justifyContent:'center'), so this padding directly
+            // sets how tall a box it's centering within. The extra 2xl on
+            // top of keyboardHeight is deliberate breathing room for a
+            // *populated* list's last row, not for centering math — added
+            // there too, it shrinks the empty state's box by that much
+            // more than the keyboard actually requires, biasing the icon
+            // upward and leaving dead space above the keyboard that has
+            // nothing to do with the keyboard itself. Only the real
+            // keyboard height should count when there's nothing to list.
+            paddingBottom: (results.length === 0 ? 0 : theme.spacing['2xl']) + keyboardHeight,
+          },
         ]}
         renderItem={({ item }) => <CandidateRow candidate={item} onPress={() => choose(item)} />}
         ListFooterComponent={
