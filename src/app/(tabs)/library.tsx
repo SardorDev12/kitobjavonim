@@ -19,7 +19,7 @@ import { selectLibrary, useLibrary, type LibraryFilter, type LibrarySort } from 
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useLayout, useTheme } from '@/theme';
 
-const SORTS: LibrarySort[] = ['recent', 'title', 'author', 'finished', 'shelf'];
+const SORTS: LibrarySort[] = ['recent', 'title', 'author', 'finished'];
 type ViewMode = 'list' | 'gallery';
 
 // 'all' is pinned outside the draggable row (see the header below) — these

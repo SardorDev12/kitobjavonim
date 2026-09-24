@@ -1,9 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { AddShelfSheet } from '@/components/AddShelfSheet';
 import { BookCover } from '@/components/BookCover';
 import { CategoryPicker } from '@/components/CategoryPicker';
 import { ListingSheet } from '@/components/ListingSheet';
@@ -30,12 +29,11 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { goToTab } from '@/features/tabs/activeTab';
 import { hasContactMethod } from '@/lib/contactMethod';
 import { describeError } from '@/lib/errors';
-import { formatAuthors, formatDate, formatPosition, formatPrice, normalizeIsbn, parseAuthors } from '@/lib/format';
+import { formatAuthors, formatDate, formatPrice, normalizeIsbn, parseAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
 import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
 import { useImageDropZone } from '@/lib/useImageDropZone';
-import { usePositionOptions } from '@/lib/queries/bookshelves';
 import { useBookCategories, useSetBookCategories } from '@/lib/queries/categories';
 import { useHousehold } from '@/lib/queries/household';
 import {
@@ -57,7 +55,6 @@ export default function BookDetailScreen() {
   const { user, profile } = useAuth();
 
   const { data: entry, isPending, isError, refetch, isRefetching } = useLibraryEntry(id);
-  const positions = usePositionOptions();
   const { data: household } = useHousehold();
   const updateBook = useUpdateUserBook();
   const updateProgress = useUpdateReadingProgress();
@@ -71,7 +68,18 @@ export default function BookDetailScreen() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [listingOpen, setListingOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [addShelfOpen, setAddShelfOpen] = useState(false);
+
+  // Free-text "where is this book" note — same reasoning as districtName in
+  // onboarding.tsx/profile.tsx: entry loads async, so a plain useState
+  // initializer would run before it resolves. Initialized once, then it's
+  // this field's own local draft until it's blurred.
+  const [shelfNote, setShelfNote] = useState('');
+  const shelfNoteInitialized = useRef(false);
+  useEffect(() => {
+    if (shelfNoteInitialized.current || !entry) return;
+    shelfNoteInitialized.current = true;
+    setShelfNote(entry.shelf_note ?? '');
+  }, [entry]);
 
   // A page loaded directly (a deep link, or a browser refresh — both routine
   // on web) has no in-app navigation history to pop, so router.back() alone
@@ -117,7 +125,6 @@ export default function BookDetailScreen() {
     );
   }
 
-  const position = formatPosition(entry, t, { includeBookshelf: true });
   const isListed = entry.availability_type !== 'private';
 
   function patch(changes: Parameters<typeof updateBook.mutate>[0]['patch']) {
@@ -285,44 +292,17 @@ export default function BookDetailScreen() {
 
         {/* Location --------------------------------------------------------- */}
         <View style={{ gap: theme.spacing.sm }}>
-          <Text variant="label" color="textMuted">
-            {t('book.location')}
-          </Text>
-
-          {positions.length > 0 ? (
-            <Select
-              placeholder={t('book.noLocation')}
-              value={entry.bookshelf_position_id}
-              options={positions}
-              onChange={(value) => patch({ bookshelf_position_id: value })}
-              clearable
-              clearLabel={t('book.noLocation')}
-              onAddNew={() => setAddShelfOpen(true)}
-              addNewLabel={t('shelves.addShelf')}
-            />
-          ) : (
-            <Card>
-              <Text variant="body" color="textMuted">
-                {t('shelves.emptyBody')}
-              </Text>
-              <Button
-                title={t('shelves.addShelf')}
-                variant="secondary"
-                size="sm"
-                style={{ marginTop: theme.spacing.md }}
-                onPress={() => setAddShelfOpen(true)}
-              />
-            </Card>
-          )}
-
-          {position ? (
-            <View style={styles.locationRow}>
-              <Ionicons name="location" size={14} color={theme.colors.primary} />
-              <Text variant="caption" color="textMuted">
-                {position}
-              </Text>
-            </View>
-          ) : null}
+          <TextField
+            label={t('book.location')}
+            placeholder={t('book.locationPlaceholder')}
+            value={shelfNote}
+            onChangeText={setShelfNote}
+            onBlur={() => {
+              const trimmed = shelfNote.trim();
+              if (trimmed !== (entry.shelf_note ?? '')) patch({ shelf_note: trimmed || null });
+            }}
+            maxLength={200}
+          />
         </View>
 
         {/* Household sharing -------------------------------------------------
@@ -471,11 +451,6 @@ export default function BookDetailScreen() {
         }
       />
 
-      <AddShelfSheet
-        visible={addShelfOpen}
-        onClose={() => setAddShelfOpen(false)}
-        onCreated={(positionId) => patch({ bookshelf_position_id: positionId })}
-      />
       </Screen>
 
       <Sheet visible={menuOpen} onClose={() => setMenuOpen(false)}>
@@ -829,7 +804,6 @@ const styles = StyleSheet.create({
   hero: { flexDirection: 'row', alignItems: 'flex-start', paddingTop: 8 },
   heroText: { flex: 1, gap: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
   metaValue: { flex: 1, textAlign: 'right' },
   editCoverRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },

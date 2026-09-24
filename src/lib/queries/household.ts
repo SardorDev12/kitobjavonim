@@ -77,11 +77,10 @@ function invalidateHousehold(queryClient: ReturnType<typeof useQueryClient>, use
   queryClient.invalidateQueries({ queryKey: queryKeys.household.mine(userId ?? '') });
 }
 
-// Membership changing also changes what's visible on the shelves — a join
-// reveals the household's shared library immediately, a leave hides it.
+// Membership changing also changes what's visible in the shared library — a
+// join reveals the household's shared books immediately, a leave hides it.
 function invalidateSharedLibrary(queryClient: ReturnType<typeof useQueryClient>) {
   queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
-  queryClient.invalidateQueries({ queryKey: queryKeys.bookshelves.all });
 }
 
 export function useCreateHousehold() {

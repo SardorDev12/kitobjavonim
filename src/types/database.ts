@@ -99,26 +99,6 @@ export type Book = {
 /** What the app sends when creating a canonical book record. */
 export type BookInsert = Omit<Book, 'id' | 'created_at' | 'updated_at'> & { id?: string };
 
-export type Bookshelf = {
-  id: string;
-  user_id: string;
-  name: string;
-  sort_order: number;
-  created_at: string;
-  /** Set when shared with a household — every member can then see and edit it. */
-  household_id: string | null;
-};
-
-export type BookshelfPosition = {
-  id: string;
-  user_id: string;
-  bookshelf_id: string;
-  shelf_number: number;
-  row_number: number;
-  label: string | null;
-  created_at: string;
-};
-
 /**
  * A physical copy — ownership, shelf placement, and listing fields only.
  * Reading status/progress/rating/review/notes live on `ReadingProgress`
@@ -130,7 +110,8 @@ export type UserBook = {
   id: string;
   user_id: string;
   book_id: string;
-  bookshelf_position_id: string | null;
+  /** Free-text note on where the physical copy is — "top shelf, living room", anything the user writes. */
+  shelf_note: string | null;
   condition: BookCondition | null;
   date_added: string;
   availability_type: AvailabilityType;
@@ -187,7 +168,8 @@ export type LibraryEntry = {
   sale_currency: string;
   price_negotiable: boolean;
   sale_description: string | null;
-  bookshelf_position_id: string | null;
+  /** Free-text note on where the physical copy is — "top shelf, living room", anything the user writes. */
+  shelf_note: string | null;
   updated_at: string;
   /** Fallback total page count for this copy, used when page_count below is unknown. */
   total_pages: number | null;
@@ -202,13 +184,6 @@ export type LibraryEntry = {
   language: string | null;
   page_count: number | null;
   description: string | null;
-
-  bookshelf_id: string | null;
-  bookshelf_name: string | null;
-  bookshelf_sort_order: number | null;
-  shelf_number: number | null;
-  row_number: number | null;
-  position_label: string | null;
 
   /** Whether the signed-in user may edit this book's shared metadata — set only when they created it. */
   book_created_by: string | null;

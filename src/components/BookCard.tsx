@@ -3,7 +3,7 @@ import { memo, useCallback } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import { useAuth } from '@/features/auth/AuthProvider';
-import { formatAuthors, formatPosition } from '@/lib/format';
+import { formatAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { useTheme } from '@/theme';
 import type { LibraryEntry } from '@/types/database';
@@ -39,7 +39,6 @@ export const BookCard = memo(function BookCard({
   const { t } = useI18n();
   const { user } = useAuth();
 
-  const position = formatPosition(entry, t, { includeBookshelf: true });
   const isListed = entry.availability_type !== 'private';
   const addedByOther = entry.user_id !== user?.id ? entry.added_by_name : null;
   const handlePress = useCallback(() => onPress(entry.id), [onPress, entry.id]);
@@ -88,11 +87,11 @@ export const BookCard = memo(function BookCard({
           ) : null}
         </View>
 
-        {position ? (
+        {entry.shelf_note ? (
           <View style={styles.location}>
             <Ionicons name="location-outline" size={13} color={theme.colors.textSubtle} />
             <Text variant="caption" color="textSubtle" numberOfLines={1} style={styles.locationText}>
-              {position}
+              {entry.shelf_note}
             </Text>
           </View>
         ) : null}

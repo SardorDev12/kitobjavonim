@@ -9,10 +9,6 @@ export const queryKeys = {
     list: (userId: string) => ['library', 'list', userId] as const,
     entry: (id: string) => ['library', 'entry', id] as const,
   },
-  bookshelves: {
-    all: ['bookshelves'] as const,
-    list: (userId: string) => ['bookshelves', 'list', userId] as const,
-  },
   listings: {
     all: ['listings'] as const,
     list: (filters: unknown) => ['listings', 'list', filters] as const,

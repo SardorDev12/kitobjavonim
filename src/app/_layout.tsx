@@ -316,7 +316,6 @@ function RootNavigator() {
             edge instead of lining up with the content below it. */}
         <Stack.Screen name="add/manual" options={{ headerShown: false, title: '' }} />
         <Stack.Screen name="add/configure" options={{ headerShown: false, title: '' }} />
-        <Stack.Screen name="bookshelves/index" options={{ headerShown: false, title: '' }} />
         <Stack.Screen name="library/import" options={{ headerShown: false, title: '' }} />
         <Stack.Screen name="wishlist/index" options={{ headerShown: false, title: '' }} />
         <Stack.Screen name="wishlist/add" options={{ headerShown: false, title: '' }} />

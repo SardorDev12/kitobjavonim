@@ -96,12 +96,6 @@ export default function ProfileScreen() {
           />
           <Divider inset={theme.spacing.lg} />
           <ListRow
-            icon="albums-outline"
-            label={t('shelves.manage')}
-            onPress={() => router.push('/bookshelves')}
-          />
-          <Divider inset={theme.spacing.lg} />
-          <ListRow
             icon="cloud-upload-outline"
             label={t('import.title')}
             onPress={() => router.push('/library/import')}

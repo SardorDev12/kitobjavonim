@@ -73,42 +73,6 @@ export function formatAuthors(authors: string[] | null | undefined): string {
   return `${authors[0]} +${authors.length - 1}`;
 }
 
-/** "Living room → Shelf 1 → Row 1", or the user's own label if they set one. */
-export function formatPosition(
-  position:
-    | {
-        bookshelf_name?: string | null;
-        shelf_number?: number | null;
-        row_number?: number | null;
-        position_label?: string | null;
-      }
-    | null
-    | undefined,
-  t: (key: 'shelves.positionFormat' | 'shelves.fullPositionFormat', params?: Record<string, string | number>) => string,
-  options: { includeBookshelf?: boolean } = {}
-): string {
-  if (!position || position.shelf_number == null || position.row_number == null) return '';
-
-  if (position.position_label) {
-    return options.includeBookshelf && position.bookshelf_name
-      ? `${position.bookshelf_name} → ${position.position_label}`
-      : position.position_label;
-  }
-
-  if (options.includeBookshelf && position.bookshelf_name) {
-    return t('shelves.fullPositionFormat', {
-      bookshelf: position.bookshelf_name,
-      shelf: position.shelf_number,
-      row: position.row_number,
-    });
-  }
-
-  return t('shelves.positionFormat', {
-    shelf: position.shelf_number,
-    row: position.row_number,
-  });
-}
-
 /** ISBN-13 with the conventional hyphenation dropped, for display and lookup. */
 export function normalizeIsbn(raw: string): string {
   return raw.replace(/[^0-9Xx]/g, '').toUpperCase();

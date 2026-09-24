@@ -9,7 +9,7 @@ import type { Book, LibraryEntry, ReadingProgress, ReadingStatus, UserBook } fro
 import { queryKeys } from './keys';
 
 export type LibraryFilter = 'all' | 'want_to_read' | 'reading' | 'finished' | 'exchange' | 'sale';
-export type LibrarySort = 'recent' | 'title' | 'author' | 'finished' | 'shelf';
+export type LibrarySort = 'recent' | 'title' | 'author' | 'finished';
 
 /**
  * The whole library in one query.
@@ -132,7 +132,7 @@ export type AddBookInput = {
    * entirely so no second `books` row is created for the same title.
    */
   existingBookId?: string;
-  bookshelfPositionId?: string | null;
+  shelfNote?: string | null;
   readingStatus?: ReadingStatus;
   condition?: UserBook['condition'];
   /** Set to share this copy with the signed-in user's household (0015_households.sql). */
@@ -147,7 +147,7 @@ export function useAddBook() {
     mutationFn: async ({
       candidate,
       existingBookId,
-      bookshelfPositionId,
+      shelfNote,
       readingStatus,
       condition,
       householdId,
@@ -161,7 +161,7 @@ export function useAddBook() {
         .insert({
           user_id: user.id,
           book_id: bookId,
-          bookshelf_position_id: bookshelfPositionId ?? null,
+          shelf_note: shelfNote?.trim() || null,
           condition: condition ?? null,
           household_id: householdId ?? null,
         })
@@ -202,7 +202,7 @@ export type UpdateUserBookInput = {
     Pick<
       UserBook,
       | 'condition'
-      | 'bookshelf_position_id'
+      | 'shelf_note'
       | 'availability_type'
       | 'exchange_preferences'
       | 'sale_price'
@@ -421,25 +421,9 @@ export function selectLibrary(
         if (!a.date_finished) return 1;
         if (!b.date_finished) return -1;
         return b.date_finished.localeCompare(a.date_finished);
-      case 'shelf':
-        return compareShelfPosition(a, b, collator);
       case 'recent':
       default:
         return b.date_added.localeCompare(a.date_added);
     }
   });
-}
-
-/** Walks the shelf → row hierarchy, with unplaced books last. */
-function compareShelfPosition(a: LibraryEntry, b: LibraryEntry, collator: Intl.Collator): number {
-  if (a.bookshelf_id === null && b.bookshelf_id === null) return 0;
-  if (a.bookshelf_id === null) return 1;
-  if (b.bookshelf_id === null) return -1;
-
-  const byShelf =
-    (a.bookshelf_sort_order ?? 0) - (b.bookshelf_sort_order ?? 0) ||
-    collator.compare(a.bookshelf_name ?? '', b.bookshelf_name ?? '');
-  if (byShelf !== 0) return byShelf;
-
-  return (a.shelf_number ?? 0) - (b.shelf_number ?? 0) || (a.row_number ?? 0) - (b.row_number ?? 0);
 }

@@ -118,7 +118,6 @@ export const en = {
   'library.sort.title': 'Title',
   'library.sort.author': 'Author',
   'library.sort.finished': 'Recently finished',
-  'library.sort.shelf': 'Shelf position',
   // Plural sets declare a base key as well as the suffixed forms. The base is
   // what callers pass to `t()` and what `translate()` falls back to; the
   // suffixed entries are chosen by Intl.PluralRules and never referenced by name.
@@ -154,8 +153,7 @@ export const en = {
   'book.language': 'Language',
   'book.pages': 'Pages',
   'book.location': 'Where it lives',
-  'book.noLocation': 'Not placed on a shelf',
-  'book.setLocation': 'Place on a shelf',
+  'book.locationPlaceholder': 'e.g. top shelf, living room',
   'book.addedOn': 'Added {{date}}',
   'book.finishedOn': 'Finished {{date}}',
   'book.startedOn': 'Started {{date}}',
@@ -256,30 +254,6 @@ export const en = {
   'manual.scanFailed': 'Scan failed — fill in manually.',
 
   'manual.titleRequired': 'A title is required',
-
-  'shelves.title': 'Bookshelves',
-  'shelves.subtitle': 'Describe your shelves once, then place books on them in a tap.',
-  'shelves.empty': 'No bookshelves yet',
-  'shelves.emptyBody': 'Add a bookshelf — “Living room”, “Bedroom” — then give it shelves and rows.',
-  'shelves.addShelf': 'Add bookshelf',
-  'shelves.shelfName': 'Name',
-  'shelves.shelfNamePlaceholder': 'e.g. Living room',
-  'shelves.addPosition': 'Add position',
-  'shelves.shelfNumber': 'Shelf',
-  'shelves.rowNumber': 'Row',
-  'shelves.positionLabel': 'Label',
-  'shelves.positionLabelHint': 'Optional — replaces “Shelf 1 → Row 1” in lists',
-  'shelves.deleteShelf': 'Delete bookshelf',
-  'shelves.deleteShelfConfirm':
-    'Delete “{{name}}” and all its positions? Books there will simply become unplaced.',
-  'shelves.deletePositionConfirm': 'Delete this position? Books there will become unplaced.',
-  'shelves.positionInUse': '{{count}} books here',
-  'shelves.positionInUse_one': '{{count}} book here',
-  'shelves.positionInUse_other': '{{count}} books here',
-  'shelves.noPositions': 'No positions yet',
-  'shelves.manage': 'Manage bookshelves',
-  'shelves.positionFormat': 'Shelf {{shelf}} → Row {{row}}',
-  'shelves.fullPositionFormat': '{{bookshelf}} → Shelf {{shelf}} → Row {{row}}',
 
   'reading.tabLabel': 'Reading',
   'reading.title': 'Reading tracker',

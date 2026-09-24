@@ -3,7 +3,6 @@ import { useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { AddShelfSheet } from '@/components/AddShelfSheet';
 import { BookCover } from '@/components/BookCover';
 import { CategoryPicker } from '@/components/CategoryPicker';
 import {
@@ -30,7 +29,6 @@ import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
 import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
 import { useImageDropZone } from '@/lib/useImageDropZone';
-import { usePositionOptions } from '@/lib/queries/bookshelves';
 import { useSetBookCategories } from '@/lib/queries/categories';
 import { useHousehold } from '@/lib/queries/household';
 import { useAddBook, useLibrary } from '@/lib/queries/library';
@@ -60,7 +58,6 @@ export default function ConfigureScreen() {
   const router = useRouter();
 
   const candidate = usePendingBook();
-  const positions = usePositionOptions();
   const { data: library } = useLibrary();
   const { data: household } = useHousehold();
   const { data: wishlist } = useWishlist();
@@ -69,8 +66,7 @@ export default function ConfigureScreen() {
   const deleteWishlistItem = useDeleteWishlistItem();
   const addToWishlist = useAddWishlistItem();
 
-  const [positionId, setPositionId] = useState<string | null>(null);
-  const [addShelfOpen, setAddShelfOpen] = useState(false);
+  const [shelfNote, setShelfNote] = useState('');
   const [status, setStatus] = useState<ReadingStatus>('want_to_read');
   const [condition, setCondition] = useState<BookCondition | null>(null);
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
@@ -113,7 +109,7 @@ export default function ConfigureScreen() {
     try {
       const { userBookId, bookId } = await addBook.mutateAsync({
         candidate,
-        bookshelfPositionId: positionId,
+        shelfNote,
         readingStatus: status,
         condition,
         householdId: household && shareBook ? household.household.id : null,
@@ -282,37 +278,12 @@ export default function ConfigureScreen() {
 
         <CategoryPicker label={t('book.categories')} selected={categoryIds} onChange={setCategoryIds} />
 
-        {positions.length > 0 ? (
-          <Select
-            label={t('book.location')}
-            placeholder={t('book.noLocation')}
-            value={positionId}
-            options={positions}
-            onChange={setPositionId}
-            clearable
-            clearLabel={t('book.noLocation')}
-            onAddNew={() => setAddShelfOpen(true)}
-            addNewLabel={t('shelves.addShelf')}
-          />
-        ) : (
-          <Card>
-            <Text variant="bodyStrong">{t('shelves.empty')}</Text>
-            <Text variant="caption" color="textMuted" style={{ marginTop: 4, marginBottom: 12 }}>
-              {t('shelves.emptyBody')}
-            </Text>
-            <Button
-              title={t('shelves.addShelf')}
-              variant="secondary"
-              size="sm"
-              onPress={() => setAddShelfOpen(true)}
-            />
-          </Card>
-        )}
-
-        <AddShelfSheet
-          visible={addShelfOpen}
-          onClose={() => setAddShelfOpen(false)}
-          onCreated={(newPositionId) => setPositionId(newPositionId)}
+        <TextField
+          label={t('book.location')}
+          placeholder={t('book.locationPlaceholder')}
+          value={shelfNote}
+          onChangeText={setShelfNote}
+          maxLength={200}
         />
 
         {household ? (
