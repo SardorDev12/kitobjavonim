@@ -368,6 +368,63 @@ export function useDeleteUserBook() {
 }
 
 /**
+ * Deletes several copies from Library's multiselect, in one round trip per
+ * step rather than one per book — same reasoning as import.tsx's CHUNK_SIZE
+ * comment, just at a scale (a manual on-screen selection) too small to need
+ * chunking. Mirrors useDeleteUserBook()'s own photo-cleanup: cascade only
+ * ever removes the database rows, never the actual files in storage.
+ */
+export function useBulkDeleteUserBooks() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (ids: string[]) => {
+      const { data: photos } = await supabase
+        .from('user_book_photos')
+        .select('storage_path')
+        .in('user_book_id', ids);
+
+      const { error } = await supabase.from('user_books').delete().in('id', ids);
+      if (error) throw error;
+
+      if (photos && photos.length > 0) {
+        await supabase.storage.from('book-photos').remove(photos.map((p) => p.storage_path));
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
+      if (user) queryClient.invalidateQueries({ queryKey: queryKeys.profile.stats(user.id) });
+    },
+  });
+}
+
+/**
+ * Shares several copies with the signed-in user's household at once, from
+ * Library's multiselect. Only ever called with ids the caller already
+ * filtered to their own (see library.tsx) — RLS would reject anyone else's
+ * anyway (0015_households.sql: only a copy's own creator may set its
+ * household_id at all), this just avoids sending requests known to fail.
+ */
+export function useBulkShareWithHousehold() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ ids, householdId }: { ids: string[]; householdId: string }) => {
+      const { error } = await supabase.from('user_books').update({ household_id: householdId }).in('id', ids);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
+      if (user) queryClient.invalidateQueries({ queryKey: queryKeys.profile.stats(user.id) });
+    },
+  });
+}
+
+/**
  * Applies the current filter and sort to a loaded library.
  *
  * Kept as a plain function rather than a hook so the same rules can be reused by

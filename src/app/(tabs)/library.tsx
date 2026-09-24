@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { Alert, FlatList, Platform, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -10,12 +10,21 @@ import { BookCard } from '@/components/BookCard';
 import { BookGridCard } from '@/components/BookGridCard';
 import { GALLERY_TILE_WIDTH } from '@/components/BookCover';
 import { PullToRefreshIndicator } from '@/components/PullToRefreshIndicator';
-import { Chip, EmptyState, LoadingState, Sheet, Text, TextField } from '@/components/ui';
+import { Button, Chip, EmptyState, LoadingState, Sheet, Text, TextField } from '@/components/ui';
+import { useAuth } from '@/features/auth/AuthProvider';
 import { setPendingAddQuery } from '@/features/add/pendingAddQuery';
 import { goToTab } from '@/features/tabs/activeTab';
 import { useI18n } from '@/lib/i18n';
 import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
-import { selectLibrary, useLibrary, type LibraryFilter, type LibrarySort } from '@/lib/queries/library';
+import { useHousehold } from '@/lib/queries/household';
+import {
+  selectLibrary,
+  useBulkDeleteUserBooks,
+  useBulkShareWithHousehold,
+  useLibrary,
+  type LibraryFilter,
+  type LibrarySort,
+} from '@/lib/queries/library';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useLayout, useTheme } from '@/theme';
 
@@ -49,17 +58,16 @@ export default function LibraryScreen() {
   const insets = useSafeAreaInsets();
 
   const { data, isPending, isError, refetch, isRefetching } = useLibrary();
+  const { user } = useAuth();
+  const { data: household } = useHousehold();
   const { pullDistance, handlers: pullHandlers } = usePullToRefresh(refetch, isRefetching);
+  const bulkDelete = useBulkDeleteUserBooks();
+  const bulkShare = useBulkShareWithHousehold();
   // The "not found, add it" empty state's button is the whole point of
   // searching here with nothing in your library yet — without this, the
   // keyboard that's necessarily still open (it's what you just searched
   // with) covers it, same problem add.tsx's catalog search has and fixes.
   const keyboardHeight = useKeyboardHeight();
-
-  // Stable across renders so memo on BookCard/BookGridCard has something to
-  // compare — see their own comments for why that matters in a virtualized
-  // list.
-  const openBook = useCallback((id: string) => router.push(`/book/${id}`), [router]);
 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<LibraryFilter>('all');
@@ -67,6 +75,54 @@ export default function LibraryScreen() {
   const [sortOpen, setSortOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [filterOrder, setFilterOrder] = useState<LibraryFilter[]>(REORDERABLE_FILTERS);
+
+  // Multiselect — entered via the header button or a long-press on any card.
+  // selectedIds stays scoped to whatever's currently visible; leaving the
+  // set holding an id that scrolls out of the filtered list is harmless
+  // (still a valid book, still gets acted on), so filter/search changes
+  // don't need to prune it.
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Stable across renders so memo on BookCard/BookGridCard has something to
+  // compare — see their own comments for why that matters in a virtualized
+  // list. handleCardPress/handleCardLongPress intentionally depend on
+  // selectMode (their identity changing on that one transition re-renders
+  // every row to swap in/out the checkbox anyway) but not on selectedIds —
+  // toggleSelected below reads/writes it through the setState updater form,
+  // so selecting one row never invalidates every other row's memo.
+  const openBook = useCallback((id: string) => router.push(`/book/${id}`), [router]);
+
+  const toggleSelected = useCallback((id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const enterSelectMode = useCallback((id: string) => {
+    setSelectMode(true);
+    setSelectedIds(new Set([id]));
+  }, []);
+
+  const exitSelectMode = useCallback(() => {
+    setSelectMode(false);
+    setSelectedIds(new Set());
+  }, []);
+
+  const handleCardPress = useCallback(
+    (id: string) => (selectMode ? toggleSelected(id) : openBook(id)),
+    [selectMode, toggleSelected, openBook]
+  );
+
+  const handleCardLongPress = useCallback(
+    (id: string) => {
+      if (!selectMode) enterSelectMode(id);
+    },
+    [selectMode, enterSelectMode]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -121,6 +177,48 @@ export default function LibraryScreen() {
   const isFiltered = filter !== 'all' || search.trim().length > 0;
   const total = data?.length ?? 0;
 
+  function selectAllVisible() {
+    setSelectedIds(new Set(entries.map((entry) => entry.id)));
+  }
+
+  // Sharing is only ever the copy's own creator's call to make (0015's RLS
+  // — book/[id].tsx's own household-share toggle is disabled the same way
+  // for the same reason), so a household member's shared-with-you book in
+  // the selection is silently left out of the share action rather than
+  // sent as a request RLS would just reject.
+  const selectedOwnedIds = useMemo(
+    () => entries.filter((entry) => selectedIds.has(entry.id) && entry.user_id === user?.id).map((entry) => entry.id),
+    [entries, selectedIds, user?.id]
+  );
+
+  function handleBulkShare() {
+    if (!household || selectedOwnedIds.length === 0) return;
+    bulkShare.mutate(
+      { ids: selectedOwnedIds, householdId: household.household.id },
+      { onSuccess: exitSelectMode }
+    );
+  }
+
+  function confirmBulkDelete() {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+
+    const message = t('library.deleteSelectedConfirm', { count: ids.length });
+    const remove = () => bulkDelete.mutate(ids, { onSuccess: exitSelectMode });
+
+    // React Native's Alert is a no-op on web, same reasoning as
+    // book/[id].tsx's own confirmDelete().
+    if (Platform.OS === 'web') {
+      if (globalThis.confirm(`${message}\n\n${t('common.confirmDelete')}`)) remove();
+      return;
+    }
+
+    Alert.alert(t('library.deleteSelected'), `${message}\n\n${t('common.confirmDelete')}`, [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: remove },
+    ]);
+  }
+
   if (isPending) {
     return (
       <View style={[styles.fill, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
@@ -147,56 +245,95 @@ export default function LibraryScreen() {
     <View style={[styles.fill, styles.center, { backgroundColor: theme.colors.background, paddingTop: insets.top }]}>
     <View style={[styles.fill, { width: '100%', maxWidth: maxContentWidth }]}>
       <View style={[styles.header, { paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.md }]}>
-        <View style={styles.titleRow}>
-          <View style={styles.titleText}>
-            <Text variant="display">{t('library.title')}</Text>
-            <Text variant="caption" color="textMuted">
-              {t('library.bookCount', { count: total })}
-            </Text>
-          </View>
+        {selectMode ? (
+          <View style={styles.titleRow}>
+            <View style={styles.titleText}>
+              <Text variant="display">{t('library.selectedCount', { count: selectedIds.size })}</Text>
+              <Pressable onPress={selectAllVisible} hitSlop={8}>
+                <Text variant="label" color="primary">
+                  {t('library.selectAll')}
+                </Text>
+              </Pressable>
+            </View>
 
-          <View style={styles.headerActions}>
-            <Pressable
-              onPress={() => setViewMode(viewMode === 'list' ? 'gallery' : 'list')}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={viewMode === 'list' ? t('library.viewGallery') : t('library.viewList')}
-              style={({ pressed }) => [
-                styles.iconButton,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.border,
-                  borderRadius: theme.radius.md,
-                  opacity: pressed ? 0.7 : 1,
-                },
-              ]}
-            >
-              <Ionicons
-                name={viewMode === 'list' ? 'grid-outline' : 'list-outline'}
-                size={18}
-                color={theme.colors.textMuted}
-              />
-            </Pressable>
-
-            <Pressable
-              onPress={() => setSortOpen(true)}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={`${t('common.sort')}: ${t(`library.sort.${sort}`)}`}
-              style={({ pressed }) => [
-                styles.iconButton,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.border,
-                  borderRadius: theme.radius.md,
-                  opacity: pressed ? 0.7 : 1,
-                },
-              ]}
-            >
-              <Ionicons name="swap-vertical" size={18} color={theme.colors.textMuted} />
+            <Pressable onPress={exitSelectMode} hitSlop={8} accessibilityRole="button">
+              <Text variant="label" color="textMuted">
+                {t('common.cancel')}
+              </Text>
             </Pressable>
           </View>
-        </View>
+        ) : (
+          <View style={styles.titleRow}>
+            <View style={styles.titleText}>
+              <Text variant="display">{t('library.title')}</Text>
+              <Text variant="caption" color="textMuted">
+                {t('library.bookCount', { count: total })}
+              </Text>
+            </View>
+
+            <View style={styles.headerActions}>
+              <Pressable
+                onPress={() => setViewMode(viewMode === 'list' ? 'gallery' : 'list')}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={viewMode === 'list' ? t('library.viewGallery') : t('library.viewList')}
+                style={({ pressed }) => [
+                  styles.iconButton,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                    borderRadius: theme.radius.md,
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name={viewMode === 'list' ? 'grid-outline' : 'list-outline'}
+                  size={18}
+                  color={theme.colors.textMuted}
+                />
+              </Pressable>
+
+              <Pressable
+                onPress={() => setSortOpen(true)}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={`${t('common.sort')}: ${t(`library.sort.${sort}`)}`}
+                style={({ pressed }) => [
+                  styles.iconButton,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: theme.colors.border,
+                    borderRadius: theme.radius.md,
+                    opacity: pressed ? 0.7 : 1,
+                  },
+                ]}
+              >
+                <Ionicons name="swap-vertical" size={18} color={theme.colors.textMuted} />
+              </Pressable>
+
+              {total > 0 ? (
+                <Pressable
+                  onPress={() => setSelectMode(true)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('library.select')}
+                  style={({ pressed }) => [
+                    styles.iconButton,
+                    {
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.border,
+                      borderRadius: theme.radius.md,
+                      opacity: pressed ? 0.7 : 1,
+                    },
+                  ]}
+                >
+                  <Ionicons name="checkmark-circle-outline" size={18} color={theme.colors.textMuted} />
+                </Pressable>
+              ) : null}
+            </View>
+          </View>
+        )}
 
         <TextField
           placeholder={t('library.searchPlaceholder')}
@@ -259,16 +396,33 @@ export default function LibraryScreen() {
         renderItem={({ item }) =>
           viewMode === 'gallery' ? (
             galleryColumns > 0 ? (
-              <BookGridCard entry={item} width={GALLERY_TILE_WIDTH} onPress={openBook} />
+              <BookGridCard
+                entry={item}
+                width={GALLERY_TILE_WIDTH}
+                onPress={handleCardPress}
+                onLongPress={handleCardLongPress}
+                selectable={selectMode}
+                selected={selectedIds.has(item.id)}
+              />
             ) : null
           ) : (
-            <BookCard entry={item} onPress={openBook} />
+            <BookCard
+              entry={item}
+              onPress={handleCardPress}
+              onLongPress={handleCardLongPress}
+              selectable={selectMode}
+              selected={selectedIds.has(item.id)}
+            />
           )
         }
         contentContainerStyle={[
           entries.length === 0 && styles.fill,
           viewMode === 'gallery' && { paddingHorizontal: horizontalPadding },
-          { paddingBottom: theme.spacing['2xl'] + keyboardHeight, gap: viewMode === 'gallery' ? theme.spacing.xl : 0 },
+          {
+            paddingBottom:
+              theme.spacing['2xl'] + keyboardHeight + (selectMode && selectedIds.size > 0 ? 72 : 0),
+            gap: viewMode === 'gallery' ? theme.spacing.xl : 0,
+          },
         ]}
         scrollEventThrottle={16}
         {...pullHandlers}
@@ -318,6 +472,47 @@ export default function LibraryScreen() {
       </View>
     </View>
 
+      {selectMode && selectedIds.size > 0 ? (
+        <View
+          style={[
+            styles.selectionBarOuter,
+            {
+              backgroundColor: theme.colors.surface,
+              borderTopColor: theme.colors.border,
+              paddingTop: theme.spacing.sm,
+              paddingBottom: theme.spacing.sm + insets.bottom,
+            },
+          ]}
+        >
+          <View
+            style={[
+              styles.selectionBar,
+              { width: '100%', maxWidth: maxContentWidth, paddingHorizontal: theme.spacing.lg, gap: theme.spacing.sm },
+            ]}
+          >
+            {household ? (
+              <Button
+                title={t('library.shareWithFamily')}
+                variant="secondary"
+                icon="people-outline"
+                disabled={selectedOwnedIds.length === 0}
+                loading={bulkShare.isPending}
+                onPress={handleBulkShare}
+                style={styles.selectionBarButton}
+              />
+            ) : null}
+            <Button
+              title={t('library.deleteSelected')}
+              variant="danger"
+              icon="trash-outline"
+              loading={bulkDelete.isPending}
+              onPress={confirmBulkDelete}
+              style={styles.selectionBarButton}
+            />
+          </View>
+        </View>
+      ) : null}
+
       <Sheet visible={sortOpen} onClose={() => setSortOpen(false)} title={t('common.sort')}>
         {SORTS.map((option) => (
           <Pressable
@@ -363,4 +558,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   sortOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  selectionBarOuter: { alignItems: 'center', borderTopWidth: 1 },
+  selectionBar: { flexDirection: 'row' },
+  selectionBarButton: { flex: 1 },
 });

@@ -26,14 +26,24 @@ const STATUS_TONE = {
  * onPress takes the entry id and the component is memoized — same reasoning
  * as ListingCard/ListingRow: a virtualized list with a pre-bound
  * `() => router.push(...)` recreated per row per render gives memo nothing
- * stable to compare, so it does nothing.
+ * stable to compare, so it does nothing. `onLongPress`/`selected` follow the
+ * same rule — library.tsx keeps them referentially stable (useCallback) and
+ * `selected` a plain per-row boolean, so memo still only re-renders the row
+ * that actually toggled.
  */
 export const BookCard = memo(function BookCard({
   entry,
   onPress,
+  onLongPress,
+  selectable = false,
+  selected = false,
 }: {
   entry: LibraryEntry;
   onPress: (id: string) => void;
+  onLongPress?: (id: string) => void;
+  /** True while Library's multiselect mode is active — swaps the tap target and shows the checkbox. */
+  selectable?: boolean;
+  selected?: boolean;
 }) {
   const theme = useTheme();
   const { t } = useI18n();
@@ -42,21 +52,38 @@ export const BookCard = memo(function BookCard({
   const isListed = entry.availability_type !== 'private';
   const addedByOther = entry.user_id !== user?.id ? entry.added_by_name : null;
   const handlePress = useCallback(() => onPress(entry.id), [onPress, entry.id]);
+  const handleLongPress = useCallback(() => onLongPress?.(entry.id), [onLongPress, entry.id]);
 
   return (
     <Pressable
       onPress={handlePress}
+      onLongPress={handleLongPress}
       accessibilityRole="button"
+      accessibilityState={selectable ? { selected } : undefined}
       style={({ pressed }) => [
         styles.row,
         {
           paddingVertical: theme.spacing.md,
           paddingHorizontal: theme.spacing.lg,
           gap: theme.spacing.md,
-          backgroundColor: pressed ? theme.colors.surfaceSunken : 'transparent',
+          backgroundColor: selected
+            ? theme.colors.primarySoft
+            : pressed
+              ? theme.colors.surfaceSunken
+              : 'transparent',
         },
       ]}
     >
+      {selectable ? (
+        <View style={styles.checkboxWrap}>
+          <Ionicons
+            name={selected ? 'checkmark-circle' : 'ellipse-outline'}
+            size={22}
+            color={selected ? theme.colors.primary : theme.colors.textSubtle}
+          />
+        </View>
+      ) : null}
+
       <BookCover uri={entry.cover_url} title={entry.title} width={56} />
 
       <View style={styles.body}>
@@ -111,6 +138,7 @@ export const BookCard = memo(function BookCard({
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'flex-start' },
+  checkboxWrap: { paddingTop: 2 },
   // flex: 1 alone let the title/author column stretch to the full row width —
   // fine on a phone, but on a wide desktop window a two-word title ends up
   // alone on a line 800px wide. Capping it keeps text at a reading measure
