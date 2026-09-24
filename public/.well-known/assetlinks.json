@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "uz.homelibrary.app",
+      "sha256_cert_fingerprints": [
+        "FB:60:E7:10:B2:59:62:08:86:F6:66:FE:A2:7B:26:D4:8E:F4:F6:A5:43:35:4A:02:BF:0D:E7:8C:E6:10:8D:2F"
+      ]
+    }
+  }
+]

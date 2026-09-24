@@ -37,6 +37,7 @@
 # Route since /book-shell isn't a real app route.
 /book/*      /book-shell      200
 /listing/*   /listing-shell   200
+/join/*      /join-shell      200
 
 # The custom 404 page is handled separately, via wrangler.jsonc's
 # assets.not_found_handling ("404-page") — Cloudflare's _redirects here only

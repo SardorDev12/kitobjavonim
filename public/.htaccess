@@ -8,12 +8,13 @@
 #
 # Expo Router prerenders one real HTML file per known route (discover.html,
 # sign-in.html, ...), so those work on a plain file host with no rewrite rules.
-# Two routes are dynamic, though — /book/<id> and /listing/<id> — and there is
-# no file for every possible id. Expo instead builds a single shell page per
-# pattern, literally named `[id].html`, meant to be served for ANY id and read
-# the actual value client-side from the URL. Without the rules below, a shared
-# link like /listing/<uuid> 404s on a direct load (it only works when reached
-# by clicking inside the app, since that never asks the server for a new page).
+# Three routes are dynamic, though — /book/<id>, /listing/<id>, and
+# /join/<code> — and there is no file for every possible id. Expo instead
+# builds a single shell page per pattern, literally named `[id].html` (or
+# `[code].html`), meant to be served for ANY value and read the actual one
+# client-side from the URL. Without the rules below, a shared link like
+# /listing/<uuid> 404s on a direct load (it only works when reached by
+# clicking inside the app, since that never asks the server for a new page).
 
 RewriteEngine On
 
@@ -24,9 +25,10 @@ RewriteEngine On
 RewriteCond %{HTTPS} off
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-# Dynamic routes: any id under /book/ or /listing/ gets the shell page.
+# Dynamic routes: any id/code under /book/, /listing/, or /join/ gets the shell page.
 RewriteRule ^book/[^/]+/?$ book/[id].html [L]
 RewriteRule ^listing/[^/]+/?$ listing/[id].html [L]
+RewriteRule ^join/[^/]+/?$ join/[code].html [L]
 
 # Clean URLs: serve foo.html for /foo when no literal file or directory
 # matches. Covers every static route (discover, sign-in, profile, ...).
