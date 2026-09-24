@@ -250,7 +250,17 @@ function Sidebar({ state, descriptors, navigation, insets }: TabBarProps) {
         style={{
           flexDirection: 'row',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          // 'space-between' is what puts the icon on the far left and the
+          // toggle on the far right while expanded — but with the icon
+          // faded to zero width while collapsed, that same rule pushes the
+          // now-solitary toggle to the row's right edge instead of
+          // centering it under the nav icons below. Snapping this in step
+          // with `collapsed` (not animated — a plain layout re-render, not
+          // an Animated.Value) re-centers it; flexbox itself keeps
+          // recomputing the centered position live against widthAnim's
+          // still-changing width every frame of the transition, so this
+          // reads as part of the same smooth motion, not a jump cut.
+          justifyContent: collapsed ? 'center' : 'space-between',
           marginBottom: theme.spacing.sm,
         }}
       >
