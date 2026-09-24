@@ -20,9 +20,7 @@ import { OfflineBanner } from '@/components/OfflineBanner';
 import { EmptyState, Screen } from '@/components/ui';
 import { UpdateAvailableModal } from '@/components/UpdateAvailableModal';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
-import { consumePendingInviteCode } from '@/features/household/pendingInviteCode';
 import { I18nProvider, useI18n } from '@/lib/i18n';
-import { useJoinHousehold } from '@/lib/queries/household';
 import { ThemeProvider, useTheme } from '@/theme';
 
 /**
@@ -149,7 +147,6 @@ function RootNavigator() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const [navigationReady, setNavigationReady] = useState(false);
-  const joinHousehold = useJoinHousehold();
 
   useEffect(() => {
     setNavigationReady(true);
@@ -239,12 +236,10 @@ function RootNavigator() {
     // what is on offer before committing to an account, and it is what makes
     // listing URLs worth sharing. legal/* (privacy, terms) is public too — the
     // sign-up screen links to it before there's a session, and an app store
-    // reviewer needs to reach it without one either. join/* is public for the
-    // same reason listing URLs are — a shared invite link has to open for
-    // someone with no account yet, that's the whole point of it. Everything
-    // else needs a session.
+    // reviewer needs to reach it without one either. Everything else needs a
+    // session.
     const isPublicRoute =
-      (group === '(tabs)' && path[1] === 'discover') || group === 'listing' || group === 'legal' || group === 'join';
+      (group === '(tabs)' && path[1] === 'discover') || group === 'listing' || group === 'legal';
 
     // auth/callback and auth/telegram-login run before a session exists by
     // definition — bouncing them to sign-in would abort the token exchange
@@ -272,33 +267,6 @@ function RootNavigator() {
       router.replace('/(tabs)');
     }
   }, [session, needsOnboarding, initializing, navigationReady, segments, router]);
-
-  // Finishes what join/[code].tsx started for anyone who wasn't ready to
-  // join immediately (no session yet, or onboarding still pending) — that
-  // screen persists the invite code and sends them to sign up/sign in
-  // rather than joining itself, since it won't still be mounted by the time
-  // a session actually exists (a web OAuth redirect reloads the page
-  // entirely). This fires once per session-becomes-ready transition and is
-  // a no-op whenever nothing is pending.
-  useEffect(() => {
-    if (initializing || !session || needsOnboarding) return;
-
-    let cancelled = false;
-    consumePendingInviteCode().then((code) => {
-      if (cancelled || !code) return;
-      joinHousehold.mutate(code, {
-        onSettled: () => {
-          if (!cancelled) router.replace('/settings/household');
-        },
-      });
-    });
-    return () => {
-      cancelled = true;
-    };
-    // joinHousehold's identity changes every render (a fresh useMutation
-    // object) — only session readiness should re-trigger this.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initializing, session, needsOnboarding, router]);
 
   if (initializing || !localeReady) {
     return (
@@ -351,7 +319,6 @@ function RootNavigator() {
             or a browser refresh never has. */}
         <Stack.Screen name="book/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="listing/[id]" options={{ headerShown: false }} />
-        <Stack.Screen name="join/[code]" options={{ headerShown: false, title: '' }} />
         <Stack.Screen name="legal/privacy" options={{ headerShown: false }} />
         <Stack.Screen name="legal/terms" options={{ headerShown: false }} />
         <Stack.Screen name="add/scan" options={{ presentation: 'modal', title: '' }} />

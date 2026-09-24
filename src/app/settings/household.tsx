@@ -1,5 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
-import * as Clipboard from 'expo-clipboard';
 import { useState } from 'react';
 import { Alert, Platform, Pressable, Share, StyleSheet, View } from 'react-native';
 
@@ -100,42 +98,26 @@ export default function HouseholdScreen() {
     }
   }
 
-  // Shares a link, not just the bare code: opening it signs an unauthenticated
-  // recipient up (or in) and joins them to this household directly, no manual
-  // "enter the code" step — see join/[code].tsx. Someone who already has an
-  // account can instead copy the raw code below and share that themselves.
-  async function shareInviteLink(inviteCode: string) {
-    const webOrigin = process.env.EXPO_PUBLIC_WEB_ORIGIN;
-    const url = webOrigin ? `${webOrigin}/join/${inviteCode}` : undefined;
-    const text = t('household.shareMessage', { name: info?.household.name ?? '' });
-    const message = url ? `${text}\n${url}` : `${t('household.inviteCode')}: ${inviteCode}`;
+  async function shareCode(inviteCode: string) {
+    const message = `${t('household.inviteCode')}: ${inviteCode}`;
 
     if (Platform.OS === 'web') {
       if (typeof navigator !== 'undefined' && navigator.share) {
         try {
-          await navigator.share(url ? { title: t('household.title'), text, url } : { text: message });
+          await navigator.share({ text: message });
         } catch {
           // AbortError when the user cancels the native share sheet.
         }
         return;
       }
       if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(url ?? inviteCode);
+        await navigator.clipboard.writeText(inviteCode);
         globalThis.alert(t('book.shareCopied'));
       }
       return;
     }
 
-    await Share.share(url ? { message, url } : { message });
-  }
-
-  async function copyCode(inviteCode: string) {
-    await Clipboard.setStringAsync(inviteCode);
-    if (Platform.OS === 'web') {
-      globalThis.alert(t('household.codeCopied'));
-    } else {
-      Alert.alert('', t('household.codeCopied'));
-    }
+    await Share.share({ message });
   }
 
   if (isPending) {
@@ -229,18 +211,9 @@ export default function HouseholdScreen() {
           <Text variant="label" color="textMuted">
             {t('household.inviteCode')}
           </Text>
-          <View style={[styles.codeRow, { gap: theme.spacing.sm, marginTop: 4 }]}>
-            <Text variant="title" style={{ letterSpacing: 2 }}>
-              {info.household.invite_code}
-            </Text>
-            <Pressable
-              onPress={() => copyCode(info.household.invite_code)}
-              hitSlop={8}
-              accessibilityLabel={t('household.copyCode')}
-            >
-              <Ionicons name="copy-outline" size={18} color={theme.colors.textMuted} />
-            </Pressable>
-          </View>
+          <Text variant="title" style={{ marginTop: 4, letterSpacing: 2 }}>
+            {info.household.invite_code}
+          </Text>
           <Text variant="caption" color="textMuted" style={{ marginTop: 4 }}>
             {t('household.inviteCodeHint')}
           </Text>
@@ -250,7 +223,7 @@ export default function HouseholdScreen() {
               variant="ghost"
               size="sm"
               icon="share-outline"
-              onPress={() => shareInviteLink(info.household.invite_code)}
+              onPress={() => shareCode(info.household.invite_code)}
             />
             {isOwner ? (
               <Button
@@ -333,7 +306,6 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   container: { maxWidth: 560, width: '100%', alignSelf: 'center' },
   actionsRow: { flexDirection: 'row' },
-  codeRow: { flexDirection: 'row', alignItems: 'center' },
   memberRow: { flexDirection: 'row', alignItems: 'center' },
   memberText: { flex: 1, gap: 2 },
 });
