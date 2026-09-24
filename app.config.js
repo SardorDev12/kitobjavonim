@@ -21,6 +21,14 @@ const appId = IS_PREVIEW ? 'uz.homelibrary.app.preview' : 'uz.homelibrary.app';
 // device used for testing both builds side by side.
 const scheme = IS_PREVIEW ? 'homelibrary-staging' : 'homelibrary';
 
+// The host a household invite link (household.tsx's shareInviteLink) is
+// actually built against for this variant — same values as each build
+// profile's own EXPO_PUBLIC_WEB_ORIGIN in eas.json/.env.*. Android App
+// Links only opens the app for a URL whose host+package pair is verified
+// via a matching entry in that host's /.well-known/assetlinks.json, so
+// this has to track webOrigin exactly, not just be "close enough".
+const webOriginHost = IS_PREVIEW ? 'test.kitobjavonim.uz' : 'app.kitobjavonim.uz';
+
 module.exports = {
   expo: {
     name: IS_PREVIEW ? 'Shelfie (Staging)' : 'Shelfie',
@@ -77,6 +85,21 @@ module.exports = {
       },
       predictiveBackGestureEnabled: false,
       permissions: ['android.permission.CAMERA'],
+      // Makes a shared household invite link (https://.../join/CODE) open
+      // this app directly instead of a browser, once Android has verified
+      // it via /.well-known/assetlinks.json on webOriginHost — the actual
+      // trigger for a native rebuild picking this up, since it needs a
+      // fresh app-links verification pass the OS only runs on install/update.
+      // autoVerify alone doesn't grant it; the asset-links file below has to
+      // list this package's real signing certificate too.
+      intentFilters: [
+        {
+          action: 'VIEW',
+          autoVerify: true,
+          data: [{ scheme: 'https', host: webOriginHost, pathPrefix: '/join' }],
+          category: ['BROWSABLE', 'DEFAULT'],
+        },
+      ],
     },
     web: {
       output: 'static',
