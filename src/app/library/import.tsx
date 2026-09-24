@@ -116,8 +116,8 @@ function inferStatus(rawStatus: unknown, startDate: string | null, endDate: stri
 
 type ParsedFile = { headers: string[]; rows: SheetRow[]; columns: Partial<Record<FieldKey, string>> };
 
-async function parseWorkbook(data: ArrayBuffer | string, type: 'array' | 'base64'): Promise<ParsedFile> {
-  const workbook = XLSX.read(data, { type, cellDates: true });
+async function parseWorkbook(data: ArrayBuffer): Promise<ParsedFile> {
+  const workbook = XLSX.read(data, { type: 'array', cellDates: true });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<SheetRow>(sheet, { defval: '' });
   const headers = rows.length > 0 ? Object.keys(rows[0]) : [];
@@ -260,15 +260,24 @@ export default function LibraryImportScreen() {
 
       setParsing(true);
 
-      // On web, expo-file-system has no implementation at all — the picker
-      // itself hands back base64 there instead (its default on web).
+      // On web, expo-file-system has no implementation at all, but
+      // expo-document-picker's web shim hands back the raw browser File
+      // object it read the picker's <input> from (`asset.file`) regardless
+      // of the `base64` option — reading that directly with the standard
+      // File API's own arrayBuffer() sidesteps two bugs a base64 detour
+      // used to have here: `base64` defaults to false in getDocumentAsync
+      // (never set to true above), so `asset.base64` was always undefined
+      // and every web import failed outright; and even with it enabled,
+      // the web shim's FileReader.readAsDataURL() produces a full
+      // "data:...;base64,XXXX" data URI, not the bare base64 string
+      // XLSX.read(..., {type:'base64'}) expects.
       const file =
         Platform.OS === 'web'
           ? await (async () => {
-              if (!asset.base64) throw new Error('missing base64 data from the web file picker');
-              return parseWorkbook(asset.base64, 'base64');
+              if (!asset.file) throw new Error('missing file data from the web file picker');
+              return parseWorkbook(await asset.file.arrayBuffer());
             })()
-          : await parseWorkbook(await new File(asset.uri).arrayBuffer(), 'array');
+          : await parseWorkbook(await new File(asset.uri).arrayBuffer());
 
       if (!file.columns.title) {
         setError(t('import.missingTitleColumn'));
