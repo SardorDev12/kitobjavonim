@@ -58,7 +58,7 @@ module.exports = {
       // Bump it by hand, in the same commit as any `version` bump above,
       // same convention as the "Bump app version to X.Y.Z" commits already
       // in history.
-      versionCode: 12,
+      versionCode: 13,
       // Only the production package is registered as a Firebase Android app
       // (google-services.json is keyed to it by package name — the Google
       // Services Gradle plugin hard-fails the build if there's no matching
