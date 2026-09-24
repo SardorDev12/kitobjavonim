@@ -95,6 +95,19 @@ select count(*) from bookshelves where household_id = :'dave_household';
 \echo '### frank still cannot see dave''s personal shelf directly (expect 0)'
 select count(*) from bookshelves where id = 'd0000000-0000-0000-0000-000000000002';
 
+-- Frank adds his own shared shelf + copy — this is what gets checked after
+-- he's removed below (0027_fix_household_unshare_on_leave.sql).
+\echo '### frank adds his own shared shelf'
+insert into bookshelves (id, user_id, name, household_id)
+values ('f0000000-0000-0000-0000-000000000001', 'f6666666-6666-6666-6666-666666666666', 'Frank''s Shared Shelf', :'dave_household');
+
+\echo '### frank adds his own shared copy'
+insert into user_books (id, user_id, book_id, household_id)
+values ('f0000000-0000-0000-0000-000000000002',
+        'f6666666-6666-6666-6666-666666666666',
+        'd0000000-0000-0000-0000-000000000001',
+        :'dave_household');
+
 \echo '### frank joining a second time is rejected (expect error)'
 \set ON_ERROR_STOP off
 select join_household('anything');
@@ -214,6 +227,26 @@ select remove_household_member('f6666666-6666-6666-6666-666666666666');
 \echo '### household now has 2 members (expect 2)'
 select count(*) from household_members where household_id = :'dave_household';
 
+\echo '### dave (the owner who stayed) no longer sees frank''s former shelf (expect 0)'
+select count(*) from bookshelves where id = 'f0000000-0000-0000-0000-000000000001';
+
+-- 0027_fix_household_unshare_on_leave.sql: being removed must un-share
+-- frank's own shelf/copy, not just drop his membership row — this is the
+-- exact real-world bug report (a member's books stayed visible to the
+-- household owner after the member left/was removed). Checked with RLS
+-- bypassed (reset role) since the row is now correctly invisible to dave
+-- under RLS — that's the point — so it has to be confirmed at the ground
+-- truth (the actual column value), not through anyone's own session.
+reset role;
+\echo '### frank''s shelf is un-shared after removal, not just membership-gone (expect t)'
+select household_id is null as unshared from bookshelves where id = 'f0000000-0000-0000-0000-000000000001';
+
+\echo '### frank''s copy is un-shared after removal too (expect t)'
+select household_id is null as unshared from user_books where id = 'f0000000-0000-0000-0000-000000000002';
+
+set role authenticated;
+set request.jwt.claim.sub = 'd4444444-4444-4444-4444-444444444444';
+
 \echo '### dave regenerates the invite code'
 select regenerate_invite_code() is not null as regenerated;
 
@@ -243,6 +276,19 @@ select role from household_members where user_id = 'e5555555-5555-5555-5555-5555
 set role authenticated;
 set request.jwt.claim.sub = 'e5555555-5555-5555-5555-555555555555';
 update households set name = 'Erin''s Place' where id = :'dave_household';
+
+-- 0027_fix_household_unshare_on_leave.sql: this is the actual bug a tester
+-- reported — dave's shelf was still shared (household_id pointed at the
+-- still-alive household) at the moment he left, since he never manually
+-- un-shared it the way he did his copy earlier. Before the fix, erin (who
+-- stayed) kept seeing it indefinitely.
+\echo '### erin (stayed) no longer sees dave''s shelf after he left (expect 0)'
+select count(*) from bookshelves where id = 'd0000000-0000-0000-0000-000000000004';
+
+\echo '### the shelf itself is confirmed un-shared, not merely invisible to erin for some other reason (expect t)'
+reset role;
+select household_id is null as unshared from bookshelves where id = 'd0000000-0000-0000-0000-000000000004';
+
 reset role;
 
 -- user_id is immutable and always grants access (that's the point of it),
