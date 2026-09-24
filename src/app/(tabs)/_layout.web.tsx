@@ -1,9 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { useEffect, useState, type ReactNode } from 'react';
-import { Pressable, View } from 'react-native';
+import { Image } from 'expo-image';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Animated, Easing, Pressable, View } from 'react-native';
 
+import appIconAsset from '@/assets/images/icon.png';
 import { Text } from '@/components/ui';
 import { useI18n } from '@/lib/i18n';
 import { useLayout, useTheme } from '@/theme';
@@ -123,7 +125,15 @@ export default function TabsLayout() {
 }
 
 const SIDEBAR_COLLAPSED_KEY = 'settings.sidebarCollapsed';
-const SIDEBAR_WIDTH = 232;
+const EXPANDED_WIDTH = 232;
+// A slim icon-only rail rather than the earlier zero-width-plus-floating-
+// button design — that couldn't animate cleanly (a `position: fixed`
+// overlay doesn't participate in flex layout, so there was no single
+// property to tween between it and a normal-flow sidebar without a jump).
+// A persistent rail is just a width change, which the width/opacity
+// Animated.Value below can drive smoothly.
+const COLLAPSED_WIDTH = 64;
+const TRANSITION_MS = 220;
 
 /**
  * A left nav rail standing in for the built-in bottom-tab bar on wide web —
@@ -136,31 +146,71 @@ const SIDEBAR_WIDTH = 232;
  *
  * Collapse state persists across sessions the same way the library
  * filter order/theme mode/locale already do (AsyncStorage, which is
- * backed by localStorage on web) — a `menu`-style toggle is always
- * reachable at a fixed spot in the top-left corner, whether the full rail
- * is showing or not, Notion's own "hover the corner to bring the sidebar
- * back" pattern's simplest equivalent here: an always-visible button
- * rather than a hover reveal, since RN's Pressable has no direct
- * mouse-hover-region concept to build that on.
+ * backed by localStorage on web) — the toggle stays reachable inside the
+ * rail itself either way, matching Notion/VS Code's own icon-rail
+ * collapse pattern rather than hiding it behind a hover reveal (RN's
+ * Pressable has no direct mouse-hover-region concept to build that on).
  */
 function Sidebar({ state, descriptors, navigation, insets }: TabBarProps) {
   const theme = useTheme();
   const { t } = useI18n();
   const [collapsed, setCollapsed] = useState(false);
 
+  // One driver for the whole transition — width, and (via interpolation)
+  // the fade/shrink of everything that only makes sense at full width (the
+  // app icon, the nav labels). Starts at EXPANDED_WIDTH, matching the
+  // default `collapsed` state above; the effect below snaps it instantly
+  // to whatever was actually persisted, without animating that first
+  // read-from-storage jump.
+  const widthAnim = useRef(new Animated.Value(EXPANDED_WIDTH)).current;
+
   useEffect(() => {
     AsyncStorage.getItem(SIDEBAR_COLLAPSED_KEY)
-      .then((value) => setCollapsed(value === '1'))
+      .then((value) => {
+        const isCollapsed = value === '1';
+        setCollapsed(isCollapsed);
+        widthAnim.setValue(isCollapsed ? COLLAPSED_WIDTH : EXPANDED_WIDTH);
+      })
       .catch(() => {});
+    // widthAnim is a ref-backed Animated.Value, stable for the component's
+    // lifetime — omitting it isn't a stale-closure risk the way a plain
+    // value would be.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function toggle() {
     setCollapsed((prev) => {
       const next = !prev;
       AsyncStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? '1' : '0').catch(() => {});
+      Animated.timing(widthAnim, {
+        toValue: next ? COLLAPSED_WIDTH : EXPANDED_WIDTH,
+        duration: TRANSITION_MS,
+        easing: Easing.out(Easing.cubic),
+        // Width isn't an animatable "transform/opacity" property, so the
+        // native driver (available on web too, via react-native-web) can't
+        // run this one — it's still smooth at this scale (a single tween,
+        // not something scroll-linked).
+        useNativeDriver: false,
+      }).start();
       return next;
     });
   }
+
+  // Shared fade for anything that only exists at full width — reaches 0
+  // well before the rail finishes shrinking (60% of the way there) so
+  // labels don't visibly clip mid-collapse; expanding is the same curve in
+  // reverse, so content fades back in over the second half of that tween.
+  const fadeWidth = COLLAPSED_WIDTH + (EXPANDED_WIDTH - COLLAPSED_WIDTH) * 0.4;
+  const contentOpacity = widthAnim.interpolate({
+    inputRange: [COLLAPSED_WIDTH, fadeWidth, EXPANDED_WIDTH],
+    outputRange: [0, 0, 1],
+    extrapolate: 'clamp',
+  });
+  const iconWidth = widthAnim.interpolate({
+    inputRange: [COLLAPSED_WIDTH, EXPANDED_WIDTH],
+    outputRange: [0, 28],
+    extrapolate: 'clamp',
+  });
 
   const toggleButton = (
     <Pressable
@@ -182,24 +232,11 @@ function Sidebar({ state, descriptors, navigation, insets }: TabBarProps) {
     </Pressable>
   );
 
-  if (collapsed) {
-    return (
-      <View
-        // Fixed, not part of the normal sidebar-then-content flex row — a
-        // collapsed sidebar takes up no layout space at all (the content
-        // pane fills the freed width on its own), so this floats over the
-        // content's top-left corner instead of pushing it over.
-        style={{ position: 'fixed' as 'absolute', top: 12 + (insets?.top ?? 0), left: 12, zIndex: 20 }}
-      >
-        {toggleButton}
-      </View>
-    );
-  }
-
   return (
-    <View
+    <Animated.View
       style={{
-        width: SIDEBAR_WIDTH,
+        width: widthAnim,
+        overflow: 'hidden',
         backgroundColor: theme.colors.surface,
         borderRightWidth: 1,
         borderColor: theme.colors.border,
@@ -209,7 +246,19 @@ function Sidebar({ state, descriptors, navigation, insets }: TabBarProps) {
         gap: 2,
       }}
     >
-      <View style={{ alignItems: 'flex-end', marginBottom: theme.spacing.sm }}>{toggleButton}</View>
+      <View
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: theme.spacing.sm,
+        }}
+      >
+        <Animated.View style={{ width: iconWidth, opacity: contentOpacity, overflow: 'hidden' }}>
+          <Image source={appIconAsset} style={{ width: 28, height: 28, borderRadius: theme.radius.sm }} />
+        </Animated.View>
+        {toggleButton}
+      </View>
 
       {state.routes.map((route, index) => {
         const { options } = descriptors[route.key];
@@ -240,12 +289,18 @@ function Sidebar({ state, descriptors, navigation, insets }: TabBarProps) {
             ]}
           >
             {options.tabBarIcon?.({ focused, color, size: 20 })}
-            <Text variant="label" style={{ color, fontSize: 15, fontWeight: focused ? '700' : '600' }} numberOfLines={1}>
-              {typeof options.title === 'string' ? options.title : route.name}
-            </Text>
+            <Animated.View style={{ opacity: contentOpacity }}>
+              <Text
+                variant="label"
+                style={{ color, fontSize: 15, fontWeight: focused ? '700' : '600' }}
+                numberOfLines={1}
+              >
+                {typeof options.title === 'string' ? options.title : route.name}
+              </Text>
+            </Animated.View>
           </Pressable>
         );
       })}
-    </View>
+    </Animated.View>
   );
 }
