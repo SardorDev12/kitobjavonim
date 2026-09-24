@@ -110,7 +110,7 @@ export function Button({
           {iconPosition === 'leading' ? iconNode : null}
           <Text
             variant={size === 'sm' ? 'label' : 'bodyStrong'}
-            style={{ color: colors.text }}
+            style={[{ color: colors.text }, styles.title]}
             numberOfLines={1}
           >
             {title}
@@ -126,10 +126,29 @@ const styles = StyleSheet.create({
   base: {
     alignItems: 'center',
     justifyContent: 'center',
+    // Clips anything that doesn't fit — without it, a title too long for a
+    // width-constrained button (two side by side via flex:1, e.g. the
+    // library multiselect bar) doesn't get cut by numberOfLines so much as
+    // spill out past the rounded border into whatever sits next to it,
+    // since a plain View's default overflow is 'visible', not clipped.
+    overflow: 'hidden',
   },
   content: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    // Lets the row shrink below its children's natural combined width —
+    // View children default to flexShrink: 0, so without this a squeezed
+    // Pressable (flex: 1 sharing a row with another button) never actually
+    // constrains this row; it keeps its full intrinsic width and overflows.
+    flexShrink: 1,
+    minWidth: 0,
+  },
+  // Text defaults to flexShrink: 0 same as any other flex child — needed
+  // here so numberOfLines={1} truncation can actually kick in once
+  // `content` above is narrower than the title's natural width, instead of
+  // the text just rendering past its box uncut.
+  title: {
+    flexShrink: 1,
   },
 });
