@@ -439,6 +439,11 @@ export const uz: LocaleCatalogue = {
   'update.updateNow': 'Hozir yangilash',
   'update.notNow': 'Hozir emas',
 
+  'installApp.title': "Dasturni o'rnatish",
+  'installApp.body': "Telefoningizda tezroq va qulayroq foydalanish uchun Shelfie ilovasini o'rnating.",
+  'installApp.installNow': "O'rnatish",
+  'installApp.notNow': 'Hozir emas',
+
   'import.title': 'Kitoblarni import qilish',
   'import.explainer': "Boshqa ilovadan eksport qilingan jadval (.xlsx, .xls yoki .csv) orqali kitoblarni import qiling.",
   'import.guideTitle': 'Fayl formati',

@@ -16,6 +16,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 // repo has no control over the build env vars of.
 import stagingFaviconAsset from '@/assets/images/favicon-preview.png';
 import { ErrorBoundary, installGlobalErrorReporting } from '@/components/ErrorBoundary';
+import { InstallAppPrompt } from '@/components/InstallAppPrompt';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { EmptyState, Screen } from '@/components/ui';
 import { UpdateAvailableModal } from '@/components/UpdateAvailableModal';
@@ -293,6 +294,7 @@ function RootNavigator() {
       <StatusBar style={theme.scheme === 'dark' ? 'light' : 'dark'} />
       <OfflineBanner />
       <UpdateAvailableModal />
+      <InstallAppPrompt />
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: theme.colors.background },

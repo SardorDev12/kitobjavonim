@@ -434,6 +434,11 @@ export const en = {
   'update.updateNow': 'Update now',
   'update.notNow': 'Not now',
 
+  'installApp.title': 'Install the app',
+  'installApp.body': 'Get the Shelfie app for a faster, smoother experience on your phone.',
+  'installApp.installNow': 'Install',
+  'installApp.notNow': 'Not now',
+
   'import.title': 'Import books',
   'import.explainer': 'Import books from a spreadsheet (.xlsx, .xls, or .csv) exported by another reading app.',
   'import.guideTitle': 'File format',

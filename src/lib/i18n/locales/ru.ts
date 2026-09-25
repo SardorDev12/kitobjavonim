@@ -444,6 +444,11 @@ export const ru: LocaleCatalogue = {
   'update.updateNow': 'Обновить сейчас',
   'update.notNow': 'Не сейчас',
 
+  'installApp.title': 'Установите приложение',
+  'installApp.body': 'Установите приложение Shelfie для более быстрой и удобной работы на телефоне.',
+  'installApp.installNow': 'Установить',
+  'installApp.notNow': 'Не сейчас',
+
   'import.title': 'Импорт книг',
   'import.explainer': 'Импортируйте книги из таблицы (.xlsx, .xls или .csv), экспортированной из другого приложения для чтения.',
   'import.guideTitle': 'Формат файла',
