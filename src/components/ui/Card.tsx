@@ -62,6 +62,7 @@ export function ListRow({
   icon,
   onPress,
   destructive = false,
+  disabled = false,
   trailing,
 }: {
   label: string;
@@ -69,6 +70,7 @@ export function ListRow({
   icon?: keyof typeof Ionicons.glyphMap;
   onPress?: () => void;
   destructive?: boolean;
+  disabled?: boolean;
   trailing?: ReactNode;
 }) {
   const theme = useTheme();
@@ -77,12 +79,14 @@ export function ListRow({
   return (
     <Pressable
       onPress={onPress}
-      disabled={!onPress}
+      disabled={!onPress || disabled}
       accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityState={{ disabled }}
       style={({ pressed }) => [
         styles.row,
         { paddingVertical: theme.spacing.md, paddingHorizontal: theme.spacing.lg },
         pressed && { backgroundColor: theme.colors.surfaceSunken },
+        disabled && { opacity: 0.5 },
       ]}
     >
       {icon ? <Ionicons name={icon} size={20} color={destructive ? color : theme.colors.textMuted} /> : null}

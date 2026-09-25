@@ -10,7 +10,7 @@ import { BookCard } from '@/components/BookCard';
 import { BookGridCard } from '@/components/BookGridCard';
 import { GALLERY_TILE_WIDTH } from '@/components/BookCover';
 import { PullToRefreshIndicator } from '@/components/PullToRefreshIndicator';
-import { Button, Chip, EmptyState, LoadingState, Sheet, Text, TextField } from '@/components/ui';
+import { Chip, Divider, EmptyState, ListRow, LoadingState, Sheet, Text, TextField } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { setPendingAddQuery } from '@/features/add/pendingAddQuery';
 import { goToTab } from '@/features/tabs/activeTab';
@@ -83,6 +83,7 @@ export default function LibraryScreen() {
   // don't need to prune it.
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [selectionActionsOpen, setSelectionActionsOpen] = useState(false);
 
   // Stable across renders so memo on BookCard/BookGridCard has something to
   // compare — see their own comments for why that matters in a virtualized
@@ -110,6 +111,7 @@ export default function LibraryScreen() {
   const exitSelectMode = useCallback(() => {
     setSelectMode(false);
     setSelectedIds(new Set());
+    setSelectionActionsOpen(false);
   }, []);
 
   const handleCardPress = useCallback(
@@ -193,6 +195,7 @@ export default function LibraryScreen() {
 
   function handleBulkShare() {
     if (!household || selectedOwnedIds.length === 0) return;
+    setSelectionActionsOpen(false);
     bulkShare.mutate(
       { ids: selectedOwnedIds, householdId: household.household.id },
       { onSuccess: exitSelectMode }
@@ -202,6 +205,7 @@ export default function LibraryScreen() {
   function confirmBulkDelete() {
     const ids = Array.from(selectedIds);
     if (ids.length === 0) return;
+    setSelectionActionsOpen(false);
 
     const message = t('library.deleteSelectedConfirm', { count: ids.length });
     const remove = () => bulkDelete.mutate(ids, { onSuccess: exitSelectMode });
@@ -256,11 +260,23 @@ export default function LibraryScreen() {
               </Pressable>
             </View>
 
-            <Pressable onPress={exitSelectMode} hitSlop={8} accessibilityRole="button">
-              <Text variant="label" color="textMuted">
-                {t('common.cancel')}
-              </Text>
-            </Pressable>
+            <View style={styles.headerActions}>
+              {selectedIds.size > 0 ? (
+                <Pressable
+                  onPress={() => setSelectionActionsOpen(true)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('common.more')}
+                >
+                  <Ionicons name="ellipsis-horizontal" size={22} color={theme.colors.text} />
+                </Pressable>
+              ) : null}
+              <Pressable onPress={exitSelectMode} hitSlop={8} accessibilityRole="button">
+                <Text variant="label" color="textMuted">
+                  {t('common.cancel')}
+                </Text>
+              </Pressable>
+            </View>
           </View>
         ) : (
           <View style={styles.titleRow}>
@@ -419,8 +435,7 @@ export default function LibraryScreen() {
           entries.length === 0 && styles.fill,
           viewMode === 'gallery' && { paddingHorizontal: horizontalPadding },
           {
-            paddingBottom:
-              theme.spacing['2xl'] + keyboardHeight + (selectMode && selectedIds.size > 0 ? 72 : 0),
+            paddingBottom: theme.spacing['2xl'] + keyboardHeight,
             gap: viewMode === 'gallery' ? theme.spacing.xl : 0,
           },
         ]}
@@ -472,46 +487,26 @@ export default function LibraryScreen() {
       </View>
     </View>
 
-      {selectMode && selectedIds.size > 0 ? (
-        <View
-          style={[
-            styles.selectionBarOuter,
-            {
-              backgroundColor: theme.colors.surface,
-              borderTopColor: theme.colors.border,
-              paddingTop: theme.spacing.sm,
-              paddingBottom: theme.spacing.sm + insets.bottom,
-            },
-          ]}
-        >
-          <View
-            style={[
-              styles.selectionBar,
-              { width: '100%', maxWidth: maxContentWidth, paddingHorizontal: theme.spacing.lg, gap: theme.spacing.sm },
-            ]}
-          >
-            {household ? (
-              <Button
-                title={t('library.shareWithFamily')}
-                variant="secondary"
-                icon="people-outline"
-                disabled={selectedOwnedIds.length === 0}
-                loading={bulkShare.isPending}
-                onPress={handleBulkShare}
-                style={styles.selectionBarButton}
-              />
-            ) : null}
-            <Button
-              title={t('library.deleteSelected')}
-              variant="danger"
-              icon="trash-outline"
-              loading={bulkDelete.isPending}
-              onPress={confirmBulkDelete}
-              style={styles.selectionBarButton}
+      <Sheet visible={selectionActionsOpen} onClose={() => setSelectionActionsOpen(false)}>
+        {household ? (
+          <>
+            <ListRow
+              icon="people-outline"
+              label={t('library.shareWithFamily')}
+              disabled={selectedOwnedIds.length === 0 || bulkShare.isPending}
+              onPress={handleBulkShare}
             />
-          </View>
-        </View>
-      ) : null}
+            <Divider inset={theme.spacing.lg} />
+          </>
+        ) : null}
+        <ListRow
+          icon="trash-outline"
+          label={t('library.deleteSelected')}
+          destructive
+          disabled={bulkDelete.isPending}
+          onPress={confirmBulkDelete}
+        />
+      </Sheet>
 
       <Sheet visible={sortOpen} onClose={() => setSortOpen(false)} title={t('common.sort')}>
         {SORTS.map((option) => (
@@ -558,7 +553,4 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   sortOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  selectionBarOuter: { alignItems: 'center', borderTopWidth: 1 },
-  selectionBar: { flexDirection: 'row' },
-  selectionBarButton: { flex: 1 },
 });
