@@ -107,7 +107,7 @@ export default function ConfigureScreen() {
     setError(null);
 
     try {
-      const { userBookId, bookId } = await addBook.mutateAsync({
+      const { userBookId } = await addBook.mutateAsync({
         candidate,
         shelfNote,
         readingStatus: status,
@@ -119,7 +119,7 @@ export default function ConfigureScreen() {
       // failure here must not lose the book the user just added.
       if (categoryIds.length > 0) {
         try {
-          await setCategories.mutateAsync({ bookId, categoryIds, previous: [] });
+          await setCategories.mutateAsync({ userBookId, categoryIds, previous: [] });
         } catch {
           // Recoverable from the book's own screen.
         }
