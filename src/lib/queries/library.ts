@@ -367,12 +367,28 @@ export function useDeleteUserBook() {
   });
 }
 
+// PostgREST's .in() filter travels in the request URL as a query-string
+// value (`id=in.(uuid1,uuid2,...)`), for DELETE and UPDATE alike, not in a
+// request body. "Select all" in library.tsx can hand these mutations a
+// whole library's worth of ids — hundreds of UUIDs joined into one filter
+// is tens of KB, past what most reverse proxies/CDNs in front of Supabase
+// allow in a URL at all, and slow well before that hard failure. Chunking
+// is the same fix library/import.tsx's own CHUNK_SIZE already applies to
+// its bulk writes, just needed here too once a selection got large enough
+// to actually hit it — a handful of manually-tapped rows never did.
+const BULK_ACTION_CHUNK_SIZE = 150;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const chunks: T[][] = [];
+  for (let i = 0; i < items.length; i += size) chunks.push(items.slice(i, i + size));
+  return chunks;
+}
+
 /**
- * Deletes several copies from Library's multiselect, in one round trip per
- * step rather than one per book — same reasoning as import.tsx's CHUNK_SIZE
- * comment, just at a scale (a manual on-screen selection) too small to need
- * chunking. Mirrors useDeleteUserBook()'s own photo-cleanup: cascade only
- * ever removes the database rows, never the actual files in storage.
+ * Deletes several copies from Library's multiselect, one chunk of ids at a
+ * time (see BULK_ACTION_CHUNK_SIZE). Mirrors useDeleteUserBook()'s own
+ * photo-cleanup: cascade only ever removes the database rows, never the
+ * actual files in storage.
  */
 export function useBulkDeleteUserBooks() {
   const queryClient = useQueryClient();
@@ -380,16 +396,18 @@ export function useBulkDeleteUserBooks() {
 
   return useMutation({
     mutationFn: async (ids: string[]) => {
-      const { data: photos } = await supabase
-        .from('user_book_photos')
-        .select('storage_path')
-        .in('user_book_id', ids);
+      for (const batch of chunk(ids, BULK_ACTION_CHUNK_SIZE)) {
+        const { data: photos } = await supabase
+          .from('user_book_photos')
+          .select('storage_path')
+          .in('user_book_id', batch);
 
-      const { error } = await supabase.from('user_books').delete().in('id', ids);
-      if (error) throw error;
+        const { error } = await supabase.from('user_books').delete().in('id', batch);
+        if (error) throw error;
 
-      if (photos && photos.length > 0) {
-        await supabase.storage.from('book-photos').remove(photos.map((p) => p.storage_path));
+        if (photos && photos.length > 0) {
+          await supabase.storage.from('book-photos').remove(photos.map((p) => p.storage_path));
+        }
       }
     },
     onSuccess: () => {
@@ -402,7 +420,8 @@ export function useBulkDeleteUserBooks() {
 
 /**
  * Shares several copies with the signed-in user's household at once, from
- * Library's multiselect. Only ever called with ids the caller already
+ * Library's multiselect, one chunk of ids at a time (see
+ * BULK_ACTION_CHUNK_SIZE). Only ever called with ids the caller already
  * filtered to their own (see library.tsx) — RLS would reject anyone else's
  * anyway (0015_households.sql: only a copy's own creator may set its
  * household_id at all), this just avoids sending requests known to fail.
@@ -413,8 +432,10 @@ export function useBulkShareWithHousehold() {
 
   return useMutation({
     mutationFn: async ({ ids, householdId }: { ids: string[]; householdId: string }) => {
-      const { error } = await supabase.from('user_books').update({ household_id: householdId }).in('id', ids);
-      if (error) throw error;
+      for (const batch of chunk(ids, BULK_ACTION_CHUNK_SIZE)) {
+        const { error } = await supabase.from('user_books').update({ household_id: householdId }).in('id', batch);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.library.all });

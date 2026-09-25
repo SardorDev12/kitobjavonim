@@ -140,6 +140,8 @@ export const ru: LocaleCatalogue = {
   'library.deleteSelectedConfirm_few': 'Удалить {{count}} книги?',
   'library.deleteSelectedConfirm_many': 'Удалить {{count}} книг?',
   'library.deleteSelectedConfirm_other': 'Удалить {{count}} книг?',
+  'library.deleting': 'Удаление…',
+  'library.sharing': 'Отправка…',
 
   'status.want_to_read': 'Хочу прочитать',
   'status.reading': 'Читаю',

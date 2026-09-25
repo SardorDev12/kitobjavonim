@@ -138,6 +138,8 @@ export const uz: LocaleCatalogue = {
   'library.deleteSelectedConfirm': "{{count}} ta kitob o'chirilsinmi?",
   'library.deleteSelectedConfirm_one': "Bu kitob o'chirilsinmi?",
   'library.deleteSelectedConfirm_other': "{{count}} ta kitob o'chirilsinmi?",
+  'library.deleting': "O'chirilmoqda…",
+  'library.sharing': "Bo'lishilmoqda…",
 
   'status.want_to_read': 'Oʻqish niyatida',
   'status.reading': 'Oʻqilmoqda',

@@ -136,6 +136,8 @@ export const en = {
   'library.deleteSelectedConfirm': 'Delete {{count}} books?',
   'library.deleteSelectedConfirm_one': 'Delete this book?',
   'library.deleteSelectedConfirm_other': 'Delete {{count}} books?',
+  'library.deleting': 'Deleting…',
+  'library.sharing': 'Sharing…',
 
   'status.want_to_read': 'Want to read',
   'status.reading': 'Reading',

@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, FlatList, Platform, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, FlatList, Platform, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -477,6 +477,36 @@ export default function LibraryScreen() {
       />
       </View>
     </View>
+
+      {/* A large "select all" batch (see BULK_ACTION_CHUNK_SIZE in
+          lib/queries/library.ts) can take several chunked round trips —
+          without this, the screen looks frozen/unresponsive for however
+          long that takes, since the actions sheet already closed the
+          moment the action was confirmed. */}
+      {bulkDelete.isPending || bulkShare.isPending ? (
+        <View
+          pointerEvents="auto"
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: 'rgba(0,0,0,0.25)', alignItems: 'center', justifyContent: 'center' },
+          ]}
+        >
+          <View
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: theme.spacing.sm,
+              backgroundColor: theme.colors.surface,
+              borderRadius: theme.radius.lg,
+              paddingVertical: theme.spacing.lg,
+              paddingHorizontal: theme.spacing.xl,
+            }}
+          >
+            <ActivityIndicator color={theme.colors.primary} />
+            <Text variant="body">{t(bulkDelete.isPending ? 'library.deleting' : 'library.sharing')}</Text>
+          </View>
+        </View>
+      ) : null}
 
       <Sheet visible={selectionActionsOpen} onClose={() => setSelectionActionsOpen(false)}>
         {household ? (
