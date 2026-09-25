@@ -51,8 +51,14 @@ const queryClient = new QueryClient({
  * migration ran in production — a real bug report from exactly that gap.
  * Changing this string discards every device's persisted cache on next
  * launch instead of waiting for it to age out on its own.
+ *
+ * Bumped again for useLibrary() switching to paginated fetches (fixing a
+ * 2000+ book library silently truncating to 1000, PostgREST's default
+ * per-response row cap) — a device that already had the old, truncated
+ * `library.list(...)` result persisted needed this the same way the
+ * categories case above did, not just a plain refetch.
  */
-const CACHE_BUSTER = '2';
+const CACHE_BUSTER = '3';
 
 const persister = createAsyncStoragePersister({
   storage: AsyncStorage,
