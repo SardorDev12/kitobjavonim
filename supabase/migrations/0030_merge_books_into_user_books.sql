@@ -118,7 +118,12 @@ create index user_books_language_idx      on user_books (language);
 --    row that referenced it, then repoint the table at user_books.
 -- -----------------------------------------------------------------------------
 
-create temporary table _book_categories_fanout as
+-- Not TEMPORARY: a temp table is scoped to the connection that created it,
+-- and a script pasted into Supabase's SQL editor isn't guaranteed to run
+-- every statement on the same backend connection — a temp table here was
+-- observed to vanish by the time the INSERT below ran. Plain table, dropped
+-- explicitly once its one use (a few statements down) is done.
+create table _book_categories_fanout as
 select ub.id as user_book_id, bc.category_id
 from book_categories bc
 join user_books ub on ub.book_id = bc.book_id;
