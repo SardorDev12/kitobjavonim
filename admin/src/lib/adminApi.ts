@@ -76,7 +76,10 @@ export type AdminAction = {
 
 async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.rpc(fn, args);
-  if (error) throw error;
+  // Supabase's PostgrestError is a plain object, not an Error instance — every
+  // page's `cause instanceof Error ? cause.message : String(cause)` catch
+  // silently degrades to the useless "[object Object]" unless we wrap it here.
+  if (error) throw new Error(error.message, { cause: error });
   return data as T;
 }
 
