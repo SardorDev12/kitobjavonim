@@ -11,14 +11,25 @@ import { queryKeys } from './keys';
 export type LibraryFilter = 'all' | 'want_to_read' | 'reading' | 'finished' | 'exchange' | 'sale';
 export type LibrarySort = 'recent' | 'title' | 'author' | 'finished';
 
+// PostgREST caps a single response at this many rows (Supabase's own
+// db-max-rows project setting) regardless of what's asked for — a plain
+// unbounded select doesn't error past it, it silently truncates, which is
+// how a 2000-book library first surfaced this: profile_stats (a one-row
+// aggregate, unaffected) correctly said 2000, while this query's result
+// quietly stopped at 1000 with nothing indicating rows were missing.
+const LIBRARY_PAGE_SIZE = 1000;
+
 /**
- * The whole library in one query.
+ * The whole library in one query — paginated server-side into
+ * LIBRARY_PAGE_SIZE-row pages and stitched back together here, but still one
+ * flat array to every caller.
  *
  * Filtering and sorting happen on the client rather than in SQL, deliberately:
  * a personal library is hundreds of rows, not millions, and holding the full set
  * in cache is what lets the list stay usable offline and switch filters without
- * a round trip. If someone ever catalogues 10,000 books this becomes a paginated
- * server query — the component API would not change.
+ * a round trip. If someone ever catalogues far more than that, this becomes a
+ * genuinely server-paginated query instead — the component API still would not
+ * change.
  */
 export function useLibrary() {
   const { user } = useAuth();
@@ -28,12 +39,29 @@ export function useLibrary() {
     queryKey: queryKeys.library.list(userId ?? 'anonymous'),
     enabled: Boolean(userId),
     queryFn: async (): Promise<LibraryEntry[]> => {
-      const { data, error } = await supabase
-        .from('library_entries')
-        .select('*')
-        .order('date_added', { ascending: false });
-      if (error) throw error;
-      return data as LibraryEntry[];
+      const entries: LibraryEntry[] = [];
+
+      for (let from = 0; ; from += LIBRARY_PAGE_SIZE) {
+        const { data, error } = await supabase
+          .from('library_entries')
+          .select('*')
+          // A secondary, unique tiebreaker matters once this is paginated,
+          // not just ordered: date_added alone can tie (a bulk import
+          // writes many rows in the same instant), and without something
+          // unique to break ties consistently, two separate page requests
+          // aren't guaranteed to agree on which side of the boundary a tied
+          // row falls on — silently duplicating or dropping it.
+          .order('date_added', { ascending: false })
+          .order('id', { ascending: true })
+          .range(from, from + LIBRARY_PAGE_SIZE - 1);
+        if (error) throw error;
+
+        const page = (data ?? []) as LibraryEntry[];
+        entries.push(...page);
+        if (page.length < LIBRARY_PAGE_SIZE) break;
+      }
+
+      return entries;
     },
   });
 }
