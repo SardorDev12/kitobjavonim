@@ -260,23 +260,14 @@ export default function LibraryScreen() {
               </Pressable>
             </View>
 
-            <View style={styles.headerActions}>
-              {selectedIds.size > 0 ? (
-                <Pressable
-                  onPress={() => setSelectionActionsOpen(true)}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('common.more')}
-                >
-                  <Ionicons name="ellipsis-horizontal" size={22} color={theme.colors.text} />
-                </Pressable>
-              ) : null}
-              <Pressable onPress={exitSelectMode} hitSlop={8} accessibilityRole="button">
-                <Text variant="label" color="textMuted">
-                  {t('common.cancel')}
-                </Text>
-              </Pressable>
-            </View>
+            <Pressable
+              onPress={() => setSelectionActionsOpen(true)}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.more')}
+            >
+              <Ionicons name="ellipsis-horizontal" size={22} color={theme.colors.text} />
+            </Pressable>
           </View>
         ) : (
           <View style={styles.titleRow}>
@@ -506,6 +497,8 @@ export default function LibraryScreen() {
           disabled={bulkDelete.isPending}
           onPress={confirmBulkDelete}
         />
+        <Divider inset={theme.spacing.lg} />
+        <ListRow icon="close-outline" label={t('common.cancel')} onPress={exitSelectMode} />
       </Sheet>
 
       <Sheet visible={sortOpen} onClose={() => setSortOpen(false)} title={t('common.sort')}>
