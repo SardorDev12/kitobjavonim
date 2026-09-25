@@ -469,6 +469,8 @@ export const ru: LocaleCatalogue = {
   'import.confirm': 'Импортировать',
   'import.importing': 'Импорт {{done}} из {{total}}…',
   'import.summary': 'Импортировано: {{imported}}, пропущено: {{skipped}}',
+  'import.summaryWithMerged':
+    'Импортировано: {{imported}}, объединено с уже добавленной из этого файла книгой: {{merged}}, пропущено: {{skipped}}',
   'import.rowMissingTitle': 'В этой строке нет названия',
   'import.rowLabel': 'Строка {{row}}',
   'import.cancel': 'Отменить импорт',

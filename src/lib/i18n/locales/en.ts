@@ -457,6 +457,8 @@ export const en = {
   'import.confirm': 'Import',
   'import.importing': 'Importing {{done}} of {{total}}…',
   'import.summary': '{{imported}} imported, {{skipped}} skipped',
+  'import.summaryWithMerged':
+    '{{imported}} imported, {{merged}} merged into a book already added from this file, {{skipped}} skipped',
   'import.rowMissingTitle': 'No title in this row',
   'import.rowLabel': 'Row {{row}}',
   'import.cancel': 'Cancel import',

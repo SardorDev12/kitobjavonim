@@ -164,7 +164,7 @@ type NormalizedRow = {
   collections: string[];
 };
 
-type ImportRpcResult = { idx: number; error: string | null; categoryWarning: string | null };
+type ImportRpcResult = { idx: number; error: string | null; categoryWarning: string | null; merged: boolean };
 
 /**
  * Pure — no I/O. All the actual writes (creating/reusing the book and copy,
@@ -204,6 +204,8 @@ function normalizeRow(row: SheetRow, columns: Partial<Record<FieldKey, string>>)
 type RowNote = { row: number; reason: string };
 type ImportOutcome = {
   imported: number;
+  /** Rows that matched a title+author the same import already created a copy for — see import_library_rows()'s dedupe. */
+  merged: number;
   skipped: RowNote[];
   categoryWarnings: RowNote[];
   cancelledEarly: boolean;
@@ -304,6 +306,7 @@ export default function LibraryImportScreen() {
     const skipped: RowNote[] = [];
     const categoryWarnings: RowNote[] = [];
     let imported = 0;
+    let merged = 0;
     let cancelledEarly = false;
 
     // sourceRow mirrors the +2 the old per-row loop used (header row +
@@ -350,7 +353,8 @@ export default function LibraryImportScreen() {
           if (result.error) {
             skipped.push({ row: entry.sourceRow, reason: result.error });
           } else {
-            imported += 1;
+            if (result.merged) merged += 1;
+            else imported += 1;
             if (result.categoryWarning) {
               categoryWarnings.push({ row: entry.sourceRow, reason: result.categoryWarning });
             }
@@ -379,7 +383,7 @@ export default function LibraryImportScreen() {
 
     if (mountedRef.current) {
       setProgress(null);
-      setOutcome({ imported, skipped, categoryWarnings, cancelledEarly });
+      setOutcome({ imported, merged, skipped, categoryWarnings, cancelledEarly });
       setParsed(null);
     }
   }
@@ -422,7 +426,13 @@ export default function LibraryImportScreen() {
         <View style={{ gap: theme.spacing.lg, paddingTop: theme.spacing.xl }}>
           <Text variant="display">{t('import.title')}</Text>
           <Text variant="body" color="textMuted">
-            {t('import.summary', { imported: outcome.imported, skipped: outcome.skipped.length })}
+            {outcome.merged > 0
+              ? t('import.summaryWithMerged', {
+                  imported: outcome.imported,
+                  merged: outcome.merged,
+                  skipped: outcome.skipped.length,
+                })
+              : t('import.summary', { imported: outcome.imported, skipped: outcome.skipped.length })}
           </Text>
           {outcome.cancelledEarly ? (
             <Text variant="caption" color="textSubtle">

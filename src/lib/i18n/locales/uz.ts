@@ -462,6 +462,8 @@ export const uz: LocaleCatalogue = {
   'import.confirm': 'Import qilish',
   'import.importing': "Import qilinmoqda: {{total}} tadan {{done}}…",
   'import.summary': "{{imported}} ta import qilindi, {{skipped}} ta o'tkazib yuborildi",
+  'import.summaryWithMerged':
+    "{{imported}} ta import qilindi, {{merged}} ta shu faylda avval qo'shilgan kitobga birlashtirildi, {{skipped}} ta o'tkazib yuborildi",
   'import.rowMissingTitle': "Bu qatorda nom yo'q",
   'import.rowLabel': 'Qator {{row}}',
   'import.cancel': "Importni to'xtatish",
