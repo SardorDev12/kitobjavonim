@@ -76,8 +76,18 @@ export type PublicProfile = {
   created_at: string;
 };
 
-export type Book = {
+/**
+ * A physical copy — every book field lives here directly (0030_merge_books_
+ * into_user_books.sql: no more shared `books` catalog row, so no more
+ * `book_id` to join through). Reading status/progress/rating/review/notes
+ * live on `ReadingProgress` instead (0020_reading_progress.sql): those are
+ * per-person, not per-copy, since a shared copy can be read/rated
+ * independently by each household member who tracks it.
+ */
+export type UserBook = {
   id: string;
+  user_id: string;
+
   isbn13: string | null;
   isbn10: string | null;
   title: string;
@@ -91,25 +101,7 @@ export type Book = {
   description: string | null;
   source: MetadataSource;
   source_id: string | null;
-  created_by: string | null;
-  created_at: string;
-  updated_at: string;
-};
 
-/** What the app sends when creating a canonical book record. */
-export type BookInsert = Omit<Book, 'id' | 'created_at' | 'updated_at'> & { id?: string };
-
-/**
- * A physical copy — ownership, shelf placement, and listing fields only.
- * Reading status/progress/rating/review/notes live on `ReadingProgress`
- * instead (0020_reading_progress.sql): those are per-person, not per-copy,
- * since a shared copy can be read/rated independently by each household
- * member who tracks it.
- */
-export type UserBook = {
-  id: string;
-  user_id: string;
-  book_id: string;
   /** Free-text note on where the physical copy is — "top shelf, living room", anything the user writes. */
   shelf_note: string | null;
   condition: BookCondition | null;
@@ -124,8 +116,6 @@ export type UserBook = {
   updated_at: string;
   /** Set when shared with a household — every member can then see and edit it. */
   household_id: string | null;
-  /** Fallback total page count for this copy, used when the shared books.page_count is unknown. */
-  total_pages: number | null;
 };
 
 /**
@@ -149,11 +139,10 @@ export type ReadingProgress = {
   updated_at: string;
 };
 
-/** A row of the `library_entries` view — a copy joined to its book and shelf. */
+/** A row of the `library_entries` view — a copy joined to its shelf placement. */
 export type LibraryEntry = {
   id: string;
   user_id: string;
-  book_id: string;
   reading_status: ReadingStatus;
   condition: BookCondition | null;
   rating: number | null;
@@ -171,8 +160,6 @@ export type LibraryEntry = {
   /** Free-text note on where the physical copy is — "top shelf, living room", anything the user writes. */
   shelf_note: string | null;
   updated_at: string;
-  /** Fallback total page count for this copy, used when page_count below is unknown. */
-  total_pages: number | null;
 
   title: string;
   subtitle: string | null;
@@ -184,9 +171,6 @@ export type LibraryEntry = {
   language: string | null;
   page_count: number | null;
   description: string | null;
-
-  /** Whether the signed-in user may edit this book's shared metadata — set only when they created it. */
-  book_created_by: string | null;
 
   /** Set when this copy is shared with a household. */
   household_id: string | null;
@@ -249,7 +233,6 @@ export type HouseholdMember = {
 export type Listing = {
   id: string;
   user_id: string;
-  book_id: string;
   availability_type: AvailabilityType;
   condition: BookCondition | null;
   sale_price: number | null;

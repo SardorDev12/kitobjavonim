@@ -29,7 +29,6 @@ export type AdminUser = {
 
 export type AdminListing = {
   user_book_id: string;
-  book_id: string;
   title: string;
   authors: string[];
   cover_url: string | null;
@@ -40,6 +39,18 @@ export type AdminListing = {
   owner_email: string;
   listed_at: string | null;
   open_report_count: number;
+};
+
+export type AdminBook = {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  authors: string[];
+  publisher: string | null;
+  publication_year: number | null;
+  language: string | null;
+  cover_url: string | null;
+  description: string | null;
 };
 
 export type BookUpdate = {
@@ -84,9 +95,15 @@ export const adminApi = {
     rpc<AdminListing[]>('admin_list_listings', { p_search: search || null, p_limit: limit, p_offset: offset }),
   unlist: (userBookId: string) => rpc<void>('admin_unlist', { p_user_book_id: userBookId }),
 
-  updateBook: (bookId: string, book: BookUpdate) =>
+  // Every copy across every user, not just listed ones (0031_admin_list_books.sql
+  // — the old direct `select * from books` relied on "books are public", which
+  // no longer exists once catalog rows live on user_books).
+  listBooks: (search: string, limit = 50, offset = 0) =>
+    rpc<AdminBook[]>('admin_list_books', { p_search: search || null, p_limit: limit, p_offset: offset }),
+
+  updateBook: (userBookId: string, book: BookUpdate) =>
     rpc<void>('admin_update_book', {
-      p_book_id: bookId,
+      p_user_book_id: userBookId,
       p_title: book.title,
       p_subtitle: book.subtitle,
       p_authors: book.authors,
@@ -96,7 +113,7 @@ export const adminApi = {
       p_cover_url: book.cover_url,
       p_description: book.description,
     }),
-  deleteBook: (bookId: string) => rpc<void>('admin_delete_book', { p_book_id: bookId }),
+  deleteBook: (userBookId: string) => rpc<void>('admin_delete_book', { p_user_book_id: userBookId }),
 
   // These three need the Auth Admin API (service_role), which no RLS-bound
   // SQL function can reach — see supabase/functions/admin-users/README.md.
