@@ -323,7 +323,6 @@ function RootNavigator() {
         <Stack.Screen name="listing/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="legal/privacy" options={{ headerShown: false }} />
         <Stack.Screen name="legal/terms" options={{ headerShown: false }} />
-        <Stack.Screen name="add/scan" options={{ presentation: 'modal', title: '' }} />
         {/* These all render their own BackHeader below (like book/[id]/
             listing/[id] above) instead of the native one — the native
             header spans the full browser width uncapped on wide web, while

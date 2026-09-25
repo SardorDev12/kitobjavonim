@@ -34,9 +34,8 @@ export type ImageSource = 'camera' | 'library';
 
 /**
  * Asks whether a photo should come from the camera or the library, native
- * only — resolves straight to 'library' on web with no prompt, same
- * reasoning as the barcode scanner staying native-only: there is no camera
- * capture on web worth building a picker around.
+ * only — resolves straight to 'library' on web with no prompt: there is no
+ * camera capture on web worth building a picker around.
  *
  * Resolves `null` if the user backs out (the "Cancel" button, or dismissing
  * the dialog itself), which every caller treats the same as declining the

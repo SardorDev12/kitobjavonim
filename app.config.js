@@ -45,7 +45,7 @@ module.exports = {
       buildNumber: '1',
       infoPlist: {
         NSCameraUsageDescription:
-          "The camera is used to scan a book's ISBN barcode so its details can be filled in automatically.",
+          'The camera is used to take photos showing the condition of books you list for exchange or sale.',
         NSPhotoLibraryUsageDescription:
           'Photos are used to show the condition of books you list for exchange or sale.',
       },
@@ -104,13 +104,6 @@ module.exports = {
           dark: { backgroundColor: '#1A1714' },
           image: IS_PREVIEW ? './assets/images/splash-icon-preview.png' : './assets/images/splash-icon.png',
           imageWidth: 76,
-        },
-      ],
-      [
-        'expo-camera',
-        {
-          cameraPermission:
-            "The camera is used to scan a book's ISBN barcode so its details can be filled in automatically.",
         },
       ],
       [

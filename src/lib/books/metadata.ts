@@ -58,7 +58,7 @@ function withKey(url: string): string {
  * Thrown by lookupByIsbn when every provider request failed at the
  * transport level (rate-limited, timed out, offline) rather than genuinely
  * returning "no match." The caller can then tell a user "couldn't check
- * right now, try again" apart from "no book matches this barcode" — those
+ * right now, try again" apart from "no book matches this ISBN" — those
  * used to be indistinguishable (both just a null candidate), which made a
  * transient Google Books 429 look identical to, and get reported as, the
  * feature being broken.
