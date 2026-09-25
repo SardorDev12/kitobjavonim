@@ -4,7 +4,7 @@ import type { BookCandidate } from '@/lib/books/metadata';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { storagePathFromPublicUrl } from '@/lib/images';
 import { supabase } from '@/lib/supabase';
-import type { LibraryEntry, ReadingProgress, ReadingStatus, UserBook } from '@/types/database';
+import type { Book, LibraryEntry, ReadingProgress, ReadingStatus, UserBook } from '@/types/database';
 
 import { queryKeys } from './keys';
 
@@ -99,8 +99,67 @@ export function useAuthorSuggestions(query: string) {
   });
 }
 
+/**
+ * Finds the canonical book row for a candidate, creating it if this is the first
+ * time anyone has catalogued it.
+ *
+ * The ISBN is the identity. Two users adding the same book seconds apart will
+ * both miss the lookup and both try to insert, so a unique-violation is treated
+ * as "someone else won the race" and the existing row is fetched instead.
+ */
+async function ensureBook(candidate: BookCandidate, userId: string): Promise<string> {
+  if (candidate.isbn13) {
+    const { data: existing } = await supabase
+      .from('books')
+      .select('id')
+      .eq('isbn13', candidate.isbn13)
+      .maybeSingle();
+    if (existing) return existing.id as string;
+  }
+
+  const payload = {
+    isbn13: candidate.isbn13,
+    isbn10: candidate.isbn10,
+    title: candidate.title.trim(),
+    subtitle: candidate.subtitle,
+    authors: candidate.authors,
+    publisher: candidate.publisher,
+    publication_year: candidate.publication_year,
+    language: candidate.language,
+    cover_url: candidate.cover_url,
+    page_count: candidate.page_count,
+    description: candidate.description,
+    source: candidate.source,
+    source_id: candidate.source_id,
+    created_by: userId,
+  };
+
+  const { data, error } = await supabase.from('books').insert(payload).select('id').single();
+
+  if (error) {
+    // 23505 = unique_violation on isbn13.
+    if (error.code === '23505' && candidate.isbn13) {
+      const { data: raced } = await supabase
+        .from('books')
+        .select('id')
+        .eq('isbn13', candidate.isbn13)
+        .maybeSingle();
+      if (raced) return raced.id as string;
+    }
+    throw error;
+  }
+
+  return data.id as string;
+}
+
 export type AddBookInput = {
   candidate: BookCandidate;
+  /**
+   * Set when the user picked a suggested existing catalogue title (see
+   * useSimilarBooks) instead of the searched candidate — skips ensureBook
+   * entirely so no second `books` row is created for the same title.
+   */
+  existingBookId?: string;
   shelfNote?: string | null;
   readingStatus?: ReadingStatus;
   condition?: UserBook['condition'];
@@ -108,37 +167,28 @@ export type AddBookInput = {
   householdId?: string | null;
 };
 
-/**
- * Every book field lives directly on the new copy's own row (0030_merge_
- * books_into_user_books.sql — there's no shared `books` catalog row to find
- * or create anymore, so this is a single insert instead of the old
- * ensureBook()-then-insert-the-copy sequence).
- */
 export function useAddBook() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ candidate, shelfNote, readingStatus, condition, householdId }: AddBookInput) => {
+    mutationFn: async ({
+      candidate,
+      existingBookId,
+      shelfNote,
+      readingStatus,
+      condition,
+      householdId,
+    }: AddBookInput) => {
       if (!user) throw new Error('Not signed in');
+
+      const bookId = existingBookId ?? (await ensureBook(candidate, user.id));
 
       const { data, error } = await supabase
         .from('user_books')
         .insert({
           user_id: user.id,
-          isbn13: candidate.isbn13,
-          isbn10: candidate.isbn10,
-          title: candidate.title.trim(),
-          subtitle: candidate.subtitle,
-          authors: candidate.authors,
-          publisher: candidate.publisher,
-          publication_year: candidate.publication_year,
-          language: candidate.language,
-          cover_url: candidate.cover_url,
-          page_count: candidate.page_count,
-          description: candidate.description,
-          source: candidate.source,
-          source_id: candidate.source_id,
+          book_id: bookId,
           shelf_note: shelfNote?.trim() || null,
           condition: condition ?? null,
           household_id: householdId ?? null,
@@ -163,7 +213,9 @@ export function useAddBook() {
         .insert({ user_book_id: userBookId, user_id: user.id, reading_status: readingStatus ?? 'want_to_read' });
       if (progressError) throw progressError;
 
-      return { userBookId };
+      // Both ids matter to the caller: the copy id to navigate to, and the
+      // canonical book id so categories can be attached to the shared record.
+      return { userBookId, bookId };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
@@ -185,51 +237,20 @@ export type UpdateUserBookInput = {
       | 'price_negotiable'
       | 'sale_description'
       | 'household_id'
-      | 'title'
-      | 'subtitle'
-      | 'authors'
-      | 'isbn13'
-      | 'publisher'
-      | 'publication_year'
-      | 'language'
-      | 'page_count'
-      | 'cover_url'
+      | 'total_pages'
     >
   >;
-  /** The copy's cover_url before this edit — lets a real replacement clean up the file it replaces. */
-  previousCoverUrl?: string | null;
 };
 
-/**
- * Every editable field on a copy — shelf, listing, condition, household
- * sharing, and (since 0030_merge_books_into_user_books.sql) the book's own
- * title/authors/cover/etc, now that each copy owns its data outright rather
- * than sharing a `books` row a stranger might also depend on.
- */
+/** Physical-copy fields only — shelf, listing, condition, household sharing. */
 export function useUpdateUserBook() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ id, patch, previousCoverUrl }: UpdateUserBookInput) => {
+    mutationFn: async ({ id, patch }: UpdateUserBookInput) => {
       const { error } = await supabase.from('user_books').update(patch).eq('id', id);
       if (error) throw error;
-
-      // A cover swap orphans the old file otherwise — nothing else in the
-      // schema points at it once cover_url has moved on, and it would just
-      // sit in the bucket counting against the free tier's 1 GB forever.
-      // Best-effort: a failed cleanup here should never undo an otherwise
-      // successful save, so it's swallowed rather than thrown.
-      if (patch.cover_url !== undefined && previousCoverUrl && previousCoverUrl !== patch.cover_url) {
-        const oldPath = storagePathFromPublicUrl('book-photos', previousCoverUrl);
-        if (oldPath) {
-          try {
-            await supabase.storage.from('book-photos').remove([oldPath]);
-          } catch {
-            // Best-effort — a failed cleanup must not undo the save above.
-          }
-        }
-      }
     },
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
@@ -286,6 +307,62 @@ export function useUpdateReadingProgress() {
   });
 }
 
+export type UpdateBookInput = {
+  bookId: string;
+  userBookId: string;
+  patch: Partial<
+    Pick<Book, 'title' | 'subtitle' | 'authors' | 'isbn13' | 'publisher' | 'publication_year' | 'language' | 'page_count' | 'cover_url'>
+  >;
+  /** The book's cover_url before this edit — lets a real replacement clean up the file it replaces. */
+  previousCoverUrl?: string | null;
+};
+
+/**
+ * Edits the shared `books` row, not the user's copy of it.
+ *
+ * RLS ("creator can correct a book") only permits this when the caller is the
+ * row's own creator — every other user_books.book_id foreign key pointing at it
+ * would otherwise let a stranger silently rewrite what a hundred other
+ * libraries display. The UI only offers this action when book_created_by
+ * matches the signed-in user for the same reason; this mutation is the
+ * enforcement, that is only the affordance.
+ */
+export function useUpdateBook() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ bookId, patch, previousCoverUrl }: UpdateBookInput) => {
+      const { error } = await supabase.from('books').update(patch).eq('id', bookId);
+      if (error) throw error;
+
+      // A cover swap orphans the old file otherwise — nothing else in the
+      // schema points at it once cover_url has moved on, and it would just
+      // sit in the bucket counting against the free tier's 1 GB forever.
+      // Best-effort: a failed cleanup here should never undo an otherwise
+      // successful save, so it's swallowed rather than thrown.
+      if (
+        patch.cover_url !== undefined &&
+        previousCoverUrl &&
+        previousCoverUrl !== patch.cover_url
+      ) {
+        const oldPath = storagePathFromPublicUrl('book-photos', previousCoverUrl);
+        if (oldPath) {
+          try {
+            await supabase.storage.from('book-photos').remove([oldPath]);
+          } catch {
+            // Best-effort — a failed cleanup must not undo the save above.
+          }
+        }
+      }
+    },
+    onSuccess: (_result, variables) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.library.entry(variables.userBookId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
+    },
+  });
+}
+
 export function useDeleteUserBook() {
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -295,27 +372,19 @@ export function useDeleteUserBook() {
       // user_book_photos rows cascade-delete with the parent row (0001_init.sql's
       // FK), but a cascade only ever touches the database — the actual files in
       // the book-photos bucket have no FK pointing at them and would otherwise
-      // sit there forever. Read their paths (and the copy's own cover, if it's
-      // a storage-hosted one rather than an external Google Books/Open Library
-      // URL) before the row is gone, then remove them once the delete that
-      // matters to the user has actually succeeded. Deleting the copy now
-      // deletes the book entirely (0030_merge_books_into_user_books.sql — no
-      // shared `books` row survives it), so this is the only chance to clean
-      // up its cover.
-      const [{ data: photos }, { data: book }] = await Promise.all([
-        supabase.from('user_book_photos').select('storage_path').eq('user_book_id', id),
-        supabase.from('user_books').select('cover_url').eq('id', id).maybeSingle(),
-      ]);
+      // sit there forever. Read their paths before the row (and the cascade)
+      // is gone, then remove them once the delete that matters to the user has
+      // actually succeeded.
+      const { data: photos } = await supabase
+        .from('user_book_photos')
+        .select('storage_path')
+        .eq('user_book_id', id);
 
       const { error } = await supabase.from('user_books').delete().eq('id', id);
       if (error) throw error;
 
-      const paths = (photos ?? []).map((p) => p.storage_path);
-      const coverPath = book?.cover_url ? storagePathFromPublicUrl('book-photos', book.cover_url) : null;
-      if (coverPath) paths.push(coverPath);
-
-      if (paths.length > 0) {
-        await supabase.storage.from('book-photos').remove(paths);
+      if (photos && photos.length > 0) {
+        await supabase.storage.from('book-photos').remove(photos.map((p) => p.storage_path));
       }
     },
     onSuccess: () => {
@@ -356,25 +425,16 @@ export function useBulkDeleteUserBooks() {
   return useMutation({
     mutationFn: async (ids: string[]) => {
       for (const batch of chunk(ids, BULK_ACTION_CHUNK_SIZE)) {
-        // Same reasoning as useDeleteUserBook's own cover cleanup — deleting
-        // a copy now deletes the book entirely, so its cover (if it's a
-        // storage-hosted one) needs cleaning up alongside its photos.
-        const [{ data: photos }, { data: books }] = await Promise.all([
-          supabase.from('user_book_photos').select('storage_path').in('user_book_id', batch),
-          supabase.from('user_books').select('cover_url').in('id', batch),
-        ]);
+        const { data: photos } = await supabase
+          .from('user_book_photos')
+          .select('storage_path')
+          .in('user_book_id', batch);
 
         const { error } = await supabase.from('user_books').delete().in('id', batch);
         if (error) throw error;
 
-        const paths = (photos ?? []).map((p) => p.storage_path);
-        for (const book of books ?? []) {
-          const coverPath = book.cover_url ? storagePathFromPublicUrl('book-photos', book.cover_url) : null;
-          if (coverPath) paths.push(coverPath);
-        }
-
-        if (paths.length > 0) {
-          await supabase.storage.from('book-photos').remove(paths);
+        if (photos && photos.length > 0) {
+          await supabase.storage.from('book-photos').remove(photos.map((p) => p.storage_path));
         }
       }
     },

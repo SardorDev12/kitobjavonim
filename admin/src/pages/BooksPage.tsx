@@ -1,23 +1,40 @@
 import { useEffect, useState } from 'react';
 
-import { adminApi, type AdminBook, type BookUpdate } from '../lib/adminApi';
+import { adminApi, type BookUpdate } from '../lib/adminApi';
+import { supabase } from '../lib/supabaseClient';
+
+type Book = {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  authors: string[];
+  publisher: string | null;
+  publication_year: number | null;
+  language: string | null;
+  cover_url: string | null;
+  description: string | null;
+};
 
 export function BooksPage() {
   const [search, setSearch] = useState('');
-  const [books, setBooks] = useState<AdminBook[] | null>(null);
+  const [books, setBooks] = useState<Book[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   function load(query: string) {
-    // Every copy across every user, not just listed ones — see
-    // 0031_admin_list_books.sql for why this needs an admin RPC now
-    // (catalog rows live on user_books, RLS-scoped to their own owner,
-    // unlike the old public-readable `books` table this used to query
-    // directly).
-    adminApi
-      .listBooks(query)
-      .then(setBooks)
-      .catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)));
+    // The catalog is public-readable (0003_rls.sql) — no admin RPC needed
+    // just to browse it, only to change or remove someone else's entry.
+    let request = supabase
+      .from('books')
+      .select('id, title, subtitle, authors, publisher, publication_year, language, cover_url, description')
+      .order('title')
+      .limit(50);
+    if (query) request = request.ilike('title', `%${query}%`);
+
+    request.then(({ data, error: queryError }) => {
+      if (queryError) setError(queryError.message);
+      else setBooks(data as Book[]);
+    });
   }
 
   useEffect(() => {
@@ -25,7 +42,7 @@ export function BooksPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  async function remove(book: AdminBook) {
+  async function remove(book: Book) {
     if (!confirm(`Delete "${book.title}" from the catalog entirely? This cannot be undone.`)) return;
     try {
       await adminApi.deleteBook(book.id);
@@ -96,7 +113,7 @@ function BookEditForm({
   onCancel,
   onSave,
 }: {
-  book: AdminBook;
+  book: Book;
   onCancel: () => void;
   onSave: (bookId: string, update: BookUpdate) => void;
 }) {

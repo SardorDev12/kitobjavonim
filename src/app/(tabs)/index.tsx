@@ -474,9 +474,9 @@ function StartReadingRow({ entry, onStarted }: { entry: LibraryEntry; onStarted:
   );
 }
 
-/** The copy's own page count, if known. */
+/** The book's page count if the catalog has it, else this copy's own fallback figure. */
 function effectiveTotal(entry: LibraryEntry): number | null {
-  return entry.page_count;
+  return entry.page_count ?? entry.total_pages;
 }
 
 /** Progress as a 0-100 whole number, page-based when a total is known, else the legacy percent field. */
@@ -574,12 +574,12 @@ function ProgressSheet({ visible, onClose, entry }: { visible: boolean; onClose:
           key={`${entry.id}-${entry.updated_at}`}
           entry={entry}
           onSave={async ({ totalPages, currentPage }) => {
-            // A newly-entered total goes on the copy itself (user_books.page_count)
-            // — shared with the household, unlike current_page below, which is
-            // this reader's own reading_progress row.
+            // A newly-entered total goes on the copy (user_books) — shared
+            // with the household, unlike current_page below, which is this
+            // reader's own reading_progress row.
             await Promise.all([
               updateProgress.mutateAsync({ userBookId: entry.id, patch: { current_page: currentPage, progress_percent: null } }),
-              totalPages != null ? updateUserBook.mutateAsync({ id: entry.id, patch: { page_count: totalPages } }) : Promise.resolve(),
+              totalPages != null ? updateUserBook.mutateAsync({ id: entry.id, patch: { total_pages: totalPages } }) : Promise.resolve(),
             ]);
             onClose();
           }}
@@ -594,9 +594,10 @@ function ProgressSheet({ visible, onClose, entry }: { visible: boolean; onClose:
 
 /**
  * Progress only — no reading-status chips. Status changes now live on the
- * row itself (the "Finish book" button). Always page-based: when the copy's
- * own page_count isn't known yet, asks for it once (reusing book.pages — no
- * new copy) alongside the current page, saving both together.
+ * row itself (the "Finish book" button). Always page-based: when neither the
+ * catalog's page_count nor this copy's own total_pages fallback is known yet,
+ * asks for the total once (reusing book.pages — no new copy) alongside the
+ * current page, saving both together.
  */
 function ProgressSheetForm({
   entry,

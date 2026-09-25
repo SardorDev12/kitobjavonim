@@ -39,9 +39,10 @@ import { useHousehold } from '@/lib/queries/household';
 import {
   useDeleteUserBook,
   useLibraryEntry,
+  useUpdateBook,
   useUpdateReadingProgress,
   useUpdateUserBook,
-  type UpdateUserBookInput,
+  type UpdateBookInput,
 } from '@/lib/queries/library';
 import { useLayout, useTheme } from '@/theme';
 import { BOOK_CONDITIONS, READING_STATUSES, type ReadingStatus } from '@/types/database';
@@ -57,8 +58,9 @@ export default function BookDetailScreen() {
   const { data: household } = useHousehold();
   const updateBook = useUpdateUserBook();
   const updateProgress = useUpdateReadingProgress();
+  const updateBookDetails = useUpdateBook();
   const deleteBook = useDeleteUserBook();
-  const { data: categories } = useBookCategories(entry?.id);
+  const { data: categories } = useBookCategories(entry?.book_id);
   const setCategories = useSetBookCategories();
 
   const [editBookOpen, setEditBookOpen] = useState(false);
@@ -376,7 +378,7 @@ export default function BookDetailScreen() {
             selected={categories ?? []}
             onChange={(next) =>
               setCategories.mutate({
-                userBookId: entry.id,
+                bookId: entry.book_id,
                 categoryIds: next,
                 previous: categories ?? [],
               })
@@ -385,11 +387,10 @@ export default function BookDetailScreen() {
         </Card>
 
         {/* Book metadata ----------------------------------------------------
-            Editable by anyone who can see this entry at all (the owner, or
-            a household member on a shared copy) — since
-            0030_merge_books_into_user_books.sql there's no separate shared
-            catalog row with its own narrower "creator only" edit rule; this
-            book's own row is exactly this copy's row. */}
+            Editing (from the three-dot menu) is restricted to whoever added
+            this book to the shared catalogue — the RLS policy behind
+            useUpdateBook enforces the same rule, this is only what decides
+            whether the menu offers the action. */}
         <Card padded={false}>
           <View style={{ padding: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
             <Text variant="heading">{t('book.about')}</Text>
@@ -436,13 +437,14 @@ export default function BookDetailScreen() {
       />
 
       <EditBookSheet
-        key={`book-${entry.id}-${entry.updated_at}`}
+        key={`book-${entry.book_id}-${entry.updated_at}`}
         visible={editBookOpen}
         onClose={() => setEditBookOpen(false)}
         entry={entry}
         onSave={(patchValues) =>
-          updateBook.mutate({
-            id: entry.id,
+          updateBookDetails.mutate({
+            bookId: entry.book_id,
+            userBookId: entry.id,
             patch: patchValues,
             previousCoverUrl: entry.cover_url,
           })
@@ -452,15 +454,19 @@ export default function BookDetailScreen() {
       </Screen>
 
       <Sheet visible={menuOpen} onClose={() => setMenuOpen(false)}>
-        <ListRow
-          icon="pencil-outline"
-          label={t('common.edit')}
-          onPress={() => {
-            setMenuOpen(false);
-            setEditBookOpen(true);
-          }}
-        />
-        <Divider inset={theme.spacing.lg} />
+        {entry.book_created_by === user?.id ? (
+          <>
+            <ListRow
+              icon="pencil-outline"
+              label={t('common.edit')}
+              onPress={() => {
+                setMenuOpen(false);
+                setEditBookOpen(true);
+              }}
+            />
+            <Divider inset={theme.spacing.lg} />
+          </>
+        ) : null}
         <ListRow
           icon="trash-outline"
           label={t('book.deleteBook')}
@@ -505,7 +511,7 @@ function EditBookSheet({
     page_count: number | null;
     cover_url: string | null;
   };
-  onSave: (patch: UpdateUserBookInput['patch']) => void;
+  onSave: (patch: UpdateBookInput['patch']) => void;
 }) {
   const theme = useTheme();
   const { isWide } = useLayout();
