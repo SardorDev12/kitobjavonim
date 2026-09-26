@@ -22,7 +22,7 @@ import ProfileScreen from './profile';
 // between tabs now only works from a thin strip at each screen edge,
 // matching the iOS edge-swipe-back convention, with the pager's native
 // gesture (scrollEnabled below) turned off entirely.
-const EDGE_ZONE_WIDTH = 24;
+const EDGE_ZONE_WIDTH = 32;
 const EDGE_SWIPE_THRESHOLD = 48;
 
 const ICONS: Record<TabRoute, keyof typeof Ionicons.glyphMap> = {
