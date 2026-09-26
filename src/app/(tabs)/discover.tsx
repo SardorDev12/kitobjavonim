@@ -9,8 +9,6 @@ import { ListingCard } from '@/components/ListingCard';
 import { ListingRow } from '@/components/ListingRow';
 import { PullToRefreshIndicator } from '@/components/PullToRefreshIndicator';
 import { Button, Chip, ChipRow, EmptyState, LoadingState, Screen, Select, Sheet, Text, TextField } from '@/components/ui';
-import { useAuth } from '@/features/auth/AuthProvider';
-import { goToTab } from '@/features/tabs/activeTab';
 import { useI18n } from '@/lib/i18n';
 import { emptyListingFilters, useListings, type ListingFilters } from '@/lib/queries/listings';
 import { useCategoryOptions, useLocationOptions } from '@/lib/queries/reference';
@@ -31,16 +29,6 @@ export default function DiscoverScreen() {
   const { t } = useI18n();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { session } = useAuth();
-
-  // Listing links are public, so a signed-out visitor who followed one here
-  // can land on this screen with no account at all. Sending them to add a
-  // book of their own goes through sign-in first, same as the root layout's
-  // route guard already does for the Add tab itself.
-  function goToAdd() {
-    if (session) goToTab('add');
-    else router.push('/(auth)/sign-in');
-  }
 
   // Stable across renders (router itself doesn't change identity) so that
   // memo on ListingCard/ListingRow actually has something to compare —
@@ -102,37 +90,27 @@ export default function DiscoverScreen() {
             </Text>
           </View>
 
-          <View style={styles.headerActions}>
-            <Pressable
-              onPress={() => setViewMode(viewMode === 'gallery' ? 'list' : 'gallery')}
-              hitSlop={8}
-              accessibilityRole="button"
-              accessibilityLabel={viewMode === 'gallery' ? t('library.viewList') : t('library.viewGallery')}
-              style={({ pressed }) => [
-                styles.iconButton,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.border,
-                  borderRadius: theme.radius.md,
-                  opacity: pressed ? 0.7 : 1,
-                },
-              ]}
-            >
-              <Ionicons
-                name={viewMode === 'gallery' ? 'list-outline' : 'grid-outline'}
-                size={18}
-                color={theme.colors.textMuted}
-              />
-            </Pressable>
-
-            <Button
-              title={t('discover.addBook')}
-              icon="add"
-              variant="secondary"
-              size="sm"
-              onPress={goToAdd}
+          <Pressable
+            onPress={() => setViewMode(viewMode === 'gallery' ? 'list' : 'gallery')}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={viewMode === 'gallery' ? t('library.viewList') : t('library.viewGallery')}
+            style={({ pressed }) => [
+              styles.iconButton,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+                borderRadius: theme.radius.md,
+                opacity: pressed ? 0.7 : 1,
+              },
+            ]}
+          >
+            <Ionicons
+              name={viewMode === 'gallery' ? 'list-outline' : 'grid-outline'}
+              size={18}
+              color={theme.colors.textMuted}
             />
-          </View>
+          </Pressable>
         </View>
 
         <View style={[styles.searchRow, { gap: theme.spacing.sm }]}>
@@ -403,7 +381,6 @@ const styles = StyleSheet.create({
   header: { gap: 8 },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   titleText: { flex: 1 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   iconButton: {
     width: 34,
     height: 34,
