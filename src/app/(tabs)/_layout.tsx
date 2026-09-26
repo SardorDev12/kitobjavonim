@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useSegments } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import PagerView from 'react-native-pager-view';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { goToTab, registerTabsPager, setActiveTabIndex, TAB_ROUTES, useActiveTabIndex, type TabRoute } from '@/features/tabs/activeTab';
@@ -14,6 +16,14 @@ import DiscoverScreen from './discover';
 import ReadingTrackerScreen from './index';
 import LibraryScreen from './library';
 import ProfileScreen from './profile';
+
+// The pager's own full-width swipe made ordinary vertical scrolling or
+// button taps in the middle of a tab misfire as a page change — swiping
+// between tabs now only works from a thin strip at each screen edge,
+// matching the iOS edge-swipe-back convention, with the pager's native
+// gesture (scrollEnabled below) turned off entirely.
+const EDGE_ZONE_WIDTH = 24;
+const EDGE_SWIPE_THRESHOLD = 48;
 
 const ICONS: Record<TabRoute, keyof typeof Ionicons.glyphMap> = {
   index: 'book-outline',
@@ -66,6 +76,23 @@ export default function TabsLayout() {
   }, []);
   const activeIndex = useActiveTabIndex();
 
+  function goToIndex(index: number) {
+    goToTab(TAB_ROUTES[Math.max(0, Math.min(TAB_ROUTES.length - 1, index))]);
+  }
+
+  // .onEnd runs as a worklet (reanimated is installed), so the actual page
+  // change — a call into the native pager through goToTab() — has to hop
+  // back to the JS thread via runOnJS. Recreated each render, which is the
+  // normal/cheap way to use Gesture.Pan(); it just means these always close
+  // over the activeIndex this render saw, which is exactly the one that
+  // matters at release time.
+  const leftEdgeSwipe = Gesture.Pan().onEnd((e) => {
+    if (e.translationX > EDGE_SWIPE_THRESHOLD) runOnJS(goToIndex)(activeIndex - 1);
+  });
+  const rightEdgeSwipe = Gesture.Pan().onEnd((e) => {
+    if (e.translationX < -EDGE_SWIPE_THRESHOLD) runOnJS(goToIndex)(activeIndex + 1);
+  });
+
   function labelFor(route: TabRoute): string {
     switch (route) {
       case 'index':
@@ -83,28 +110,38 @@ export default function TabsLayout() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <PagerView
-        ref={registerTabsPager}
-        style={{ flex: 1 }}
-        initialPage={initialPage}
-        onPageSelected={(e) => setActiveTabIndex(e.nativeEvent.position)}
-      >
-        <View key="index" style={{ flex: 1, backgroundColor: theme.colors.background }}>
-          <ReadingTrackerScreen />
-        </View>
-        <View key="library" style={{ flex: 1, backgroundColor: theme.colors.background }}>
-          <LibraryScreen />
-        </View>
-        <View key="discover" style={{ flex: 1, backgroundColor: theme.colors.background }}>
-          <DiscoverScreen />
-        </View>
-        <View key="add" style={{ flex: 1, backgroundColor: theme.colors.background }}>
-          <AddScreen />
-        </View>
-        <View key="profile" style={{ flex: 1, backgroundColor: theme.colors.background }}>
-          <ProfileScreen />
-        </View>
-      </PagerView>
+      <View style={{ flex: 1 }}>
+        <PagerView
+          ref={registerTabsPager}
+          style={{ flex: 1 }}
+          initialPage={initialPage}
+          scrollEnabled={false}
+          onPageSelected={(e) => setActiveTabIndex(e.nativeEvent.position)}
+        >
+          <View key="index" style={{ flex: 1, backgroundColor: theme.colors.background }}>
+            <ReadingTrackerScreen />
+          </View>
+          <View key="library" style={{ flex: 1, backgroundColor: theme.colors.background }}>
+            <LibraryScreen />
+          </View>
+          <View key="discover" style={{ flex: 1, backgroundColor: theme.colors.background }}>
+            <DiscoverScreen />
+          </View>
+          <View key="add" style={{ flex: 1, backgroundColor: theme.colors.background }}>
+            <AddScreen />
+          </View>
+          <View key="profile" style={{ flex: 1, backgroundColor: theme.colors.background }}>
+            <ProfileScreen />
+          </View>
+        </PagerView>
+
+        <GestureDetector gesture={leftEdgeSwipe}>
+          <View style={styles.edgeZoneLeft} />
+        </GestureDetector>
+        <GestureDetector gesture={rightEdgeSwipe}>
+          <View style={styles.edgeZoneRight} />
+        </GestureDetector>
+      </View>
 
       <View
         style={[
@@ -141,4 +178,6 @@ const styles = StyleSheet.create({
   bar: { flexDirection: 'row', borderTopWidth: StyleSheet.hairlineWidth, paddingTop: 6 },
   tabButton: { flex: 1, alignItems: 'center', gap: 2, paddingVertical: 4 },
   label: { fontSize: 11, fontWeight: '600' },
+  edgeZoneLeft: { position: 'absolute', left: 0, top: 0, bottom: 0, width: EDGE_ZONE_WIDTH },
+  edgeZoneRight: { position: 'absolute', right: 0, top: 0, bottom: 0, width: EDGE_ZONE_WIDTH },
 });
