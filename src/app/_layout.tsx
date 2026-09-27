@@ -5,6 +5,7 @@ import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client
 import { Stack, useRouter, usePathname, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
+import * as SystemUI from 'expo-system-ui';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, Platform, View, type AppStateStatus } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -190,6 +191,21 @@ function RootNavigator() {
   useEffect(() => {
     if (theme.modeLoaded) SplashScreen.hideAsync().catch(() => {});
   }, [theme.modeLoaded]);
+
+  // The root *native* view's background — distinct from the splash screen
+  // above (that's only shown once, at cold start) and from any RN-level
+  // `backgroundColor` style (those only paint once JS has actually laid
+  // out and rendered a frame). Without this, that native surface defaults
+  // to plain white, which is what's actually behind the "white flash"
+  // opening a book (or any other screen) briefly shows — the native-stack
+  // push transition creates the new screen's surface a moment before RN's
+  // first frame paints onto it, and on Android that gap reveals whatever
+  // is underneath. expo-system-ui is already linked (it's a default Expo
+  // package, not one newly added), so this is safe as a plain static import
+  // unlike expo-navigation-bar below.
+  useEffect(() => {
+    SystemUI.setBackgroundColorAsync(theme.colors.background).catch(() => {});
+  }, [theme.colors.background]);
 
   // Mandatory edge-to-edge (Expo SDK 54+) draws Android's system navigation
   // bar transparently over the app's own background, so its button/gesture-
