@@ -185,7 +185,6 @@ export const ru: LocaleCatalogue = {
   'book.reviewPlaceholder': 'Вы ещё не написали отзыв',
   'book.reviewPrivate': 'Виден только вам.',
   'book.notes': 'Заметки',
-  'book.markFinished': 'Отметить прочитанной',
   'book.writeReview': 'Написать отзыв',
   'book.editReview': 'Изменить отзыв',
   'book.deleteBook': 'Убрать из библиотеки',

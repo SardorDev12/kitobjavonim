@@ -179,7 +179,6 @@ export const en = {
   'book.reviewPlaceholder': "You haven't written a review yet",
   'book.reviewPrivate': 'Only you can see this.',
   'book.notes': 'Notes',
-  'book.markFinished': 'Mark as finished',
   'book.writeReview': 'Write a review',
   'book.editReview': 'Edit review',
   'book.deleteBook': 'Remove from library',

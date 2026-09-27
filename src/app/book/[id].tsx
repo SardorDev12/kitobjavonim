@@ -67,14 +67,21 @@ export default function BookDetailScreen() {
 
   // Free-text "where is this book" note — same reasoning as districtName in
   // onboarding.tsx/profile.tsx: entry loads async, so a plain useState
-  // initializer would run before it resolves. Initialized once, then it's
-  // this field's own local draft until it's blurred.
+  // initializer would run before it resolves. Re-synced whenever the
+  // server value changes, but only while the field still matches what it
+  // last synced to — otherwise a background refetch racing the focus-loss
+  // flush below (which saves, then invalidates, then refetches) could land
+  // *after* this screen remounts and clobber a value that already saved,
+  // with a stale one read moments earlier from cache.
   const [shelfNote, setShelfNote] = useState('');
-  const shelfNoteInitialized = useRef(false);
+  const lastSyncedShelfNoteRef = useRef<string | null>(null);
   useEffect(() => {
-    if (shelfNoteInitialized.current || !entry) return;
-    shelfNoteInitialized.current = true;
-    setShelfNote(entry.shelf_note ?? '');
+    if (!entry) return;
+    const serverValue = entry.shelf_note ?? '';
+    setShelfNote((current) =>
+      lastSyncedShelfNoteRef.current === null || current === lastSyncedShelfNoteRef.current ? serverValue : current
+    );
+    lastSyncedShelfNoteRef.current = serverValue;
   }, [entry]);
 
   // Refs so the focus-loss flush below always reads the latest values
@@ -277,41 +284,22 @@ export default function BookDetailScreen() {
           ) : null}
         </View>
 
-        {/* Review ----------------------------------------------------------- */}
-        <Card>
-          <SectionHeader
-            title={t('book.review')}
-            action={
-              entry.reading_status === 'finished' ? (
+        {/* Review — only once there's something to review; see changeStatus()
+            above for why leaving "finished" always clears rating/review too. */}
+        {entry.reading_status === 'finished' ? (
+          <Card>
+            <SectionHeader
+              title={t('book.review')}
+              action={
                 <Pressable onPress={() => setReviewOpen(true)} hitSlop={8}>
                   <Text variant="label" color="primary">
-                    {entry.review || entry.rating ? t('common.edit') : t('common.add')}
+                    {t('book.writeReview')}
                   </Text>
                 </Pressable>
-              ) : null
-            }
-          />
-
-          {entry.reading_status !== 'finished' ? (
-            <Text variant="caption" color="textSubtle">
-              {t('book.markFinished')}
-            </Text>
-          ) : (
-            <View style={{ gap: theme.spacing.sm }}>
-              {entry.rating ? <Rating value={entry.rating} readOnly size={18} /> : null}
-              {entry.review ? (
-                <Text variant="body">{entry.review}</Text>
-              ) : (
-                <Text variant="caption" color="textSubtle">
-                  {t('book.reviewPlaceholder')}
-                </Text>
-              )}
-              <Text variant="caption" color="textSubtle">
-                {t('book.reviewPrivate')}
-              </Text>
-            </View>
-          )}
-        </Card>
+              }
+            />
+          </Card>
+        ) : null}
 
         {/* Location --------------------------------------------------------- */}
         <View style={{ gap: theme.spacing.sm }}>
