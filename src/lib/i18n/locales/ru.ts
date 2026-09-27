@@ -182,7 +182,7 @@ export const ru: LocaleCatalogue = {
   'book.currentPageHint': 'из {{total}} страниц',
   'book.rating': 'Ваша оценка',
   'book.review': 'Ваш отзыв',
-  'book.reviewPlaceholder': 'Что вы думаете о книге?',
+  'book.reviewPlaceholder': 'Вы ещё не написали отзыв',
   'book.reviewPrivate': 'Виден только вам.',
   'book.notes': 'Заметки',
   'book.markFinished': 'Отметить прочитанной',

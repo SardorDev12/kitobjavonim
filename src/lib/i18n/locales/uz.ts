@@ -178,7 +178,7 @@ export const uz: LocaleCatalogue = {
   'book.currentPageHint': '{{total}} betdan',
   'book.rating': 'Bahoyingiz',
   'book.review': 'Sharhingiz',
-  'book.reviewPlaceholder': 'Fikringiz qanday?',
+  'book.reviewPlaceholder': 'Siz hali sharh yozmadingiz',
   'book.reviewPrivate': 'Buni faqat siz koʻrasiz.',
   'book.notes': 'Eslatmalar',
   'book.markFinished': 'Oʻqib tugatdim',

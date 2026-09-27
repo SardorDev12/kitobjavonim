@@ -176,7 +176,7 @@ export const en = {
   'book.currentPageHint': 'of {{total}} pages',
   'book.rating': 'Your rating',
   'book.review': 'Your review',
-  'book.reviewPlaceholder': 'What did you think?',
+  'book.reviewPlaceholder': "You haven't written a review yet",
   'book.reviewPrivate': 'Only you can see this.',
   'book.notes': 'Notes',
   'book.markFinished': 'Mark as finished',
