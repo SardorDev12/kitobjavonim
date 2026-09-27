@@ -1,13 +1,12 @@
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, Platform, StyleSheet, View } from 'react-native';
 
 import { Avatar, BackHeader, Button, Card, Screen, Select, Text, TextField, Toggle } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { hasContactMethod } from '@/lib/contactMethod';
 import { describeError } from '@/lib/errors';
 import { useI18n } from '@/lib/i18n';
-import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
 import { useImageDropZone } from '@/lib/useImageDropZone';
 import { useRemoveAvatar, useUploadAvatar } from '@/lib/queries/photos';
 import { useUpdateProfile } from '@/lib/queries/profile';
@@ -35,7 +34,6 @@ export default function EditProfileScreen() {
   const [phone, setPhone] = useState(profile?.phone ?? '');
   const [showPhone, setShowPhone] = useState(profile?.show_phone ?? false);
   const [error, setError] = useState<string | null>(null);
-  const scrollRef = useRef<ScrollView>(null);
 
   // Same reasoning as onboarding.tsx's identical effect: locations is a
   // separately-cached query that may still be loading on first mount, so
@@ -96,7 +94,6 @@ export default function EditProfileScreen() {
       <BackHeader />
       <Screen
         scroll
-        scrollRef={scrollRef}
         footer={
           <Button
             title={t('common.save')}
@@ -169,7 +166,6 @@ export default function EditProfileScreen() {
           value={bio}
           onChangeText={setBio}
           multiline
-          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <Select
@@ -191,7 +187,6 @@ export default function EditProfileScreen() {
           value={districtName}
           onChangeText={setDistrictName}
           editable={!!regionId}
-          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <View style={{ gap: theme.spacing.md }}>
@@ -205,7 +200,6 @@ export default function EditProfileScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             placeholder="username"
-            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
           />
 
           <Toggle
@@ -223,7 +217,6 @@ export default function EditProfileScreen() {
             keyboardType="phone-pad"
             inputMode="tel"
             placeholder="+998 90 123 45 67"
-            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
           />
 
           <Toggle

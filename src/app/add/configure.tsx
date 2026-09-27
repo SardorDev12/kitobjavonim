@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { BookCover } from '@/components/BookCover';
 import { CategoryPicker } from '@/components/CategoryPicker';
@@ -26,7 +26,6 @@ import { describeError } from '@/lib/errors';
 import { formatAuthors, parseAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
-import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
 import { useImageDropZone } from '@/lib/useImageDropZone';
 import { useSetBookCategories } from '@/lib/queries/categories';
 import { useHousehold } from '@/lib/queries/household';
@@ -303,7 +302,6 @@ function CandidateEditSheet({
   const [coverUploading, setCoverUploading] = useState(false);
   const [coverError, setCoverError] = useState<string | null>(null);
   const [titleError, setTitleError] = useState<string | null>(null);
-  const scrollRef = useRef<ScrollView>(null);
 
   async function pickCover() {
     if (!user || coverUploading) return;
@@ -358,7 +356,7 @@ function CandidateEditSheet({
   }
 
   return (
-    <Sheet visible={visible} onClose={onClose} title={t('add.editDetails')} scrollRef={scrollRef}>
+    <Sheet visible={visible} onClose={onClose} title={t('add.editDetails')}>
       <View style={{ gap: theme.spacing.lg }}>
         {/* The drop target is this outer View, not the Pressable inside it —
             react-native-web's Pressable wires its own pointer/hover handling
@@ -420,7 +418,6 @@ function CandidateEditSheet({
             if (titleError) setTitleError(null);
           }}
           error={titleError}
-          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <AuthorsField
@@ -428,7 +425,6 @@ function CandidateEditSheet({
           hint={t('manual.authorsHint')}
           value={authors}
           onChangeText={setAuthors}
-          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <TextField
@@ -438,7 +434,6 @@ function CandidateEditSheet({
           keyboardType="number-pad"
           inputMode="numeric"
           maxLength={5}
-          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <Button title={t('common.save')} fullWidth onPress={save} />

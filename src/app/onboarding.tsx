@@ -1,12 +1,11 @@
 import type { User } from '@supabase/supabase-js';
 import { useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { Button, Screen, Select, Text, TextField, Toggle } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { describeError } from '@/lib/errors';
 import { useI18n } from '@/lib/i18n';
-import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
 import { useUpdateProfile } from '@/lib/queries/profile';
 import { useCreateDistrict, useLocationOptions } from '@/lib/queries/reference';
 import { useTheme } from '@/theme';
@@ -47,7 +46,6 @@ export default function OnboardingScreen() {
   const [showPhone, setShowPhone] = useState(profile?.show_phone ?? false);
   const [error, setError] = useState<string | null>(null);
   const [skipping, setSkipping] = useState(false);
-  const scrollRef = useRef<ScrollView>(null);
 
   // locations (a separate, independently-cached query) may still be loading
   // the first time this screen mounts — right after sign-up, nothing else
@@ -108,11 +106,13 @@ export default function OnboardingScreen() {
   }
 
   return (
-    <Screen scroll scrollRef={scrollRef}>
+    <Screen scroll>
       {/* See sign-in.tsx's identical structure — no KeyboardAvoidingView
           here; it would be nested inside Screen's ScrollView, so it can't
-          affect what the ScrollView considers scrollable. Screen itself
-          handles the keyboard. */}
+          affect what the ScrollView considers scrollable. Screen provides
+          its own ScrollView ref to every TextField automatically
+          (ScrollRefContext), so each one scrolls itself above the keyboard
+          on focus with no wiring needed here at all. */}
       <View style={styles.flex}>
         <View style={[styles.container, { paddingTop: theme.spacing['3xl'], gap: theme.spacing.lg }]}>
           <View style={{ gap: theme.spacing.sm }}>
@@ -144,7 +144,6 @@ export default function OnboardingScreen() {
             value={districtName}
             onChangeText={setDistrictName}
             editable={!!regionId}
-            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
           />
 
           <TextField
@@ -155,9 +154,6 @@ export default function OnboardingScreen() {
             autoCapitalize="none"
             autoCorrect={false}
             placeholder="username"
-            // See sign-in.tsx's identical field — Android's ScrollView
-            // doesn't reliably bring a focused field into view on its own.
-            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
           />
 
           <Toggle
@@ -175,7 +171,6 @@ export default function OnboardingScreen() {
             keyboardType="phone-pad"
             inputMode="tel"
             placeholder="+998 90 123 45 67"
-            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
           />
 
           <Toggle

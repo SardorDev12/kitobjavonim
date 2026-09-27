@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 
 import { useI18n } from '@/lib/i18n';
+import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
+import { ScrollRefContext } from '@/lib/scrollRefContext';
 import { useTheme } from '@/theme';
 
 import { Text } from './Text';
@@ -39,6 +41,7 @@ export function TextField({
 }: TextFieldProps) {
   const theme = useTheme();
   const { t } = useI18n();
+  const scrollRef = useContext(ScrollRefContext);
   const [focused, setFocused] = useState(false);
   // Masked by default whenever the caller asks for secureTextEntry — this
   // state only flips it off temporarily, never changes the caller's intent.
@@ -94,6 +97,7 @@ export function TextField({
           multiline={multiline}
           onFocus={(e) => {
             setFocused(true);
+            if (scrollRef) scrollFieldAboveKeyboard(scrollRef, e);
             onFocus?.(e);
           }}
           onBlur={(e) => {

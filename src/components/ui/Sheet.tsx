@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import type { ReactNode, RefObject } from 'react';
+import { useRef, type ReactNode, type RefObject } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ScrollRefContext } from '@/lib/scrollRefContext';
 import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 import { useLayout, useTheme } from '@/theme';
 
@@ -16,11 +17,12 @@ export type SheetProps = {
   /** Caps the sheet height as a fraction of the window. */
   maxHeightRatio?: number;
   /**
-   * Exposes the internal ScrollView so a caller can scroll a focused field
-   * into view by hand — same reasoning as Screen's identical prop. A sheet's
-   * form fields are especially at risk of this: the sheet itself is already
-   * height-capped (`maxHeightRatio`), so there is even less room than a full
-   * screen for a field near the bottom to stay visible above the keyboard.
+   * Overrides the ScrollView ref this Sheet would otherwise create for
+   * itself and hand to every TextField inside it via ScrollRefContext (see
+   * that file) — same mechanism as Screen's identical prop. A sheet's form
+   * fields are especially at risk of a field near the bottom staying hidden
+   * behind the keyboard, since the sheet itself is already height-capped
+   * (`maxHeightRatio`).
    */
   scrollRef?: RefObject<ScrollView | null>;
 };
@@ -42,6 +44,8 @@ export function Sheet({ visible, onClose, title, children, maxHeightRatio = 0.85
   // ScrollView's content is exactly as tall as the (keyboard-capped) sheet,
   // keyboard or not.
   const keyboardHeight = useKeyboardHeight();
+  const ownScrollRef = useRef<ScrollView>(null);
+  const resolvedScrollRef = scrollRef ?? ownScrollRef;
 
   return (
     <Modal visible={visible} transparent animationType={isWide ? 'fade' : 'slide'} onRequestClose={onClose}>
@@ -94,8 +98,9 @@ export function Sheet({ visible, onClose, title, children, maxHeightRatio = 0.85
             </View>
           ) : null}
 
+          <ScrollRefContext.Provider value={resolvedScrollRef}>
           <ScrollView
-            ref={scrollRef}
+            ref={resolvedScrollRef}
             contentContainerStyle={{
               paddingHorizontal: theme.spacing.lg,
               paddingBottom: theme.spacing.lg + keyboardHeight,
@@ -104,6 +109,7 @@ export function Sheet({ visible, onClose, title, children, maxHeightRatio = 0.85
           >
             {children}
           </ScrollView>
+          </ScrollRefContext.Provider>
         </Pressable>
       </Pressable>
     </Modal>

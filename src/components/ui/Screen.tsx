@@ -1,7 +1,8 @@
-import type { ReactNode, RefObject } from 'react';
+import { useRef, type ReactNode, type RefObject } from 'react';
 import { Platform, RefreshControl, ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ScrollRefContext } from '@/lib/scrollRefContext';
 import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useLayout, useTheme } from '@/theme';
@@ -31,11 +32,12 @@ type ScreenProps = {
   onRefresh?: () => void;
   refreshing?: boolean;
   /**
-   * Exposes the underlying ScrollView so a caller can scroll a focused field
-   * into view by hand — Android's ScrollView doesn't reliably do this on its
-   * own the way iOS's does, especially now that KeyboardAvoidingView has to
-   * actively resize the viewport itself under edge-to-edge rather than the
-   * OS doing it. Requires `scroll`.
+   * Overrides the ScrollView ref this Screen would otherwise create for
+   * itself and hand to every TextField inside it via ScrollRefContext (see
+   * that file) — TextField uses whichever ref reaches it to scroll itself
+   * above the keyboard on focus. Only needed if a caller also wants to
+   * scroll this same ScrollView for some other reason; keyboard avoidance
+   * itself needs nothing passed here at all. Requires `scroll`.
    */
   scrollRef?: RefObject<ScrollView | null>;
 };
@@ -73,6 +75,8 @@ export function Screen({
     Platform.OS === 'android' ? Math.max(insets.bottom, MIN_ANDROID_BOTTOM_INSET) : insets.bottom;
   const keyboardHeight = useKeyboardHeight();
   const { pullDistance, handlers: pullHandlers } = usePullToRefresh(onRefresh ?? noop, refreshing);
+  const ownScrollRef = useRef<ScrollView>(null);
+  const resolvedScrollRef = scrollRef ?? ownScrollRef;
 
   const inner = (
     <View style={[styles.constrain, { maxWidth: maxContentWidth }, contentStyle]}>{children}</View>
@@ -81,8 +85,9 @@ export function Screen({
   return (
     <View style={[styles.root, { backgroundColor: theme.colors.background }, style]}>
       {scroll ? (
+        <ScrollRefContext.Provider value={resolvedScrollRef}>
         <ScrollView
-          ref={scrollRef}
+          ref={resolvedScrollRef}
           // A bare `flex: 1` here, and nothing else — without it a ScrollView
           // with no other height constraint sizes itself to its *content*
           // rather than to the space available in this flex-column root, on
@@ -114,6 +119,7 @@ export function Screen({
           {onRefresh ? <PullToRefreshIndicator pullDistance={pullDistance} refreshing={refreshing} /> : null}
           {inner}
         </ScrollView>
+        </ScrollRefContext.Provider>
       ) : (
         <View style={[styles.flex, { paddingHorizontal: padded ? theme.spacing.lg : 0 }]}>{inner}</View>
       )}

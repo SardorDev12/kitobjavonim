@@ -1,10 +1,9 @@
 import { Link, useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 
 import { Button, EmptyState, Screen, Text, TextField } from '@/components/ui';
 import { useI18n } from '@/lib/i18n';
-import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/theme';
 
@@ -20,7 +19,6 @@ export default function SignUpScreen() {
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
   const [confirmationSent, setConfirmationSent] = useState(false);
-  const scrollRef = useRef<ScrollView>(null);
 
   function validate() {
     const next: typeof fieldErrors = {};
@@ -73,7 +71,7 @@ export default function SignUpScreen() {
   }
 
   return (
-    <Screen scroll scrollRef={scrollRef}>
+    <Screen scroll>
       {/* See sign-in.tsx's identical structure — no KeyboardAvoidingView
           here; it would be nested inside Screen's ScrollView, so it can't
           affect what the ScrollView considers scrollable. Screen itself
@@ -113,9 +111,6 @@ export default function SignUpScreen() {
             error={fieldErrors.password}
             onSubmitEditing={submit}
             returnKeyType="go"
-            // See sign-in.tsx's identical field — Android's ScrollView
-            // doesn't reliably bring a focused field into view on its own.
-            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
           />
 
           {error ? (

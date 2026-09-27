@@ -1,11 +1,10 @@
-import { useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 
 import { BackHeader, Button, Card, Screen, Text, TextField } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { describeError } from '@/lib/errors';
 import { useI18n } from '@/lib/i18n';
-import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
 import { supabase } from '@/lib/supabase';
 import { useTheme } from '@/theme';
 
@@ -36,7 +35,6 @@ export default function SecurityScreen() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
-  const scrollRef = useRef<ScrollView>(null);
 
   function validate() {
     const next: typeof fieldErrors = {};
@@ -73,7 +71,7 @@ export default function SecurityScreen() {
   return (
     <View style={styles.fill}>
       <BackHeader />
-      <Screen scroll scrollRef={scrollRef}>
+      <Screen scroll>
         <View style={[styles.container, { gap: theme.spacing.lg, paddingTop: theme.spacing.xl }]}>
         <View style={{ gap: theme.spacing.sm }}>
           <Text variant="display">{t('security.title')}</Text>
@@ -103,7 +101,6 @@ export default function SecurityScreen() {
             inputMode="email"
             textContentType="emailAddress"
             error={fieldErrors.email}
-            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
           />
         )}
 
@@ -115,7 +112,6 @@ export default function SecurityScreen() {
           autoComplete="new-password"
           textContentType="newPassword"
           error={fieldErrors.password}
-          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <TextField
@@ -128,7 +124,6 @@ export default function SecurityScreen() {
           error={fieldErrors.confirm}
           onSubmitEditing={save}
           returnKeyType="go"
-          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         {!hasRealEmail ? (

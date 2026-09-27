@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
-import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { BookCover } from '@/components/BookCover';
 import { AuthorsField, BackHeader, Button, Screen, Text, TextField } from '@/components/ui';
@@ -12,7 +12,6 @@ import { describeError } from '@/lib/errors';
 import { parseAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
-import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
 import { scanCoverText } from '@/lib/ocr';
 import { findWishlistMatch, useWishlist } from '@/lib/queries/wishlist';
 import { useImageDropZone } from '@/lib/useImageDropZone';
@@ -45,7 +44,6 @@ export default function ManualEntryScreen() {
   const [coverError, setCoverError] = useState<string | null>(null);
   const [scanning, setScanning] = useState(false);
   const [scanMessage, setScanMessage] = useState<string | null>(null);
-  const scrollRef = useRef<ScrollView>(null);
 
   async function pickCover() {
     if (!user || coverUploading) return;
@@ -166,7 +164,6 @@ export default function ManualEntryScreen() {
       <BackHeader />
       <Screen
         scroll
-        scrollRef={scrollRef}
         footer={<Button title={t('common.next')} fullWidth onPress={next} disabled={!title.trim()} />}
       >
         <View style={[styles.container, { gap: theme.spacing.lg, paddingTop: theme.spacing.md }]}>
@@ -259,7 +256,6 @@ export default function ManualEntryScreen() {
           hint={t('manual.authorsHint')}
           value={authors}
           onChangeText={setAuthors}
-          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
 
         <TextField
@@ -269,7 +265,6 @@ export default function ManualEntryScreen() {
           keyboardType="number-pad"
           inputMode="numeric"
           maxLength={5}
-          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
         />
         </View>
       </Screen>
