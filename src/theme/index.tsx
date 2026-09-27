@@ -28,6 +28,15 @@ type Theme = {
   /** The user's stored preference — distinct from `scheme`, which is the resolved value 'system' maps to. */
   mode: ThemeMode;
   setMode: (mode: ThemeMode) => void;
+  /**
+   * False until the stored preference (or its absence) has been read from
+   * AsyncStorage — root _layout.tsx keeps the native splash screen up
+   * until this flips true, so a device with a stored 'dark'/'system'
+   * preference never briefly paints the `mode: 'light'` default first and
+   * flashes light-then-dark right after the (already scheme-correct)
+   * splash screen disappears.
+   */
+  modeLoaded: boolean;
   spacing: typeof spacing;
   radius: typeof radius;
   typography: typeof typography;
@@ -43,6 +52,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // happens to be in dark mode is not surprised by an unrequested dark site —
   // 'system' is available, but it is a choice, not the starting point.
   const [mode, setModeState] = useState<ThemeMode>('light');
+  const [modeLoaded, setModeLoaded] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,7 +62,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           setModeState(stored as ThemeMode);
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setModeLoaded(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -71,12 +84,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       scheme,
       mode,
       setMode,
+      modeLoaded,
       spacing,
       radius,
       typography,
       shadow,
     }),
-    [scheme, mode, setMode]
+    [scheme, mode, setMode, modeLoaded]
   );
 
   return <ThemeContext value={value}>{children}</ThemeContext>;

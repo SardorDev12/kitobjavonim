@@ -3,6 +3,7 @@ import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persi
 import { QueryClient, focusManager } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { Stack, useRouter, usePathname, useSegments } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, Platform, View, type AppStateStatus } from 'react-native';
@@ -23,6 +24,16 @@ import { UpdateAvailableModal } from '@/components/UpdateAvailableModal';
 import { AuthProvider, useAuth } from '@/features/auth/AuthProvider';
 import { I18nProvider, useI18n } from '@/lib/i18n';
 import { ThemeProvider, useTheme } from '@/theme';
+
+// Expo Router hides the native splash screen itself as soon as this module's
+// first render commits — before ThemeProvider's AsyncStorage read (below)
+// resolves. A device with a stored 'dark' (or 'system', with the OS in dark
+// mode) preference would then briefly paint the `mode: 'light'` default that
+// read hasn't overridden yet, right after the splash screen (whose own
+// background already tracks the OS scheme) disappears — read as a flash of
+// the wrong color for a moment. Holding the splash up ourselves until
+// `theme.modeLoaded` (see RootNavigator below) closes that gap instead.
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 /**
  * `gcTime` has to outlive `staleTime` for persistence to be worth anything: it
@@ -165,6 +176,13 @@ function RootNavigator() {
   useEffect(() => {
     setNavigationReady(true);
   }, []);
+
+  // See preventAutoHideAsync() above — once the theme's stored preference has
+  // actually been read, everything already on screen is in its final color
+  // and the splash screen can safely come down with nothing left to flash to.
+  useEffect(() => {
+    if (theme.modeLoaded) SplashScreen.hideAsync().catch(() => {});
+  }, [theme.modeLoaded]);
 
   // Mandatory edge-to-edge (Expo SDK 54+) draws Android's system navigation
   // bar transparently over the app's own background, so its button/gesture-
