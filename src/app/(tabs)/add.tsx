@@ -120,7 +120,13 @@ export default function AddScreen() {
       <FlatList
         data={results}
         keyExtractor={(item) => item.key}
-        keyboardShouldPersistTaps="handled"
+        // "handled" still lets the *first* tap on a result get eaten as a
+        // keyboard-dismiss instead of reaching the row's onPress — the
+        // search box is virtually always focused with the keyboard up
+        // right when someone taps a result here, unlike most other lists.
+        // "always" skips that negotiation entirely so the very first tap
+        // opens the book.
+        keyboardShouldPersistTaps="always"
         contentContainerStyle={[
           results.length === 0 && styles.fill,
           {
