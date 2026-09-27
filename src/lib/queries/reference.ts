@@ -126,7 +126,7 @@ export function useCreateDistrict() {
 // categories are no longer offered, so anything else in the table (an
 // older custom category someone made before that migration) is filtered
 // out here rather than shown as a stray, uneditable leftover.
-const APPROVED_CATEGORY_IDS = ['fiction-uz', 'science', 'religion', 'family', 'children'];
+const APPROVED_CATEGORY_IDS = ['fiction', 'science', 'religion', 'family', 'children'];
 
 export function useCategoryOptions() {
   const { locale } = useI18n();
