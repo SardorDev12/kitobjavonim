@@ -157,7 +157,6 @@ export const en = {
 
   'book.readingStatusLabel': 'Reading status',
   'book.details': 'Details',
-  'book.about': 'About this book',
   'book.yourCopy': 'Your copy',
   'book.language': 'Language',
   'book.pages': 'Pages',
@@ -206,7 +205,6 @@ export const en = {
   'book.contactRequired': 'Add a Telegram username or phone number to your profile before listing books.',
 
   'book.editDetails': 'Edit book details',
-  'book.subtitle': 'Subtitle',
 
   'book.categories': 'Categories',
   'book.categoryLimit': 'Up to {{count}} categories.',

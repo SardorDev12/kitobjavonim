@@ -179,6 +179,9 @@ export default function BookDetailScreen() {
 
     if (status === 'finished' && !entry!.date_finished) {
       patchProgress({ reading_status: status, date_finished: new Date().toISOString().slice(0, 10) });
+      // Prompt for a review right away rather than leaving it for the user
+      // to notice the now-available "Add" link on the Review card.
+      setReviewOpen(true);
       return;
     }
 
@@ -196,6 +199,10 @@ export default function BookDetailScreen() {
     }
 
     patchProgress({ reading_status: status });
+    // Reached only when re-marking an already-once-finished book as
+    // finished again (date_finished was already set) — same prompt as the
+    // first-time-finishing branch above.
+    if (status === 'finished') setReviewOpen(true);
   }
 
   function confirmDelete() {
@@ -408,22 +415,6 @@ export default function BookDetailScreen() {
             }
           />
         </Card>
-
-        {/* Book metadata ----------------------------------------------------
-            Editable by anyone who can see this entry at all (the owner, or
-            a household member on a shared copy) — since
-            0030_merge_books_into_user_books.sql there's no separate shared
-            catalog row with its own narrower "creator only" edit rule; this
-            book's own row is exactly this copy's row. */}
-        <Card padded={false}>
-          <View style={{ padding: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
-            <Text variant="heading">{t('book.about')}</Text>
-          </View>
-
-          {/* condition isn't repeated here — it's shown on the Listing card
-              above, the only place it's ever set now (ListingSheet). */}
-          <MetaRow label={t('book.pages')} value={entry.page_count?.toString()} />
-        </Card>
       </View>
 
       {/* Both sheets seed their form state from the entry on mount, so they are
@@ -510,7 +501,6 @@ function EditBookSheet({
   onClose: () => void;
   entry: {
     title: string;
-    subtitle: string | null;
     authors: string[];
     page_count: number | null;
     cover_url: string | null;
@@ -523,7 +513,6 @@ function EditBookSheet({
   const { user } = useAuth();
 
   const [title, setTitle] = useState(entry.title);
-  const [subtitle, setSubtitle] = useState(entry.subtitle ?? '');
   const [authors, setAuthors] = useState(entry.authors.join(', '));
   const [pages, setPages] = useState(entry.page_count?.toString() ?? '');
   const [coverUrl, setCoverUrl] = useState(entry.cover_url);
@@ -572,7 +561,6 @@ function EditBookSheet({
 
     onSave({
       title: title.trim(),
-      subtitle: subtitle.trim() || null,
       authors: parseAuthors(authors),
       page_count: Number.isFinite(parsedPages) && parsedPages > 0 ? parsedPages : null,
       cover_url: coverUrl,
@@ -646,12 +634,6 @@ function EditBookSheet({
           error={titleError}
         />
 
-        <TextField
-          label={t('book.subtitle')}
-          value={subtitle}
-          onChangeText={setSubtitle}
-        />
-
         <AuthorsField
           label={t('manual.authors')}
           hint={t('manual.authorsHint')}
@@ -671,25 +653,6 @@ function EditBookSheet({
         <Button title={t('common.save')} fullWidth onPress={save} />
       </View>
     </Sheet>
-  );
-}
-
-function MetaRow({ label, value }: { label: string; value?: string | null }) {
-  const theme = useTheme();
-  if (!value) return null;
-
-  return (
-    <>
-      <Divider />
-      <View style={[styles.metaRow, { paddingHorizontal: theme.spacing.lg, paddingVertical: theme.spacing.md }]}>
-        <Text variant="body" color="textMuted">
-          {label}
-        </Text>
-        <Text variant="body" style={styles.metaValue} numberOfLines={2}>
-          {value}
-        </Text>
-      </View>
-    </>
   );
 }
 
@@ -752,8 +715,6 @@ const styles = StyleSheet.create({
   hero: { flexDirection: 'row', alignItems: 'flex-start', paddingTop: 8 },
   heroText: { flex: 1, gap: 4 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 16 },
-  metaValue: { flex: 1, textAlign: 'right' },
   editCoverRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   editCoverAction: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 });

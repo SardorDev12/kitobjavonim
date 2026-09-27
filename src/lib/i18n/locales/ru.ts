@@ -161,7 +161,6 @@ export const ru: LocaleCatalogue = {
 
   'book.readingStatusLabel': 'Статус чтения',
   'book.details': 'Информация',
-  'book.about': 'О книге',
   'book.yourCopy': 'Ваш экземпляр',
   'book.language': 'Язык',
   'book.pages': 'Страниц',
@@ -213,7 +212,6 @@ export const ru: LocaleCatalogue = {
     'Добавьте Telegram или номер телефона в профиль, прежде чем выставлять книги.',
 
   'book.editDetails': 'Изменить сведения о книге',
-  'book.subtitle': 'Подзаголовок',
 
   'book.categories': 'Категории',
   'book.categoryLimit': 'Не более {{count}} категорий.',

@@ -159,7 +159,6 @@ export const uz: LocaleCatalogue = {
 
   'book.readingStatusLabel': 'Oʻqish holati',
   'book.details': 'Maʼlumotlar',
-  'book.about': 'Kitob haqida',
   'book.yourCopy': 'Sizdagi nusxa',
   'book.language': 'Til',
   'book.pages': 'Jami sahifalar',
@@ -209,7 +208,6 @@ export const uz: LocaleCatalogue = {
     'Kitob eʼlon qilishdan oldin profilingizga Telegram yoki telefon raqamini qoʻshing.',
 
   'book.editDetails': 'Kitob maʼlumotlarini tahrirlash',
-  'book.subtitle': 'Subtitr',
 
   'book.categories': 'Kategoriyalar',
   'book.categoryLimit': 'Koʻpi bilan {{count}} ta kategoriya.',
