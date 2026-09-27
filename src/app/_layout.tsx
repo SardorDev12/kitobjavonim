@@ -295,12 +295,20 @@ function RootNavigator() {
     );
   }
 
+  // auth/telegram-login and auth/callback run as real web pages (Platform.OS
+  // === 'web' is true) even when opened from the native app's own in-app
+  // browser sheet for the Telegram OAuth handoff — not a genuine website
+  // visit. InstallAppPrompt can't tell those apart on its own, so it's kept
+  // out of this route group entirely rather than nudging someone who
+  // already has the app to go install it, mid-sign-in.
+  const isAuthFlowRoute = (segments as readonly string[])[0] === 'auth';
+
   return (
     <>
       <StatusBar style={theme.scheme === 'dark' ? 'light' : 'dark'} />
       <OfflineBanner />
       <UpdateAvailableModal />
-      <InstallAppPrompt />
+      {isAuthFlowRoute ? null : <InstallAppPrompt />}
       <Stack
         screenOptions={{
           headerStyle: { backgroundColor: theme.colors.background },
