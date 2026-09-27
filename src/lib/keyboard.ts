@@ -31,6 +31,16 @@ type MeasurableScrollView = ScrollView & {
  * keyboard's actual on-screen position, and computes the one absolute
  * offset that puts the field right above it.
  */
+// useKeyboardHeight (Screen/Sheet) listens for this exact same event to grow
+// the ScrollView's bottom padding — the only reason a field on a form
+// shorter than the screen has anywhere to scroll into at all. That's a React
+// state update, so it needs a render to actually reach the native view;
+// this listener fires in the same synchronous dispatch of the same event
+// and would otherwise measure/scroll before that padding exists yet,
+// silently clamping the scroll short on exactly the forms that need it
+// most. This delay just gives that sibling update one turn to land first.
+const PADDING_SETTLE_DELAY = 50;
+
 export function scrollFieldAboveKeyboard(
   scrollRef: RefObject<ScrollView | null>,
   // TextInputProps.onFocus is typed against the looser TargetedEvent, not
@@ -42,25 +52,27 @@ export function scrollFieldAboveKeyboard(
   const subscription = Keyboard.addListener('keyboardDidShow', (keyboardEvent) => {
     subscription.remove();
 
-    const scrollView = scrollRef.current;
-    const contentHandle = scrollView?.getInnerViewNode();
-    if (!scrollView || !contentHandle) return;
+    setTimeout(() => {
+      const scrollView = scrollRef.current;
+      const contentHandle = scrollView?.getInnerViewNode();
+      if (!scrollView || !contentHandle) return;
 
-    (scrollView as MeasurableScrollView).measure((_x, _y, _width, _height, _pageX, viewportPageY) => {
-      UIManager.measureLayout(
-        fieldHandle,
-        contentHandle,
-        () => {},
-        (_fieldX, fieldContentY, _fieldWidth, fieldHeight) => {
-          const target =
-            viewportPageY +
-            fieldContentY +
-            fieldHeight -
-            keyboardEvent.endCoordinates.screenY +
-            KEYBOARD_MARGIN;
-          scrollView.scrollTo({ y: Math.max(target, 0), animated: true });
-        }
-      );
-    });
+      (scrollView as MeasurableScrollView).measure((_x, _y, _width, _height, _pageX, viewportPageY) => {
+        UIManager.measureLayout(
+          fieldHandle,
+          contentHandle,
+          () => {},
+          (_fieldX, fieldContentY, _fieldWidth, fieldHeight) => {
+            const target =
+              viewportPageY +
+              fieldContentY +
+              fieldHeight -
+              keyboardEvent.endCoordinates.screenY +
+              KEYBOARD_MARGIN;
+            scrollView.scrollTo({ y: Math.max(target, 0), animated: true });
+          }
+        );
+      });
+    }, PADDING_SETTLE_DELAY);
   });
 }
