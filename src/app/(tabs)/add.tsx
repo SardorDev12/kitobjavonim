@@ -195,7 +195,14 @@ function CandidateRow({ candidate, onPress }: { candidate: BookCandidate; onPres
 
   return (
     <Pressable
-      onPress={onPress}
+      // onPressIn, not onPress: onPress only fires after a full press-and-
+      // release is resolved through the responder/keyboard-dismiss
+      // negotiation triggered by tapping away from the still-focused search
+      // box (see keyboardShouldPersistTaps="always" above) — on at least
+      // one device that resolution still ate the first tap as a dismiss
+      // regardless. onPressIn fires the instant the finger goes down, ahead
+      // of any of that, so the first tap always opens the book.
+      onPressIn={onPress}
       accessibilityRole="button"
       style={({ pressed }) => [
         styles.row,
