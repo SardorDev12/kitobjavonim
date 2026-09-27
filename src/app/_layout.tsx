@@ -57,8 +57,15 @@ const queryClient = new QueryClient({
  * per-response row cap) — a device that already had the old, truncated
  * `library.list(...)` result persisted needed this the same way the
  * categories case above did, not just a plain refetch.
+ *
+ * Bumped again for 0032-0035_*.sql (categories pruned from 6 to 5, custom
+ * categories removed, fiction-uz renamed to fiction, "Bolalar adabiyoti"
+ * shortened) — a device that fetched `reference.categories` before those
+ * migrations ran would otherwise keep showing the old 6-category list
+ * with the old labels for up to REFERENCE_STALE_TIME (24h), same gap as
+ * both cases above.
  */
-const CACHE_BUSTER = '3';
+const CACHE_BUSTER = '4';
 
 const persister = createAsyncStoragePersister({
   storage: AsyncStorage,
