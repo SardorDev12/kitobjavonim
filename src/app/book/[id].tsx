@@ -179,9 +179,6 @@ export default function BookDetailScreen() {
 
     if (status === 'finished' && !entry!.date_finished) {
       patchProgress({ reading_status: status, date_finished: new Date().toISOString().slice(0, 10) });
-      // Prompt for a review right away rather than leaving it for the user
-      // to notice the now-available "Add" link on the Review card.
-      setReviewOpen(true);
       return;
     }
 
@@ -199,10 +196,6 @@ export default function BookDetailScreen() {
     }
 
     patchProgress({ reading_status: status });
-    // Reached only when re-marking an already-once-finished book as
-    // finished again (date_finished was already set) — same prompt as the
-    // first-time-finishing branch above.
-    if (status === 'finished') setReviewOpen(true);
   }
 
   function confirmDelete() {
