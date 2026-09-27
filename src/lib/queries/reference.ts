@@ -122,12 +122,21 @@ export function useCreateDistrict() {
   });
 }
 
+// The fixed 5-category taxonomy (0032_prune_categories.sql) — custom
+// categories are no longer offered, so anything else in the table (an
+// older custom category someone made before that migration) is filtered
+// out here rather than shown as a stray, uneditable leftover.
+const APPROVED_CATEGORY_IDS = ['fiction-uz', 'science', 'religion', 'family', 'children'];
+
 export function useCategoryOptions() {
   const { locale } = useI18n();
   const { data } = useCategories();
 
   return useMemo(
-    () => (data ?? []).map((row) => ({ value: row.id, label: localizedName(row, locale) })),
+    () =>
+      (data ?? [])
+        .filter((row) => APPROVED_CATEGORY_IDS.includes(row.id))
+        .map((row) => ({ value: row.id, label: localizedName(row, locale) })),
     [data, locale]
   );
 }

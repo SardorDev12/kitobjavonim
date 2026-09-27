@@ -1,15 +1,15 @@
 import { useState } from 'react';
-import { View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import { describeError } from '@/lib/errors';
 import { parsePriceInput } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import type { UpdateUserBookInput } from '@/lib/queries/library';
 import { useTheme } from '@/theme';
-import type { AvailabilityType } from '@/types/database';
+import { BOOK_CONDITIONS, type AvailabilityType, type BookCondition } from '@/types/database';
 
 import { PhotoManager } from './PhotoManager';
-import { Button, Card, Divider, Sheet, Text, TextField, Toggle } from './ui';
+import { Button, Card, Chip, Divider, Sheet, Text, TextField, Toggle } from './ui';
 
 /**
  * The listing editor — shared by book/[id].tsx (the owner's private view)
@@ -40,7 +40,7 @@ export function ListingSheet({
     price_negotiable: boolean;
     exchange_preferences: string | null;
     sale_description: string | null;
-    condition: string | null;
+    condition: BookCondition | null;
   };
   canList: boolean;
   onOpenProfile: () => void;
@@ -59,6 +59,7 @@ export function ListingSheet({
   const [negotiable, setNegotiable] = useState(entry.price_negotiable);
   const [preferences, setPreferences] = useState(entry.exchange_preferences ?? '');
   const [description, setDescription] = useState(entry.sale_description ?? '');
+  const [condition, setCondition] = useState<BookCondition | null>(entry.condition);
   const [error, setError] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
@@ -90,6 +91,7 @@ export function ListingSheet({
         price_negotiable: forSale ? negotiable : false,
         exchange_preferences: forExchange ? preferences.trim() || null : null,
         sale_description: forSale ? description.trim() || null : null,
+        condition,
       });
       onClose();
     } catch (cause) {
@@ -163,6 +165,24 @@ export function ListingSheet({
 
         <Divider />
 
+        <View style={{ gap: theme.spacing.sm }}>
+          <Text variant="label" color="textMuted">
+            {t('condition.label')}
+          </Text>
+          <View style={styles.chips}>
+            {BOOK_CONDITIONS.map((option) => (
+              <Chip
+                key={option}
+                label={t(`condition.${option}`)}
+                selected={condition === option}
+                onPress={() => setCondition(condition === option ? null : option)}
+              />
+            ))}
+          </View>
+        </View>
+
+        <Divider />
+
         <PhotoManager userBookId={entry.id} />
 
         {error ? (
@@ -176,3 +196,7 @@ export function ListingSheet({
     </Sheet>
   );
 }
+
+const styles = StyleSheet.create({
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+});

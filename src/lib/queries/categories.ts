@@ -79,28 +79,3 @@ export function useSetBookCategories() {
     },
   });
 }
-
-/**
- * Resolves a typed name to a category id, creating it if no category (built-in
- * or this user's own earlier custom one) already has that name — case-
- * insensitively. See find_or_create_category() in 0022_custom_categories.sql
- * (rewritten 0026_private_custom_categories.sql); this is the only way a new
- * categories row is ever created from the client.
- */
-export function useCreateCategory() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (name: string): Promise<string> => {
-      const { data, error } = await supabase.rpc('find_or_create_category', { p_name: name });
-      if (error) throw error;
-      return data as string;
-    },
-    onSuccess: () => {
-      // The new (or reused) category isn't in this client's 24h-cached
-      // reference.ts list yet; invalidating forces a refetch despite that
-      // staleTime — it only governs implicit refetches, not this one.
-      queryClient.invalidateQueries({ queryKey: queryKeys.reference.categories });
-    },
-  });
-}

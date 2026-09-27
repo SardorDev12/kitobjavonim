@@ -4,12 +4,12 @@ import { useRef, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { BookCover } from '@/components/BookCover';
-import { AuthorsField, BackHeader, Button, Screen, Select, Text, TextField } from '@/components/ui';
+import { AuthorsField, BackHeader, Button, Screen, Text, TextField } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { setPendingBook } from '@/features/add/pendingBook';
 import { emptyCandidate, type BookCandidate } from '@/lib/books/metadata';
 import { describeError } from '@/lib/errors';
-import { normalizeIsbn, parseAuthors } from '@/lib/format';
+import { parseAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
 import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
@@ -27,30 +27,17 @@ import { useLayout, useTheme } from '@/theme';
  * title is required, and everything else can be filled in later from the book's
  * own detail screen.
  */
-const LANGUAGE_OPTIONS = [
-  { value: 'uz', label: 'Oʻzbekcha' },
-  { value: 'ru', label: 'Русский' },
-  { value: 'en', label: 'English' },
-  { value: 'kaa', label: 'Qaraqalpaqsha' },
-  { value: 'tr', label: 'Türkçe' },
-  { value: 'ar', label: 'العربية' },
-];
-
 export default function ManualEntryScreen() {
   const theme = useTheme();
   const { isWide } = useLayout();
   const { t } = useI18n();
   const router = useRouter();
-  const params = useLocalSearchParams<{ isbn?: string; title?: string }>();
+  const params = useLocalSearchParams<{ title?: string }>();
   const { user } = useAuth();
   const { data: wishlist } = useWishlist();
 
   const [title, setTitle] = useState(params.title ?? '');
   const [authors, setAuthors] = useState('');
-  const [isbn, setIsbn] = useState(params.isbn ?? '');
-  const [publisher, setPublisher] = useState('');
-  const [year, setYear] = useState('');
-  const [language, setLanguage] = useState<string | null>(null);
   const [pages, setPages] = useState('');
   const [titleError, setTitleError] = useState<string | null>(null);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
@@ -144,20 +131,12 @@ export default function ManualEntryScreen() {
       return;
     }
 
-    const normalizedIsbn = normalizeIsbn(isbn);
-    const parsedYear = Number(year);
     const parsedPages = Number(pages);
 
     const candidate: BookCandidate = {
       ...emptyCandidate(),
       title: title.trim(),
       authors: parseAuthors(authors),
-      isbn13: normalizedIsbn.length === 13 ? normalizedIsbn : null,
-      isbn10: normalizedIsbn.length === 10 ? normalizedIsbn : null,
-      publisher: publisher.trim() || null,
-      publication_year:
-        Number.isFinite(parsedYear) && parsedYear >= 1400 && parsedYear <= 2200 ? parsedYear : null,
-      language,
       page_count: Number.isFinite(parsedPages) && parsedPages > 0 ? parsedPages : null,
       cover_url: coverUrl,
     };
@@ -284,53 +263,13 @@ export default function ManualEntryScreen() {
         />
 
         <TextField
-          label={t('manual.isbn')}
-          value={isbn}
-          onChangeText={setIsbn}
-          keyboardType="numbers-and-punctuation"
-          autoCapitalize="none"
-          autoCorrect={false}
+          label={t('manual.pages')}
+          value={pages}
+          onChangeText={setPages}
+          keyboardType="number-pad"
+          inputMode="numeric"
+          maxLength={5}
           onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
-        />
-
-        <TextField
-          label={t('manual.publisher')}
-          value={publisher}
-          onChangeText={setPublisher}
-          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
-        />
-
-        <View style={[styles.pair, { gap: theme.spacing.md }]}>
-          <TextField
-            label={t('manual.year')}
-            value={year}
-            onChangeText={setYear}
-            keyboardType="number-pad"
-            inputMode="numeric"
-            maxLength={4}
-            containerStyle={styles.pairItem}
-            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
-          />
-          <TextField
-            label={t('manual.pages')}
-            value={pages}
-            onChangeText={setPages}
-            keyboardType="number-pad"
-            inputMode="numeric"
-            maxLength={5}
-            containerStyle={styles.pairItem}
-            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
-          />
-        </View>
-
-        <Select
-          label={t('manual.language')}
-          placeholder={t('common.none')}
-          value={language}
-          options={LANGUAGE_OPTIONS}
-          onChange={setLanguage}
-          clearable
-          clearLabel={t('common.none')}
         />
         </View>
       </Screen>
@@ -341,8 +280,6 @@ export default function ManualEntryScreen() {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   container: { maxWidth: 560, width: '100%', alignSelf: 'center' },
-  pair: { flexDirection: 'row' },
-  pairItem: { flex: 1 },
   coverRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   coverAction: { flexDirection: 'row', alignItems: 'center', gap: 6 },
 });

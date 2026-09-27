@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { BookCover } from '@/components/BookCover';
@@ -18,7 +18,6 @@ import {
   LoadingState,
   Rating,
   Screen,
-  Select,
   SectionHeader,
   Sheet,
   Text,
@@ -29,7 +28,7 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { goToTab } from '@/features/tabs/activeTab';
 import { hasContactMethod } from '@/lib/contactMethod';
 import { describeError } from '@/lib/errors';
-import { formatAuthors, formatDate, formatPrice, normalizeIsbn, parseAuthors } from '@/lib/format';
+import { formatAuthors, formatDate, formatPrice, parseAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
 import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
@@ -44,7 +43,7 @@ import {
   type UpdateUserBookInput,
 } from '@/lib/queries/library';
 import { useLayout, useTheme } from '@/theme';
-import { BOOK_CONDITIONS, READING_STATUSES, type ReadingStatus } from '@/types/database';
+import { READING_STATUSES, type ReadingStatus } from '@/types/database';
 
 export default function BookDetailScreen() {
   const theme = useTheme();
@@ -78,6 +77,33 @@ export default function BookDetailScreen() {
     shelfNoteInitialized.current = true;
     setShelfNote(entry.shelf_note ?? '');
   }, [entry]);
+
+  // Refs so the focus-loss flush below always reads the latest values
+  // without needing to re-register (and re-fire) the listener every time
+  // entry refetches or the mutation object gets a new identity.
+  const shelfNoteRef = useRef(shelfNote);
+  shelfNoteRef.current = shelfNote;
+  const entryRef = useRef(entry);
+  entryRef.current = entry;
+  const updateBookRef = useRef(updateBook);
+  updateBookRef.current = updateBook;
+
+  // The location TextField's own onBlur save (below) misses a back
+  // navigation that never blurs the input first — Android's back
+  // gesture/button doesn't reliably fire that blur before the screen
+  // unmounts, silently dropping the edit. Flushing on the *screen* losing
+  // focus, not the input, catches every way of leaving this page.
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        const current = entryRef.current;
+        const trimmed = shelfNoteRef.current.trim();
+        if (current && trimmed !== (current.shelf_note ?? '')) {
+          updateBookRef.current.mutate({ id: current.id, patch: { shelf_note: trimmed || null } });
+        }
+      };
+    }, [])
+  );
 
   // A page loaded directly (a deep link, or a browser refresh — both routine
   // on web) has no in-app navigation history to pop, so router.back() alone
@@ -395,11 +421,9 @@ export default function BookDetailScreen() {
             <Text variant="heading">{t('book.about')}</Text>
           </View>
 
-          <MetaRow label={t('book.isbn')} value={entry.isbn13} />
-          <MetaRow label={t('book.publisher')} value={entry.publisher} />
-          <MetaRow label={t('book.year')} value={entry.publication_year?.toString()} />
+          {/* condition isn't repeated here — it's shown on the Listing card
+              above, the only place it's ever set now (ListingSheet). */}
           <MetaRow label={t('book.pages')} value={entry.page_count?.toString()} />
-          <MetaRow label={t('condition.label')} value={entry.condition ? t(`condition.${entry.condition}`) : null} />
         </Card>
       </View>
 
@@ -477,15 +501,6 @@ export default function BookDetailScreen() {
 
 // -----------------------------------------------------------------------------
 
-const EDIT_LANGUAGE_OPTIONS = [
-  { value: 'uz', label: 'Oʻzbekcha' },
-  { value: 'ru', label: 'Русский' },
-  { value: 'en', label: 'English' },
-  { value: 'kaa', label: 'Qaraqalpaqsha' },
-  { value: 'tr', label: 'Türkçe' },
-  { value: 'ar', label: 'العربية' },
-];
-
 function EditBookSheet({
   visible,
   onClose,
@@ -498,10 +513,6 @@ function EditBookSheet({
     title: string;
     subtitle: string | null;
     authors: string[];
-    isbn13: string | null;
-    publisher: string | null;
-    publication_year: number | null;
-    language: string | null;
     page_count: number | null;
     cover_url: string | null;
   };
@@ -515,10 +526,6 @@ function EditBookSheet({
   const [title, setTitle] = useState(entry.title);
   const [subtitle, setSubtitle] = useState(entry.subtitle ?? '');
   const [authors, setAuthors] = useState(entry.authors.join(', '));
-  const [isbn, setIsbn] = useState(entry.isbn13 ?? '');
-  const [publisher, setPublisher] = useState(entry.publisher ?? '');
-  const [year, setYear] = useState(entry.publication_year?.toString() ?? '');
-  const [language, setLanguage] = useState<string | null>(entry.language);
   const [pages, setPages] = useState(entry.page_count?.toString() ?? '');
   const [coverUrl, setCoverUrl] = useState(entry.cover_url);
   const [coverUploading, setCoverUploading] = useState(false);
@@ -563,19 +570,12 @@ function EditBookSheet({
       return;
     }
 
-    const normalizedIsbn = normalizeIsbn(isbn);
-    const parsedYear = Number(year);
     const parsedPages = Number(pages);
 
     onSave({
       title: title.trim(),
       subtitle: subtitle.trim() || null,
       authors: parseAuthors(authors),
-      isbn13: normalizedIsbn.length === 13 ? normalizedIsbn : entry.isbn13,
-      publisher: publisher.trim() || null,
-      publication_year:
-        Number.isFinite(parsedYear) && parsedYear >= 1400 && parsedYear <= 2200 ? parsedYear : null,
-      language,
       page_count: Number.isFinite(parsedPages) && parsedPages > 0 ? parsedPages : null,
       cover_url: coverUrl,
     });
@@ -665,53 +665,13 @@ function EditBookSheet({
         />
 
         <TextField
-          label={t('manual.isbn')}
-          value={isbn}
-          onChangeText={setIsbn}
-          keyboardType="numbers-and-punctuation"
-          autoCapitalize="none"
-          autoCorrect={false}
+          label={t('manual.pages')}
+          value={pages}
+          onChangeText={setPages}
+          keyboardType="number-pad"
+          inputMode="numeric"
+          maxLength={5}
           onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
-        />
-
-        <TextField
-          label={t('manual.publisher')}
-          value={publisher}
-          onChangeText={setPublisher}
-          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
-        />
-
-        <View style={[styles.pair, { gap: theme.spacing.md }]}>
-          <TextField
-            label={t('manual.year')}
-            value={year}
-            onChangeText={setYear}
-            keyboardType="number-pad"
-            inputMode="numeric"
-            maxLength={4}
-            containerStyle={styles.pairItem}
-            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
-          />
-          <TextField
-            label={t('manual.pages')}
-            value={pages}
-            onChangeText={setPages}
-            keyboardType="number-pad"
-            inputMode="numeric"
-            maxLength={5}
-            containerStyle={styles.pairItem}
-            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
-          />
-        </View>
-
-        <Select
-          label={t('manual.language')}
-          placeholder={t('common.none')}
-          value={language}
-          options={EDIT_LANGUAGE_OPTIONS}
-          onChange={setLanguage}
-          clearable
-          clearLabel={t('common.none')}
         />
 
         <Button title={t('common.save')} fullWidth onPress={save} />
@@ -802,6 +762,4 @@ const styles = StyleSheet.create({
   metaValue: { flex: 1, textAlign: 'right' },
   editCoverRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   editCoverAction: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  pair: { flexDirection: 'row' },
-  pairItem: { flex: 1 },
 });

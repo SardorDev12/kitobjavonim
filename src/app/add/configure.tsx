@@ -13,7 +13,6 @@ import {
   Chip,
   EmptyState,
   Screen,
-  Select,
   Sheet,
   Text,
   TextField,
@@ -24,7 +23,7 @@ import { setPendingBook, usePendingBook } from '@/features/add/pendingBook';
 import { goToTab } from '@/features/tabs/activeTab';
 import type { BookCandidate } from '@/lib/books/metadata';
 import { describeError } from '@/lib/errors';
-import { formatAuthors, normalizeIsbn, parseAuthors } from '@/lib/format';
+import { formatAuthors, parseAuthors } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { pickAndUploadBookCover, uploadDroppedBookCover } from '@/lib/images';
 import { scrollFieldAboveKeyboard } from '@/lib/keyboard';
@@ -34,19 +33,12 @@ import { useHousehold } from '@/lib/queries/household';
 import { useAddBook, useLibrary } from '@/lib/queries/library';
 import { isSameWishlistBook, useAddWishlistItem, useDeleteWishlistItem, useWishlist } from '@/lib/queries/wishlist';
 import { useLayout, useTheme } from '@/theme';
-import { BOOK_CONDITIONS, READING_STATUSES, type BookCondition, type ReadingStatus } from '@/types/database';
-
-const LANGUAGE_OPTIONS = [
-  { value: 'uz', label: 'Oʻzbekcha' },
-  { value: 'ru', label: 'Русский' },
-  { value: 'en', label: 'English' },
-  { value: 'kaa', label: 'Qaraqalpaqsha' },
-  { value: 'tr', label: 'Türkçe' },
-  { value: 'ar', label: 'العربية' },
-];
+import { READING_STATUSES, type ReadingStatus } from '@/types/database';
 
 /**
- * The last step of adding a book: reading status, condition, and where it lives.
+ * The last step of adding a book: reading status, categories, and where it
+ * lives. Condition isn't asked here — it's only ever relevant once a copy
+ * is actually listed for exchange/sale (ListingSheet), not on every add.
  *
  * Everything here has a sensible default so the whole screen can be dismissed
  * with a single tap on "Add to library" — which is what keeps the flow inside
@@ -68,7 +60,6 @@ export default function ConfigureScreen() {
 
   const [shelfNote, setShelfNote] = useState('');
   const [status, setStatus] = useState<ReadingStatus>('want_to_read');
-  const [condition, setCondition] = useState<BookCondition | null>(null);
   const [categoryIds, setCategoryIds] = useState<string[]>([]);
   // Sharing is the point of being in a household, so it starts on — see
   // 0015_households.sql's design notes on per-row opt-in sharing.
@@ -111,7 +102,9 @@ export default function ConfigureScreen() {
         candidate,
         shelfNote,
         readingStatus: status,
-        condition,
+        // Condition is only ever asked at listing time now (ListingSheet) —
+        // a book that isn't for exchange/sale has no reason to be rated.
+        condition: null,
         householdId: household && shareBook ? household.household.id : null,
       });
 
@@ -215,12 +208,6 @@ export default function ConfigureScreen() {
                 {formatAuthors(candidate.authors)}
               </Text>
             ) : null}
-            {candidate.publisher || candidate.publication_year ? (
-              <Text variant="caption" color="textSubtle">
-                {[candidate.publisher, candidate.publication_year].filter(Boolean).join(' · ')}
-              </Text>
-            ) : null}
-
             {/* External metadata (Google Books/OpenLibrary) is often wrong
                 for regional or translated editions. Editing here always adds
                 (or keeps) this as the user's own entry rather than rewriting
@@ -255,22 +242,6 @@ export default function ConfigureScreen() {
                 label={t(`status.${option}`)}
                 selected={status === option}
                 onPress={() => setStatus(option)}
-              />
-            ))}
-          </View>
-        </View>
-
-        <View style={{ gap: theme.spacing.sm }}>
-          <Text variant="label" color="textMuted">
-            {t('condition.label')}
-          </Text>
-          <View style={styles.chips}>
-            {BOOK_CONDITIONS.map((option) => (
-              <Chip
-                key={option}
-                label={t(`condition.${option}`)}
-                selected={condition === option}
-                onPress={() => setCondition(condition === option ? null : option)}
               />
             ))}
           </View>
@@ -327,10 +298,6 @@ function CandidateEditSheet({
 
   const [title, setTitle] = useState(candidate.title);
   const [authors, setAuthors] = useState(candidate.authors.join(', '));
-  const [isbn, setIsbn] = useState(candidate.isbn13 ?? candidate.isbn10 ?? '');
-  const [publisher, setPublisher] = useState(candidate.publisher ?? '');
-  const [year, setYear] = useState(candidate.publication_year?.toString() ?? '');
-  const [language, setLanguage] = useState<string | null>(candidate.language);
   const [pages, setPages] = useState(candidate.page_count?.toString() ?? '');
   const [coverUrl, setCoverUrl] = useState(candidate.cover_url);
   const [coverUploading, setCoverUploading] = useState(false);
@@ -375,19 +342,14 @@ function CandidateEditSheet({
       return;
     }
 
-    const normalizedIsbn = normalizeIsbn(isbn);
-    const parsedYear = Number(year);
     const parsedPages = Number(pages);
 
+    // isbn13/isbn10/publisher/publication_year/language are deliberately left
+    // out — whatever the search result carried for those stays as-is, since
+    // there's no field here to change them anymore.
     onSave({
       title: title.trim(),
       authors: parseAuthors(authors),
-      isbn13: normalizedIsbn.length === 13 ? normalizedIsbn : null,
-      isbn10: normalizedIsbn.length === 10 ? normalizedIsbn : null,
-      publisher: publisher.trim() || null,
-      publication_year:
-        Number.isFinite(parsedYear) && parsedYear >= 1400 && parsedYear <= 2200 ? parsedYear : null,
-      language,
       page_count: Number.isFinite(parsedPages) && parsedPages > 0 ? parsedPages : null,
       cover_url: coverUrl,
     });
@@ -470,53 +432,13 @@ function CandidateEditSheet({
         />
 
         <TextField
-          label={t('manual.isbn')}
-          value={isbn}
-          onChangeText={setIsbn}
-          keyboardType="numbers-and-punctuation"
-          autoCapitalize="none"
-          autoCorrect={false}
+          label={t('manual.pages')}
+          value={pages}
+          onChangeText={setPages}
+          keyboardType="number-pad"
+          inputMode="numeric"
+          maxLength={5}
           onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
-        />
-
-        <TextField
-          label={t('manual.publisher')}
-          value={publisher}
-          onChangeText={setPublisher}
-          onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
-        />
-
-        <View style={[styles.pair, { gap: theme.spacing.md }]}>
-          <TextField
-            label={t('manual.year')}
-            value={year}
-            onChangeText={setYear}
-            keyboardType="number-pad"
-            inputMode="numeric"
-            maxLength={4}
-            containerStyle={styles.pairItem}
-            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
-          />
-          <TextField
-            label={t('manual.pages')}
-            value={pages}
-            onChangeText={setPages}
-            keyboardType="number-pad"
-            inputMode="numeric"
-            maxLength={5}
-            containerStyle={styles.pairItem}
-            onFocus={(e) => scrollFieldAboveKeyboard(scrollRef, e)}
-          />
-        </View>
-
-        <Select
-          label={t('manual.language')}
-          placeholder={t('common.none')}
-          value={language}
-          options={LANGUAGE_OPTIONS}
-          onChange={setLanguage}
-          clearable
-          clearLabel={t('common.none')}
         />
 
         <Button title={t('common.save')} fullWidth onPress={save} />
@@ -532,6 +454,4 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   editCoverRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   editCoverAction: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  pair: { flexDirection: 'row' },
-  pairItem: { flex: 1 },
 });

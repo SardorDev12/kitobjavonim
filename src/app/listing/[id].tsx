@@ -256,17 +256,6 @@ export default function ListingDetailScreen() {
             />
           )}
         </Card>
-
-        {listing.publisher || listing.publication_year || listing.isbn13 ? (
-          <View style={{ gap: 4 }}>
-            <Text variant="label" color="textMuted">
-              {t('book.about')}
-            </Text>
-            <Text variant="caption" color="textSubtle">
-              {[listing.publisher, listing.publication_year, listing.isbn13].filter(Boolean).join(' · ')}
-            </Text>
-          </View>
-        ) : null}
       </View>
 
       <ContactSheet
