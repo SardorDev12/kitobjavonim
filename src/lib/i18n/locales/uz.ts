@@ -181,7 +181,7 @@ export const uz: LocaleCatalogue = {
   'book.reviewPlaceholder': 'Siz hali sharh yozmadingiz',
   'book.reviewPrivate': 'Buni faqat siz koʻrasiz.',
   'book.notes': 'Eslatmalar',
-  'book.markFinished': 'Oʻqib tugatdim',
+  'book.markFinished': "Kitobni 'Oʻqilgan' deb belgilang",
   'book.writeReview': 'Sharh yozish',
   'book.editReview': 'Sharhni tahrirlash',
   'book.deleteBook': 'Kutubxonadan olib tashlash',
