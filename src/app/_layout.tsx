@@ -75,8 +75,15 @@ const queryClient = new QueryClient({
  * migrations ran would otherwise keep showing the old 6-category list
  * with the old labels for up to REFERENCE_STALE_TIME (24h), same gap as
  * both cases above.
+ *
+ * Bumped again on request after another "app isn't updating" report — no
+ * backend/data change actually needs this round (today's fixes are all
+ * component/JS behavior, not query results), so this bump alone can't be
+ * what fixes it if the JS bundle itself hasn't updated on-device yet; see
+ * expo-updates' own check-on-launch/apply-on-*next*-launch behavior for
+ * that. Kept anyway since it's harmless and rules the query cache out.
  */
-const CACHE_BUSTER = '4';
+const CACHE_BUSTER = '5';
 
 const persister = createAsyncStoragePersister({
   storage: AsyncStorage,
