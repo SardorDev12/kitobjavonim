@@ -9,7 +9,17 @@
 
 export const palette = {
   light: {
-    background: '#FFFFFF',
+    // Matches the native splash screen's own configured background
+    // (app.config.js's expo-splash-screen plugin) exactly — that native
+    // view is baked into the installed binary and can't be changed by an
+    // OTA update, so this side of the mismatch is the only one JS can
+    // actually fix. It was '#FFFFFF' (pure white), which doesn't match the
+    // splash's '#F5EFE4' at all: every cold launch, in light mode, showed
+    // the correctly-colored splash cutting straight to a *visibly whiter*
+    // background the instant it hid, a real, deterministic color-jump
+    // flash independent of any loading race — not the aged-paper tone
+    // the rest of this palette (surface, borders, skeleton, etc.) uses.
+    background: '#F5EFE4',
     surface: '#FFFDF8',
     surfaceSunken: '#F0E9DB',
     surfaceRaised: '#FFFFFF',
@@ -41,7 +51,9 @@ export const palette = {
     skeleton: '#EAE1D2',
   },
   dark: {
-    background: '#17130F',
+    // Same fix as light.background above, matched to the splash's
+    // configured dark backgroundColor ('#1A1714') instead of '#17130F'.
+    background: '#1A1714',
     surface: '#211C16',
     surfaceSunken: '#100D0A',
     surfaceRaised: '#2A241D',
