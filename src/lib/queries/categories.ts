@@ -4,6 +4,42 @@ import { supabase } from '@/lib/supabase';
 
 import { queryKeys } from './keys';
 
+// PostgREST's .in() filter travels in the request URL — see library.ts's own
+// identical chunk() for why a whole library's worth of ids can't go in one
+// request. The stats page's category breakdown is the one other place that
+// hands book_categories a bulk list of ids, so it needs the same chunking.
+const CATEGORY_LOOKUP_CHUNK_SIZE = 150;
+
+/**
+ * How many of the given copies carry each category — the stats page's
+ * category breakdown. `book_categories` is publicly selectable (see
+ * 0030_merge_books_into_user_books.sql), so this queries it directly by id
+ * rather than needing a join/RLS path scoped to the signed-in user: the
+ * caller already knows these ids are theirs (they came from useLibrary()).
+ */
+export function useLibraryCategoryCounts(userBookIds: string[]) {
+  const sortedIds = [...userBookIds].sort();
+
+  return useQuery({
+    queryKey: queryKeys.reference.categoryCounts(sortedIds),
+    enabled: sortedIds.length > 0,
+    queryFn: async (): Promise<Record<string, number>> => {
+      const counts: Record<string, number> = {};
+
+      for (let i = 0; i < sortedIds.length; i += CATEGORY_LOOKUP_CHUNK_SIZE) {
+        const batch = sortedIds.slice(i, i + CATEGORY_LOOKUP_CHUNK_SIZE);
+        const { data, error } = await supabase.from('book_categories').select('category_id').in('user_book_id', batch);
+        if (error) throw error;
+        for (const row of data as { category_id: string }[]) {
+          counts[row.category_id] = (counts[row.category_id] ?? 0) + 1;
+        }
+      }
+
+      return counts;
+    },
+  });
+}
+
 /**
  * Categories currently attached to a copy.
  *

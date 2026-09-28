@@ -3,6 +3,7 @@ export const queryKeys = {
   reference: {
     locations: ['reference', 'locations'] as const,
     categories: ['reference', 'categories'] as const,
+    categoryCounts: (userBookIds: string[]) => ['reference', 'categoryCounts', userBookIds] as const,
   },
   library: {
     all: ['library'] as const,
@@ -34,5 +35,8 @@ export const queryKeys = {
   wishlist: {
     all: ['wishlist'] as const,
     list: (userId: string) => ['wishlist', 'list', userId] as const,
+  },
+  readingActivity: {
+    mine: (userId: string) => ['readingActivity', 'mine', userId] as const,
   },
 } as const;

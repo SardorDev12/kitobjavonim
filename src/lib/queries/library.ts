@@ -273,6 +273,23 @@ export function useUpdateReadingProgress() {
         .from('reading_progress')
         .upsert({ user_book_id: userBookId, user_id: user.id, ...patch }, { onConflict: 'user_book_id,user_id' });
       if (error) throw error;
+
+      // Reading-stats streak (0036_reading_stats_extras.sql) — reading_progress
+      // itself only ever holds the *latest* state, not a history of which days
+      // it changed, so this is the only place that can log "touched reading
+      // progress today" as it happens. Best-effort: a failed log must never
+      // undo the save above, and ignoreDuplicates means a second update the
+      // same day is a harmless no-op rather than an error.
+      try {
+        await supabase
+          .from('reading_activity')
+          .upsert(
+            { user_id: user.id, activity_date: new Date().toISOString().slice(0, 10) },
+            { onConflict: 'user_id,activity_date', ignoreDuplicates: true }
+          );
+      } catch {
+        // Best-effort — see comment above.
+      }
     },
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
@@ -281,6 +298,7 @@ export function useUpdateReadingProgress() {
       if (user) {
         queryClient.invalidateQueries({ queryKey: queryKeys.profile.stats(user.id) });
         queryClient.invalidateQueries({ queryKey: queryKeys.plan.status(user.id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.readingActivity.mine(user.id) });
       }
     },
   });

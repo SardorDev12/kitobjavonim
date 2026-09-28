@@ -94,7 +94,7 @@ export default function ReadingTrackerScreen() {
             accessibilityLabel={t('reading.statsTitle')}
             style={{ padding: theme.spacing.xs }}
           >
-            <Ionicons name="stats-chart-outline" size={22} color={theme.colors.text} />
+            <Ionicons name="star-outline" size={22} color={theme.colors.text} />
           </Pressable>
         </View>
 

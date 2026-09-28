@@ -49,6 +49,7 @@ export type ProfilePatch = Partial<
     | 'show_telegram'
     | 'preferred_locale'
     | 'onboarded_at'
+    | 'reading_goal_books'
   >
 >;
 

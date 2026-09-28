@@ -48,6 +48,8 @@ export type Profile = {
   onboarded_at: string | null;
   plan: 'free' | 'pro';
   plan_expires_at: string | null;
+  /** Optional personal target ("read 20 books this year") — the reading-stats page's goal card. */
+  reading_goal_books: number | null;
   /** Set directly in the database, never client-writable — gates /admin/reports. */
   is_admin: boolean;
   created_at: string;
