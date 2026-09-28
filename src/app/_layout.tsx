@@ -452,6 +452,7 @@ function RootNavigator({ updateChecked }: { updateChecked: boolean }) {
         <Stack.Screen name="add/configure" options={{ headerShown: false, title: '' }} />
         <Stack.Screen name="library/import" options={{ headerShown: false, title: '' }} />
         <Stack.Screen name="wishlist/index" options={{ headerShown: false, title: '' }} />
+        <Stack.Screen name="reading/stats" options={{ headerShown: false, title: '' }} />
         <Stack.Screen name="wishlist/add" options={{ headerShown: false, title: '' }} />
         <Stack.Screen name="wishlist/[id]" options={{ headerShown: false, title: '' }} />
         <Stack.Screen name="settings/profile" options={{ headerShown: false, title: '' }} />

@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { isWithinInterval, startOfMonth, startOfWeek, startOfYear } from 'date-fns';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Alert, FlatList, Platform, Pressable, StyleSheet, View } from 'react-native';
@@ -12,6 +11,7 @@ import { goToTab } from '@/features/tabs/activeTab';
 import { formatAuthors, formatDate } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { selectLibrary, useLibrary, useUpdateReadingProgress, useUpdateUserBook } from '@/lib/queries/library';
+import { computeReadingStats } from '@/lib/readingStats';
 import { useLayout, useTheme } from '@/theme';
 import type { LibraryEntry } from '@/types/database';
 
@@ -29,11 +29,11 @@ export default function ReadingTrackerScreen() {
   const theme = useTheme();
   const { maxContentWidth } = useLayout();
   const { t } = useI18n();
+  const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const { data: library, isPending } = useLibrary();
   const [activeEntry, setActiveEntry] = useState<LibraryEntry | null>(null);
-  const [statsOpen, setStatsOpen] = useState(false);
   const [search, setSearch] = useState('');
 
   // date_started rather than updated_at: it's always set the moment a copy
@@ -50,7 +50,7 @@ export default function ReadingTrackerScreen() {
   );
   const [heroEntry, ...restInProgress] = inProgress;
 
-  const finishedStats = useMemo(() => computeFinishedStats(library ?? []), [library]);
+  const stats = useMemo(() => computeReadingStats(library ?? []), [library]);
 
   // Books that match the search and aren't already being read — those are
   // what the in-progress list above is for. "Not found" here means "not in
@@ -88,7 +88,7 @@ export default function ReadingTrackerScreen() {
             </Text>
           </View>
           <Pressable
-            onPress={() => setStatsOpen(true)}
+            onPress={() => router.push('/reading/stats')}
             hitSlop={12}
             accessibilityRole="button"
             accessibilityLabel={t('reading.statsTitle')}
@@ -101,12 +101,12 @@ export default function ReadingTrackerScreen() {
         {inProgress.length > 0 ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
             <StatChip icon="book-outline" count={inProgress.length} label={t('reading.statInProgress')} theme={theme} />
-            {finishedStats.month > 0 ? (
+            {stats.finished.month > 0 ? (
               <>
                 <View style={{ width: 3, height: 3, borderRadius: 2, backgroundColor: theme.colors.border }} />
                 <StatChip
                   icon="checkmark-circle-outline"
-                  count={finishedStats.month}
+                  count={stats.finished.month}
                   label={t('reading.statFinishedMonth')}
                   theme={theme}
                 />
@@ -188,7 +188,6 @@ export default function ReadingTrackerScreen() {
     </View>
 
       <ProgressSheet visible={activeEntry !== null} onClose={() => setActiveEntry(null)} entry={activeEntry} />
-      <StatsSheet visible={statsOpen} onClose={() => setStatsOpen(false)} stats={finishedStats} />
     </View>
   );
 }
@@ -655,57 +654,3 @@ function ProgressSheetForm({
   );
 }
 
-type FinishedStats = { week: number; month: number; year: number; allTime: number };
-
-/**
- * Books finished this week/month/year, and all-time — computed client-side
- * from the already-cached library rather than a new query, same reasoning
- * as the in-progress list above. Lifted out of StatsSheet so the header's
- * "finished this month" stat chip can share the same computation.
- */
-function computeFinishedStats(library: LibraryEntry[]): FinishedStats {
-  const now = new Date();
-  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
-  const monthStart = startOfMonth(now);
-  const yearStart = startOfYear(now);
-
-  const finishedDates = library
-    .filter((entry) => entry.reading_status === 'finished' && entry.date_finished)
-    .map((entry) => new Date(entry.date_finished!));
-
-  const count = (start: Date) => finishedDates.filter((date) => isWithinInterval(date, { start, end: now })).length;
-
-  return {
-    week: count(weekStart),
-    month: count(monthStart),
-    year: count(yearStart),
-    allTime: finishedDates.length,
-  };
-}
-
-function StatsSheet({ visible, onClose, stats }: { visible: boolean; onClose: () => void; stats: FinishedStats }) {
-  const theme = useTheme();
-  const { t } = useI18n();
-
-  return (
-    <Sheet visible={visible} onClose={onClose} title={t('reading.statsTitle')}>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.lg }}>
-        <StatTile label={t('reading.statsWeek')} value={stats.week} />
-        <StatTile label={t('reading.statsMonth')} value={stats.month} />
-        <StatTile label={t('reading.statsYear')} value={stats.year} />
-        <StatTile label={t('reading.statsAllTime')} value={stats.allTime} />
-      </View>
-    </Sheet>
-  );
-}
-
-function StatTile({ label, value }: { label: string; value: number }) {
-  return (
-    <View style={{ width: '45%', gap: 2 }}>
-      <Text variant="title">{value}</Text>
-      <Text variant="caption" color="textMuted">
-        {label}
-      </Text>
-    </View>
-  );
-}

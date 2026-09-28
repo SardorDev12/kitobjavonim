@@ -58,6 +58,11 @@ export function formatMonthYear(value: string | Date | null | undefined, locale:
   return format(date, 'LLLL yyyy', { locale: dateLocales[locale] });
 }
 
+/** Short month label ("Sen", "Sep") — the stats page's monthly chart axis. */
+export function formatMonthShort(value: Date, locale: Locale): string {
+  return format(value, 'LLL', { locale: dateLocales[locale] });
+}
+
 /** Reference tables carry one column per language; pick the right one. */
 export function localizedName(
   row: { name_uz: string; name_ru: string; name_en: string } | null | undefined,
