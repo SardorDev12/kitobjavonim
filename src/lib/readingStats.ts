@@ -2,21 +2,17 @@ import { endOfYear, isWithinInterval, startOfMonth, startOfWeek, startOfYear, su
 
 import type { LibraryEntry } from '@/types/database';
 
-export type BookRef = { id: string; title: string };
-
 export type ReadingStats = {
   totals: { library: number; reading: number; wantToRead: number; finished: number };
   finished: { week: number; month: number; year: number; lastYear: number; allTime: number };
   pagesRead: number;
+  /** Not shown on the page itself — only feeds the "share my year" summary. */
   avgRating: number | null;
   ratedCount: number;
   /** Index 0 = one-star count, ... index 4 = five-star count. */
   ratingDistribution: [number, number, number, number, number];
-  avgDaysToFinish: number | null;
+  /** Not shown on the page itself — only feeds the "share my year" summary. */
   topAuthor: { name: string; count: number } | null;
-  longestBook: (BookRef & { pages: number }) | null;
-  shortestBook: (BookRef & { pages: number }) | null;
-  fastestFinish: (BookRef & { days: number }) | null;
   /** Finished-book counts for the trailing MONTHLY_CHART_MONTHS months, oldest first. */
   monthly: { monthStart: Date; count: number }[];
 };
@@ -56,30 +52,6 @@ export function computeReadingStats(library: LibraryEntry[]): ReadingStats {
     ratingDistribution[star - 1] += 1;
   }
 
-  const pacedEntries = finishedEntries
-    .filter((entry) => entry.date_started && entry.date_finished)
-    .map((entry) => ({
-      entry,
-      days: Math.max(
-        0,
-        Math.round((new Date(entry.date_finished!).getTime() - new Date(entry.date_started!).getTime()) / 86_400_000)
-      ),
-    }));
-  const avgDaysToFinish = pacedEntries.length
-    ? Math.round(pacedEntries.reduce((sum, { days }) => sum + days, 0) / pacedEntries.length)
-    : null;
-
-  // A same-day finish (days === 0) isn't a meaningful "fastest" to show off —
-  // it usually just means someone logged the whole book at once rather than
-  // actually reading it in under a day, so it's excluded rather than always
-  // winning "fastest finish" by construction.
-  let fastestFinish: (BookRef & { days: number }) | null = null;
-  for (const { entry, days } of pacedEntries) {
-    if (days > 0 && (!fastestFinish || days < fastestFinish.days)) {
-      fastestFinish = { id: entry.id, title: entry.title, days };
-    }
-  }
-
   const authorCounts = new Map<string, number>();
   for (const entry of finishedEntries) {
     for (const author of entry.authors) {
@@ -91,18 +63,6 @@ export function computeReadingStats(library: LibraryEntry[]): ReadingStats {
     // First one wins on a tie — Map preserves insertion order, which here
     // is finished-date order, so a tie favors whichever was finished first.
     if (!topAuthor || count > topAuthor.count) topAuthor = { name, count };
-  }
-
-  let longestBook: (BookRef & { pages: number }) | null = null;
-  let shortestBook: (BookRef & { pages: number }) | null = null;
-  for (const entry of finishedEntries) {
-    if (!entry.page_count) continue;
-    if (!longestBook || entry.page_count > longestBook.pages) {
-      longestBook = { id: entry.id, title: entry.title, pages: entry.page_count };
-    }
-    if (!shortestBook || entry.page_count < shortestBook.pages) {
-      shortestBook = { id: entry.id, title: entry.title, pages: entry.page_count };
-    }
   }
 
   const monthly = Array.from({ length: MONTHLY_CHART_MONTHS }, (_, i) => {
@@ -131,11 +91,7 @@ export function computeReadingStats(library: LibraryEntry[]): ReadingStats {
     avgRating,
     ratedCount: ratedEntries.length,
     ratingDistribution,
-    avgDaysToFinish,
     topAuthor,
-    longestBook,
-    shortestBook,
-    fastestFinish,
     monthly,
   };
 }

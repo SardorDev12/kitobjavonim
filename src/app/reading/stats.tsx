@@ -4,21 +4,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, Share, View } from 'react-native';
 
 import { BookCover } from '@/components/BookCover';
-import {
-  BackHeader,
-  Button,
-  Card,
-  Chip,
-  Divider,
-  EmptyState,
-  LoadingState,
-  Rating,
-  Screen,
-  SectionHeader,
-  Sheet,
-  Text,
-  TextField,
-} from '@/components/ui';
+import { BackHeader, Button, Card, EmptyState, LoadingState, Rating, Screen, SectionHeader, Sheet, Text, TextField } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { formatAuthors, formatDate, formatMonthShort } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
@@ -27,20 +13,16 @@ import { useLibrary } from '@/lib/queries/library';
 import { useUpdateProfile } from '@/lib/queries/profile';
 import { useReadingActivity } from '@/lib/queries/readingActivity';
 import { useCategoryOptions } from '@/lib/queries/reference';
-import { computeReadingStats, computeStreak, type BookRef } from '@/lib/readingStats';
+import { computeReadingStats, computeStreak } from '@/lib/readingStats';
 import { useTheme } from '@/theme';
 import type { LibraryEntry } from '@/types/database';
-
-const RATING_FILTER_VALUES = [5, 4, 3, 2, 1] as const;
 
 /**
  * The full reading-stats page — was a bottom sheet with four numbers
  * (finished this week/month/year/all-time) before; now its own page with a
- * personal reading goal, a streak, library totals, habits (pages, pace,
- * favorite author, longest/shortest/fastest reads), a rating distribution,
+ * personal reading goal, a streak, library totals, a rating distribution,
  * a category breakdown, a monthly trend, a year-over-year comparison, a
- * shareable summary, and the finished shelf itself — filterable and
- * openable with a tap.
+ * shareable summary, and the finished shelf itself, tap-to-open.
  */
 export default function ReadingStatsScreen() {
   const theme = useTheme();
@@ -66,28 +48,6 @@ export default function ReadingStatsScreen() {
   const categoryOptions = useCategoryOptions();
 
   const [goalOpen, setGoalOpen] = useState(false);
-  const [yearFilter, setYearFilter] = useState<number | null>(null);
-  const [ratingFilter, setRatingFilter] = useState<number | null>(null);
-  const [search, setSearch] = useState('');
-
-  const finishedYears = useMemo(() => {
-    const years = new Set(finishedBooks.filter((e) => e.date_finished).map((e) => new Date(e.date_finished!).getFullYear()));
-    return [...years].sort((a, b) => b - a);
-  }, [finishedBooks]);
-
-  const filteredFinishedBooks = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    return finishedBooks.filter((entry) => {
-      if (yearFilter != null && (!entry.date_finished || new Date(entry.date_finished).getFullYear() !== yearFilter)) {
-        return false;
-      }
-      if (ratingFilter != null && entry.rating !== ratingFilter) return false;
-      if (term && !entry.title.toLowerCase().includes(term) && !entry.authors.some((a) => a.toLowerCase().includes(term))) {
-        return false;
-      }
-      return true;
-    });
-  }, [finishedBooks, yearFilter, ratingFilter, search]);
 
   function shareYear() {
     const year = new Date().getFullYear();
@@ -125,24 +85,22 @@ export default function ReadingStatsScreen() {
       <BackHeader />
       <Screen scroll>
         <View style={{ gap: theme.spacing.xl, paddingBottom: theme.spacing.lg }}>
-          <View style={{ gap: theme.spacing.xs }}>
-            <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: theme.spacing.md }}>
-              <View style={{ flex: 1, gap: theme.spacing.xs }}>
-                <Text variant="display">{t('reading.statsTitle')}</Text>
-                <Text variant="body" color="textMuted">
-                  {t('reading.statsSubtitle')}
-                </Text>
-              </View>
-              <Pressable
-                onPress={shareYear}
-                hitSlop={12}
-                accessibilityRole="button"
-                accessibilityLabel={t('reading.statsShare')}
-                style={{ padding: theme.spacing.xs }}
-              >
-                <Ionicons name="share-social-outline" size={22} color={theme.colors.text} />
-              </Pressable>
+          <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: theme.spacing.md }}>
+            <View style={{ flex: 1, gap: theme.spacing.xs }}>
+              <Text variant="display">{t('reading.statsTitle')}</Text>
+              <Text variant="body" color="textMuted">
+                {t('reading.statsSubtitle')}
+              </Text>
             </View>
+            <Pressable
+              onPress={shareYear}
+              hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel={t('reading.statsShare')}
+              style={{ padding: theme.spacing.xs }}
+            >
+              <Ionicons name="share-social-outline" size={22} color={theme.colors.text} />
+            </Pressable>
           </View>
 
           <GoalCard
@@ -154,90 +112,34 @@ export default function ReadingStatsScreen() {
           <StreakCard streak={streak} />
 
           <View style={{ gap: theme.spacing.sm }}>
-            <SectionHeader title={t('reading.statsPeriod')} />
+            <SectionHeader title={t('reading.statsPeriod')} icon="calendar-outline" />
             <Card>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.lg }}>
-                <StatTile label={t('reading.statsWeek')} value={stats.finished.week} />
-                <StatTile label={t('reading.statsMonth')} value={stats.finished.month} />
-                <StatTile label={t('reading.statsYear')} value={stats.finished.year} />
-                <StatTile label={t('reading.statsLastYear')} value={stats.finished.lastYear} />
-                <StatTile label={t('reading.statsAllTime')} value={stats.finished.allTime} />
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: theme.spacing.lg }}>
+                <StatTile icon="today-outline" label={t('reading.statsWeek')} value={stats.finished.week} />
+                <StatTile icon="calendar-outline" label={t('reading.statsMonth')} value={stats.finished.month} />
+                <StatTile icon="calendar-number-outline" label={t('reading.statsYear')} value={stats.finished.year} />
+                <StatTile icon="time-outline" label={t('reading.statsLastYear')} value={stats.finished.lastYear} />
+                <StatTile icon="infinite-outline" label={t('reading.statsAllTime')} value={stats.finished.allTime} />
               </View>
             </Card>
           </View>
 
           <View style={{ gap: theme.spacing.sm }}>
-            <SectionHeader title={t('reading.statsLibrary')} />
+            <SectionHeader title={t('reading.statsLibrary')} icon="library-outline" />
             <Card>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.lg }}>
-                <StatTile label={t('reading.statsTotalBooks')} value={stats.totals.library} />
-                <StatTile label={t('reading.statInProgress')} value={stats.totals.reading} />
-                <StatTile label={t('library.filter.want_to_read')} value={stats.totals.wantToRead} />
-                <StatTile label={t('reading.statsFinishedBooks')} value={stats.totals.finished} />
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: theme.spacing.lg }}>
+                <StatTile icon="library-outline" label={t('reading.statsTotalBooks')} value={stats.totals.library} />
+                <StatTile icon="book-outline" label={t('reading.statInProgress')} value={stats.totals.reading} />
+                <StatTile icon="bookmark-outline" label={t('library.filter.want_to_read')} value={stats.totals.wantToRead} />
+                <StatTile icon="checkmark-done-outline" label={t('reading.statsFinishedBooks')} value={stats.totals.finished} />
+                <StatTile icon="document-text-outline" label={t('reading.statsPagesRead')} value={stats.pagesRead} />
               </View>
-            </Card>
-          </View>
-
-          <View style={{ gap: theme.spacing.sm }}>
-            <SectionHeader title={t('reading.statsHabits')} />
-            <Card padded={false}>
-              <HabitRow
-                icon="document-text-outline"
-                label={t('reading.statsPagesRead')}
-                value={stats.pagesRead > 0 ? stats.pagesRead.toLocaleString() : '—'}
-              />
-              <Divider inset={theme.spacing.lg} />
-              <HabitRow
-                icon="star-outline"
-                label={t('reading.statsAvgRating')}
-                value={stats.avgRating != null ? `${stats.avgRating.toFixed(1)} / 5` : '—'}
-              />
-              <Divider inset={theme.spacing.lg} />
-              <HabitRow
-                icon="time-outline"
-                label={t('reading.statsAvgPace')}
-                value={stats.avgDaysToFinish != null ? t('reading.statsDays', { count: stats.avgDaysToFinish }) : '—'}
-              />
-              <Divider inset={theme.spacing.lg} />
-              <HabitRow
-                icon="person-outline"
-                label={t('reading.statsTopAuthor')}
-                value={stats.topAuthor ? `${stats.topAuthor.name} (${stats.topAuthor.count})` : '—'}
-              />
-              <Divider inset={theme.spacing.lg} />
-              <HabitRow
-                icon="book-outline"
-                label={t('reading.statsLongestBook')}
-                value={stats.longestBook ? `${stats.longestBook.title} (${stats.longestBook.pages})` : '—'}
-                book={stats.longestBook}
-                onPress={(id) => router.push(`/book/${id}`)}
-              />
-              <Divider inset={theme.spacing.lg} />
-              <HabitRow
-                icon="book-outline"
-                label={t('reading.statsShortestBook')}
-                value={stats.shortestBook ? `${stats.shortestBook.title} (${stats.shortestBook.pages})` : '—'}
-                book={stats.shortestBook}
-                onPress={(id) => router.push(`/book/${id}`)}
-              />
-              <Divider inset={theme.spacing.lg} />
-              <HabitRow
-                icon="flash-outline"
-                label={t('reading.statsFastestFinish')}
-                value={
-                  stats.fastestFinish
-                    ? `${stats.fastestFinish.title} (${t('reading.statsDays', { count: stats.fastestFinish.days })})`
-                    : '—'
-                }
-                book={stats.fastestFinish}
-                onPress={(id) => router.push(`/book/${id}`)}
-              />
             </Card>
           </View>
 
           {stats.ratedCount > 0 ? (
             <View style={{ gap: theme.spacing.sm }}>
-              <SectionHeader title={t('reading.statsRatingDistribution')} />
+              <SectionHeader title={t('reading.statsRatingDistribution')} icon="star-outline" />
               <Card>
                 <View style={{ gap: theme.spacing.sm }}>
                   {[5, 4, 3, 2, 1].map((star) => {
@@ -273,7 +175,7 @@ export default function ReadingStatsScreen() {
 
           {categoryEntries.length > 0 ? (
             <View style={{ gap: theme.spacing.sm }}>
-              <SectionHeader title={t('reading.statsCategories')} />
+              <SectionHeader title={t('reading.statsCategories')} icon="pricetag-outline" />
               <Card>
                 <View style={{ gap: theme.spacing.sm }}>
                   {categoryEntries.map((category) => (
@@ -305,7 +207,7 @@ export default function ReadingStatsScreen() {
 
           {stats.totals.finished > 0 ? (
             <View style={{ gap: theme.spacing.sm }}>
-              <SectionHeader title={t('reading.statsMonthlyTrend')} />
+              <SectionHeader title={t('reading.statsMonthlyTrend')} icon="trending-up-outline" />
               <Card>
                 <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: theme.spacing.sm, height: 100 }}>
                   {stats.monthly.map((month, index) => (
@@ -332,65 +234,14 @@ export default function ReadingStatsScreen() {
           ) : null}
 
           <View style={{ gap: theme.spacing.sm }}>
-            <SectionHeader title={t('reading.statsFinishedBooks')} />
-
+            <SectionHeader title={t('reading.statsFinishedBooks')} icon="checkmark-done-outline" />
             {finishedBooks.length === 0 ? (
               <EmptyState icon="checkmark-done-outline" title={t('reading.statsFinishedEmpty')} body={t('reading.statsFinishedEmptyBody')} />
             ) : (
-              <View style={{ gap: theme.spacing.md }}>
-                <TextField
-                  placeholder={t('library.searchPlaceholder')}
-                  value={search}
-                  onChangeText={setSearch}
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  trailing={
-                    search ? (
-                      <Pressable onPress={() => setSearch('')} hitSlop={8} accessibilityLabel={t('common.clear')}>
-                        <Ionicons name="close-circle" size={18} color={theme.colors.textSubtle} />
-                      </Pressable>
-                    ) : (
-                      <Ionicons name="search" size={18} color={theme.colors.textSubtle} />
-                    )
-                  }
-                />
-
-                {finishedYears.length > 1 ? (
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
-                    <Chip label={t('reading.statsAllYears')} selected={yearFilter == null} onPress={() => setYearFilter(null)} />
-                    {finishedYears.map((year) => (
-                      <Chip
-                        key={year}
-                        label={String(year)}
-                        selected={yearFilter === year}
-                        onPress={() => setYearFilter(yearFilter === year ? null : year)}
-                      />
-                    ))}
-                  </View>
-                ) : null}
-
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
-                  <Chip label={t('reading.statsAllRatings')} selected={ratingFilter == null} onPress={() => setRatingFilter(null)} />
-                  {RATING_FILTER_VALUES.map((value) => (
-                    <Chip
-                      key={value}
-                      icon="star"
-                      label={String(value)}
-                      selected={ratingFilter === value}
-                      onPress={() => setRatingFilter(ratingFilter === value ? null : value)}
-                    />
-                  ))}
-                </View>
-
-                {filteredFinishedBooks.length === 0 ? (
-                  <EmptyState icon="search-outline" title={t('library.noResults')} body={t('reading.statsFinishedEmptyBody')} />
-                ) : (
-                  <View style={{ gap: theme.spacing.sm }}>
-                    {filteredFinishedBooks.map((entry) => (
-                      <FinishedBookRow key={entry.id} entry={entry} onPress={() => router.push(`/book/${entry.id}`)} />
-                    ))}
-                  </View>
-                )}
+              <View style={{ gap: theme.spacing.sm }}>
+                {finishedBooks.map((entry) => (
+                  <FinishedBookRow key={entry.id} entry={entry} onPress={() => router.push(`/book/${entry.id}`)} />
+                ))}
               </View>
             )}
           </View>
@@ -407,67 +258,28 @@ export default function ReadingStatsScreen() {
   );
 }
 
-function StatTile({ label, value }: { label: string; value: number }) {
+function StatTile({
+  icon,
+  label,
+  value,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: number;
+}) {
+  const theme = useTheme();
   return (
-    <View style={{ width: '45%', gap: 2 }}>
+    <View style={{ width: 84, alignItems: 'center', gap: 4 }}>
+      <Ionicons name={icon} size={18} color={theme.colors.primary} />
       <Text variant="title">{value}</Text>
-      <Text variant="caption" color="textMuted">
+      <Text variant="caption" color="textMuted" numberOfLines={2} style={{ textAlign: 'center' }}>
         {label}
       </Text>
     </View>
   );
 }
 
-function HabitRow({
-  icon,
-  label,
-  value,
-  book,
-  onPress,
-}: {
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  value: string;
-  book?: BookRef | null;
-  onPress?: (id: string) => void;
-}) {
-  const theme = useTheme();
-  const pressable = Boolean(book && onPress);
-
-  const content = (
-    <View
-      style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingHorizontal: theme.spacing.lg,
-        paddingVertical: theme.spacing.md,
-        gap: theme.spacing.md,
-      }}
-    >
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, flex: 1 }}>
-        <Ionicons name={icon} size={18} color={theme.colors.textMuted} />
-        <Text variant="body" color="textMuted" numberOfLines={1} style={{ flex: 1 }}>
-          {label}
-        </Text>
-      </View>
-      <Text variant="bodyStrong" numberOfLines={1} style={{ flexShrink: 1, textAlign: 'right' }}>
-        {value}
-      </Text>
-      {pressable ? <Ionicons name="chevron-forward" size={16} color={theme.colors.textSubtle} /> : null}
-    </View>
-  );
-
-  if (!pressable) return content;
-
-  return (
-    <Pressable onPress={() => onPress!(book!.id)} accessibilityRole="button" style={({ pressed }) => pressed && { opacity: 0.6 }}>
-      {content}
-    </Pressable>
-  );
-}
-
-/** Progress toward profile.reading_goal_books, or a prompt to set one. */
+/** Progress toward profile.reading_goal_books, or a prompt to set one — both centered, not a left-icon/right-button row. */
 function GoalCard({
   goal,
   finishedThisYear,
@@ -483,25 +295,25 @@ function GoalCard({
   if (goal == null) {
     return (
       <Card>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
+        <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
           <View
             style={{
-              width: 40,
-              height: 40,
+              width: 44,
+              height: 44,
               borderRadius: theme.radius.pill,
               backgroundColor: theme.colors.primarySoft,
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Ionicons name="flag-outline" size={20} color={theme.colors.primaryOnSoft} />
+            <Ionicons name="flag-outline" size={22} color={theme.colors.primaryOnSoft} />
           </View>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Text variant="bodyStrong">{t('reading.statsGoalPromptTitle')}</Text>
-            <Text variant="caption" color="textMuted">
-              {t('reading.statsGoalPromptBody')}
-            </Text>
-          </View>
+          <Text variant="bodyStrong" style={{ textAlign: 'center' }}>
+            {t('reading.statsGoalPromptTitle')}
+          </Text>
+          <Text variant="caption" color="textMuted" style={{ textAlign: 'center' }}>
+            {t('reading.statsGoalPromptBody')}
+          </Text>
           <Button title={t('reading.statsGoalSet')} variant="secondary" size="sm" onPress={onEdit} />
         </View>
       </Card>
@@ -513,15 +325,24 @@ function GoalCard({
 
   return (
     <Card>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      <View style={{ alignItems: 'center', gap: 4 }}>
+        <View
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: theme.radius.pill,
+            backgroundColor: met ? theme.colors.successSoft : theme.colors.primarySoft,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Ionicons name="flag" size={22} color={met ? theme.colors.success : theme.colors.primaryOnSoft} />
+        </View>
         <Text variant="bodyStrong">{t('reading.statsGoalTitle', { year: new Date().getFullYear() })}</Text>
-        <Pressable onPress={onEdit} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('common.edit')}>
-          <Ionicons name="pencil-outline" size={16} color={theme.colors.textMuted} />
-        </Pressable>
+        <Text variant="caption" color="textMuted">
+          {t('reading.statsGoalProgress', { done: finishedThisYear, goal })}
+        </Text>
       </View>
-      <Text variant="caption" color="textMuted" style={{ marginTop: 2 }}>
-        {t('reading.statsGoalProgress', { done: finishedThisYear, goal })}
-      </Text>
       <View style={{ height: 8, borderRadius: 4, backgroundColor: theme.colors.surfaceSunken, overflow: 'hidden', marginTop: theme.spacing.sm }}>
         <View
           style={{
@@ -533,10 +354,15 @@ function GoalCard({
         />
       </View>
       {met ? (
-        <Text variant="caption" style={{ color: theme.colors.success, marginTop: 6 }}>
+        <Text variant="caption" style={{ color: theme.colors.success, textAlign: 'center', marginTop: 6 }}>
           {t('reading.statsGoalMet')}
         </Text>
       ) : null}
+      <Pressable onPress={onEdit} hitSlop={8} accessibilityRole="button" style={{ alignSelf: 'center', marginTop: theme.spacing.sm }}>
+        <Text variant="caption" color="primary">
+          {t('common.edit')}
+        </Text>
+      </Pressable>
     </Card>
   );
 }
@@ -552,10 +378,7 @@ function GoalSheet({ visible, onClose, currentGoal }: { visible: boolean; onClos
 
   function save() {
     if (!canSave) return;
-    updateProfile.mutate(
-      { reading_goal_books: Math.round(parsed) },
-      { onSuccess: onClose }
-    );
+    updateProfile.mutate({ reading_goal_books: Math.round(parsed) }, { onSuccess: onClose });
   }
 
   function clear() {
@@ -573,9 +396,7 @@ function GoalSheet({ visible, onClose, currentGoal }: { visible: boolean; onClos
           inputMode="numeric"
         />
         <Button title={t('common.save')} fullWidth loading={updateProfile.isPending} disabled={!canSave} onPress={save} />
-        {currentGoal != null ? (
-          <Button title={t('reading.statsGoalClear')} variant="ghost" fullWidth onPress={clear} />
-        ) : null}
+        {currentGoal != null ? <Button title={t('reading.statsGoalClear')} variant="ghost" fullWidth onPress={clear} /> : null}
       </View>
     </Sheet>
   );
@@ -589,25 +410,23 @@ function StreakCard({ streak }: { streak: { current: number; longest: number } }
 
   return (
     <Card>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
+      <View style={{ alignItems: 'center', gap: 4 }}>
         <View
           style={{
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             borderRadius: theme.radius.pill,
             backgroundColor: theme.colors.accentSoft,
             alignItems: 'center',
             justifyContent: 'center',
           }}
         >
-          <Ionicons name="flame-outline" size={20} color={theme.colors.accent} />
+          <Ionicons name="flame" size={22} color={theme.colors.accent} />
         </View>
-        <View style={{ flex: 1, gap: 2 }}>
-          <Text variant="bodyStrong">{t('reading.statsStreakCurrent', { count: streak.current })}</Text>
-          <Text variant="caption" color="textMuted">
-            {t('reading.statsStreakLongest', { count: streak.longest })}
-          </Text>
-        </View>
+        <Text variant="bodyStrong">{t('reading.statsStreakCurrent', { count: streak.current })}</Text>
+        <Text variant="caption" color="textMuted">
+          {t('reading.statsStreakLongest', { count: streak.longest })}
+        </Text>
       </View>
     </Card>
   );

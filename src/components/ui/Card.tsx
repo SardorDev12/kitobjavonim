@@ -45,11 +45,22 @@ export function Divider({ inset = 0 }: { inset?: number }) {
   return <View style={{ height: 1, backgroundColor: theme.colors.border, marginLeft: inset }} />;
 }
 
-export function SectionHeader({ title, action }: { title: string; action?: ReactNode }) {
+export function SectionHeader({
+  title,
+  icon,
+  action,
+}: {
+  title: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  action?: ReactNode;
+}) {
   const theme = useTheme();
   return (
     <View style={[styles.sectionHeader, { marginBottom: theme.spacing.sm }]}>
-      <Text variant="heading">{title}</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+        {icon ? <Ionicons name={icon} size={16} color={theme.colors.primary} /> : null}
+        <Text variant="heading">{title}</Text>
+      </View>
       {action}
     </View>
   );
