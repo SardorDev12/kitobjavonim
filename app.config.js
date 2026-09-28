@@ -33,7 +33,7 @@ module.exports = {
     name: IS_PREVIEW ? 'Shelfie (Staging)' : 'Shelfie',
     slug: 'kitobjavonim',
     owner: 'walterobrien1226',
-    version: '0.5.1',
+    version: '0.5.2',
     orientation: 'default',
     icon: IS_PREVIEW ? './assets/images/icon-preview.png' : './assets/images/icon.png',
     scheme,
