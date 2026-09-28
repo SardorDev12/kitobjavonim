@@ -89,10 +89,18 @@ export default function ReadingTrackerScreen() {
           </View>
           <Pressable
             onPress={() => router.push('/reading/stats')}
-            hitSlop={12}
+            // Zero hitSlop on the right, plus a real margin there — this
+            // sits at the top-right corner, right where (tabs)/_layout.tsx's
+            // edge-swipe zone lives (its own right-edge strip, full height,
+            // for switching tabs). Extending the tappable area rightward
+            // into that zone is exactly what made this "hardly clickable":
+            // react-native-gesture-handler's own touch arbitration there
+            // was intermittently winning the touch before this plain
+            // Pressable ever saw it.
+            hitSlop={{ top: 14, bottom: 14, left: 16, right: 0 }}
             accessibilityRole="button"
             accessibilityLabel={t('reading.statsTitle')}
-            style={{ padding: theme.spacing.xs }}
+            style={{ padding: theme.spacing.xs, marginRight: theme.spacing.lg }}
           >
             <Ionicons name="star-outline" size={22} color={theme.colors.text} />
           </Pressable>
