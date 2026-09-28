@@ -6,6 +6,7 @@ import { Stack, useRouter, usePathname, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
+import * as Updates from 'expo-updates';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, AppState, Platform, View, type AppStateStatus } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -98,7 +99,60 @@ function onAppStateChange(status: AppStateStatus) {
   focusManager.setFocused(status === 'active');
 }
 
+const UPDATE_CHECK_TIMEOUT = 4000;
+
+/**
+ * expo-updates' own default behavior only *checks for and downloads* a new
+ * OTA update on cold start — the download it starts this launch doesn't
+ * become the code actually running until the *next* cold start after that.
+ * That's cost real time this project: the same "the fix isn't showing up"
+ * report recurring across a single day, several times, each traced back to
+ * someone not having done two full relaunches yet rather than an actual
+ * delivery failure. Explicitly checking, fetching, and reloading *before*
+ * the splash screen comes down (see the effect that awaits this, below)
+ * means a single relaunch is always enough — by the time anyone sees this
+ * launch's first frame, it's already running whatever was current when
+ * this launch started.
+ *
+ * Raced against a flat timeout rather than left to run however long the
+ * network takes: this must never be why the app becomes unusable offline.
+ * A slow/failed check just falls through to whatever's already installed —
+ * the exact same "wait for the next relaunch" behavior this is layered on
+ * top of, not a worse one.
+ */
+function checkForUpdateWithTimeout(): Promise<void> {
+  const check = (async () => {
+    // Updates.isEmbeddedLaunch is false in Expo Go and on web (and in a dev
+    // client) — none of those run under eas update's channels at all, and
+    // calling these APIs there either no-ops oddly or throws.
+    if (!Updates.isEmbeddedLaunch) return;
+    try {
+      const result = await Updates.checkForUpdateAsync();
+      if (result.isAvailable) {
+        await Updates.fetchUpdateAsync();
+        await Updates.reloadAsync();
+        // reloadAsync() restarts the app from the newly fetched update —
+        // this function's caller never actually observes it resolving.
+      }
+    } catch {
+      // Offline, or the check/fetch itself failed — proceed with whatever
+      // this launch already has.
+    }
+  })();
+
+  const timeout = new Promise<void>((resolve) => setTimeout(resolve, UPDATE_CHECK_TIMEOUT));
+  return Promise.race([check, timeout]);
+}
+
 export default function RootLayout() {
+  // See checkForUpdateWithTimeout()'s own comment above — gates the splash
+  // screen (in RootNavigator below) alongside theme.modeLoaded so this
+  // launch is never the stale one.
+  const [updateChecked, setUpdateChecked] = useState(false);
+  useEffect(() => {
+    checkForUpdateWithTimeout().then(() => setUpdateChecked(true));
+  }, []);
+
   useEffect(() => {
     const subscription = AppState.addEventListener('change', onAppStateChange);
     return () => subscription.remove();
@@ -160,7 +214,7 @@ export default function RootLayout() {
                 }}
               >
                 <AuthProvider>
-                  <RootNavigator />
+                  <RootNavigator updateChecked={updateChecked} />
                 </AuthProvider>
               </PersistQueryClientProvider>
             </ErrorBoundary>
@@ -171,7 +225,7 @@ export default function RootLayout() {
   );
 }
 
-function RootNavigator() {
+function RootNavigator({ updateChecked }: { updateChecked: boolean }) {
   const theme = useTheme();
   const { session, needsOnboarding, initializing, setupError } = useAuth();
   const { ready: localeReady } = useI18n();
@@ -188,9 +242,12 @@ function RootNavigator() {
   // See preventAutoHideAsync() above — once the theme's stored preference has
   // actually been read, everything already on screen is in its final color
   // and the splash screen can safely come down with nothing left to flash to.
+  // Also waits on updateChecked (see checkForUpdateWithTimeout()) so this
+  // launch is already running the latest published update, if any, before
+  // anyone sees its first frame — no second relaunch required.
   useEffect(() => {
-    if (theme.modeLoaded) SplashScreen.hideAsync().catch(() => {});
-  }, [theme.modeLoaded]);
+    if (theme.modeLoaded && updateChecked) SplashScreen.hideAsync().catch(() => {});
+  }, [theme.modeLoaded, updateChecked]);
 
   // The root *native* view's background — distinct from the splash screen
   // above (that's only shown once, at cold start) and from any RN-level
