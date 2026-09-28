@@ -25,8 +25,8 @@ const scheme = IS_PREVIEW ? 'homelibrary-staging' : 'homelibrary';
 // so the splash screen and the native windowBackground fix
 // (./plugins/withAndroidSplashWindowBackground.js) below can't drift apart
 // from each other or from the JS theme again the way they did before.
-const SPLASH_BACKGROUND_LIGHT = '#F5EFE4';
-const SPLASH_BACKGROUND_DARK = '#1A1714';
+const SPLASH_BACKGROUND_LIGHT = '#FFFDF8';
+const SPLASH_BACKGROUND_DARK = '#211C16';
 
 module.exports = {
   expo: {
