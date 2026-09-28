@@ -418,6 +418,12 @@ export const uz: LocaleCatalogue = {
   'update.availableBody': 'Kitobjavonimning tuzatishlar va yaxshilanishlar bilan yangi versiyasi mavjud.',
   'update.updateNow': 'Hozir yangilash',
   'update.notNow': 'Hozir emas',
+  'update.checkForUpdates': 'Yangilanishlarni tekshirish',
+  'update.upToDate': 'Sizda eng soʻnggi versiya bor.',
+  'update.checkFailed': 'Yangilanishlarni tekshirib boʻlmadi. Aloqani tekshirib, qayta urinib koʻring.',
+  'update.readyTitle': 'Yangilanish tayyor',
+  'update.readyBody': 'Yangilanish yuklab olindi. Uni qoʻllash uchun hozir qayta ishga tushirilsinmi?',
+  'update.restartNow': 'Hozir qayta ishga tushirish',
 
   'installApp.title': "Dasturni o'rnatish",
   'installApp.body': "Telefoningizda tezroq va qulayroq foydalanish uchun Shelfie ilovasini o'rnating.",

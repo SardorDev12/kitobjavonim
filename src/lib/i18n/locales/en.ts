@@ -413,6 +413,12 @@ export const en = {
   'update.availableBody': 'A newer version of Kitobjavonim is available with fixes and improvements.',
   'update.updateNow': 'Update now',
   'update.notNow': 'Not now',
+  'update.checkForUpdates': 'Check for updates',
+  'update.upToDate': "You're up to date.",
+  'update.checkFailed': "Couldn't check for updates. Check your connection and try again.",
+  'update.readyTitle': 'Update ready',
+  'update.readyBody': 'An update has been downloaded. Restart now to apply it?',
+  'update.restartNow': 'Restart now',
 
   'installApp.title': 'Install the app',
   'installApp.body': 'Get the Shelfie app for a faster, smoother experience on your phone.',
