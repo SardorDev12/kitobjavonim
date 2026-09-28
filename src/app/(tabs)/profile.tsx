@@ -1,5 +1,4 @@
 import { useRouter } from 'expo-router';
-import * as Updates from 'expo-updates';
 import { useState } from 'react';
 import { Alert, Linking, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,7 +25,6 @@ export default function ProfileScreen() {
 
   const [languageOpen, setLanguageOpen] = useState(false);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
-  const [checkingUpdate, setCheckingUpdate] = useState(false);
 
   const location = locations.describe(profile?.district_id ?? null, profile?.region_id ?? null);
 
@@ -47,53 +45,6 @@ export default function ProfileScreen() {
     // Mirrored onto the profile so the choice follows the user to a new device.
     updateProfile.mutate({ preferred_locale: next });
     setLanguageOpen(false);
-  }
-
-  function notify(body: string) {
-    if (Platform.OS === 'web') {
-      globalThis.alert(body);
-      return;
-    }
-    Alert.alert('', body);
-  }
-
-  function promptRestart() {
-    if (Platform.OS === 'web') {
-      if (globalThis.confirm(t('update.readyBody'))) void Updates.reloadAsync();
-      return;
-    }
-    Alert.alert(t('update.readyTitle'), t('update.readyBody'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      { text: t('update.restartNow'), onPress: () => void Updates.reloadAsync() },
-    ]);
-  }
-
-  // Manual counterpart to root _layout.tsx's own launch-time check (see its
-  // checkForUpdateWithTimeout()) — that one silently applies whatever's
-  // already published by the time the app is next opened; this one is for
-  // someone who doesn't want to wait for that and wants to know right now
-  // whether anything new is even available, without an arbitrary timeout
-  // cutting the check short.
-  async function checkForUpdates() {
-    if (checkingUpdate) return;
-    setCheckingUpdate(true);
-    try {
-      if (!Updates.isEmbeddedLaunch) {
-        notify(t('update.upToDate'));
-        return;
-      }
-      const result = await Updates.checkForUpdateAsync();
-      if (!result.isAvailable) {
-        notify(t('update.upToDate'));
-        return;
-      }
-      await Updates.fetchUpdateAsync();
-      promptRestart();
-    } catch {
-      notify(t('update.checkFailed'));
-    } finally {
-      setCheckingUpdate(false);
-    }
   }
 
   return (
@@ -175,18 +126,6 @@ export default function ProfileScreen() {
             value={t(`profile.appearance.${theme.mode}`)}
             onPress={() => setAppearanceOpen(true)}
           />
-          {Platform.OS !== 'web' ? (
-            <>
-              <Divider inset={theme.spacing.lg} />
-              <ListRow
-                icon="cloud-download-outline"
-                label={t('update.checkForUpdates')}
-                value={checkingUpdate ? '…' : undefined}
-                disabled={checkingUpdate}
-                onPress={checkForUpdates}
-              />
-            </>
-          ) : null}
           <Divider inset={theme.spacing.lg} />
           <ListRow
             icon="document-text-outline"

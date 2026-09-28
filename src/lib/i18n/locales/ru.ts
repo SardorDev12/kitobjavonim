@@ -473,12 +473,6 @@ export const ru: LocaleCatalogue = {
   'update.availableBody': 'Доступна новая версия Kitobjavonim с исправлениями и улучшениями.',
   'update.updateNow': 'Обновить сейчас',
   'update.notNow': 'Не сейчас',
-  'update.checkForUpdates': 'Проверить обновления',
-  'update.upToDate': 'У вас последняя версия.',
-  'update.checkFailed': 'Не удалось проверить обновления. Проверьте соединение и попробуйте снова.',
-  'update.readyTitle': 'Обновление готово',
-  'update.readyBody': 'Обновление загружено. Перезапустить сейчас, чтобы применить его?',
-  'update.restartNow': 'Перезапустить сейчас',
 
   'installApp.title': 'Установите приложение',
   'installApp.body': 'Установите приложение Shelfie для более быстрой и удобной работы на телефоне.',
