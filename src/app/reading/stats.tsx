@@ -1,10 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Pressable, Share, View } from 'react-native';
+import { Pressable, ScrollView, Share, View } from 'react-native';
 
 import { BookCover } from '@/components/BookCover';
-import { BackHeader, Button, Card, EmptyState, LoadingState, Rating, Screen, SectionHeader, Sheet, Text, TextField } from '@/components/ui';
+import {
+  BackHeader,
+  Button,
+  Card,
+  Divider,
+  EmptyState,
+  LoadingState,
+  Rating,
+  Screen,
+  SectionHeader,
+  Sheet,
+  Text,
+  TextField,
+} from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { formatAuthors, formatDate, formatMonthShort } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
@@ -13,9 +26,17 @@ import { useLibrary } from '@/lib/queries/library';
 import { useUpdateProfile } from '@/lib/queries/profile';
 import { useReadingActivity } from '@/lib/queries/readingActivity';
 import { useCategoryOptions } from '@/lib/queries/reference';
-import { computeReadingStats, computeStreak } from '@/lib/readingStats';
+import { computeReadingStats, computeStreak, type BookRef } from '@/lib/readingStats';
 import { useTheme } from '@/theme';
 import type { LibraryEntry } from '@/types/database';
+
+// FinishedBookRow's own approximate height (a 48-wide cover at COVER_ASPECT
+// is 72 tall, plus the row's padding/border, plus the gap between rows) —
+// used only to cap the finished-books list at roughly 10 rows before it
+// scrolls within its own bounded pane. Approximate on purpose: real row
+// height varies with title wrapping/rating, and the list still scrolls
+// correctly either way, this just sets *roughly* where that starts.
+const FINISHED_ROW_HEIGHT = 106;
 
 /**
  * The full reading-stats page — was a bottom sheet with four numbers
@@ -113,27 +134,68 @@ export default function ReadingStatsScreen() {
 
           <View style={{ gap: theme.spacing.sm }}>
             <SectionHeader title={t('reading.statsPeriod')} icon="calendar-outline" />
-            <Card>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: theme.spacing.lg }}>
-                <StatTile icon="today-outline" label={t('reading.statsWeek')} value={stats.finished.week} />
-                <StatTile icon="calendar-outline" label={t('reading.statsMonth')} value={stats.finished.month} />
-                <StatTile icon="calendar-number-outline" label={t('reading.statsYear')} value={stats.finished.year} />
-                <StatTile icon="time-outline" label={t('reading.statsLastYear')} value={stats.finished.lastYear} />
-                <StatTile icon="infinite-outline" label={t('reading.statsAllTime')} value={stats.finished.allTime} />
-              </View>
+            <Card padded={false}>
+              <StatRow icon="today-outline" label={t('reading.statsWeek')} value={String(stats.finished.week)} />
+              <Divider inset={theme.spacing.lg} />
+              <StatRow icon="calendar-outline" label={t('reading.statsMonth')} value={String(stats.finished.month)} />
+              <Divider inset={theme.spacing.lg} />
+              <StatRow icon="calendar-number-outline" label={t('reading.statsYear')} value={String(stats.finished.year)} />
+              <Divider inset={theme.spacing.lg} />
+              <StatRow icon="time-outline" label={t('reading.statsLastYear')} value={String(stats.finished.lastYear)} />
+              <Divider inset={theme.spacing.lg} />
+              <StatRow icon="infinite-outline" label={t('reading.statsAllTime')} value={String(stats.finished.allTime)} />
             </Card>
           </View>
 
           <View style={{ gap: theme.spacing.sm }}>
             <SectionHeader title={t('reading.statsLibrary')} icon="library-outline" />
-            <Card>
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: theme.spacing.lg }}>
-                <StatTile icon="library-outline" label={t('reading.statsTotalBooks')} value={stats.totals.library} />
-                <StatTile icon="book-outline" label={t('reading.statInProgress')} value={stats.totals.reading} />
-                <StatTile icon="bookmark-outline" label={t('library.filter.want_to_read')} value={stats.totals.wantToRead} />
-                <StatTile icon="checkmark-done-outline" label={t('reading.statsFinishedBooks')} value={stats.totals.finished} />
-                <StatTile icon="document-text-outline" label={t('reading.statsPagesRead')} value={stats.pagesRead} />
-              </View>
+            <Card padded={false}>
+              <StatRow icon="library-outline" label={t('reading.statsTotalBooks')} value={String(stats.totals.library)} />
+              <Divider inset={theme.spacing.lg} />
+              <StatRow icon="book-outline" label={t('reading.statInProgress')} value={String(stats.totals.reading)} />
+              <Divider inset={theme.spacing.lg} />
+              <StatRow icon="bookmark-outline" label={t('library.filter.want_to_read')} value={String(stats.totals.wantToRead)} />
+              <Divider inset={theme.spacing.lg} />
+              <StatRow icon="checkmark-done-outline" label={t('reading.statsFinishedBooks')} value={String(stats.totals.finished)} />
+            </Card>
+          </View>
+
+          <View style={{ gap: theme.spacing.sm }}>
+            <SectionHeader title={t('reading.statsHabits')} icon="sparkles-outline" />
+            <Card padded={false}>
+              <StatRow
+                icon="document-text-outline"
+                label={t('reading.statsPagesRead')}
+                value={stats.pagesRead > 0 ? stats.pagesRead.toLocaleString() : '—'}
+              />
+              <Divider inset={theme.spacing.lg} />
+              <StatRow
+                icon="trending-up-outline"
+                label={t('reading.statsLongestBook')}
+                value={stats.longestBook ? `${stats.longestBook.title} (${stats.longestBook.pages})` : '—'}
+                book={stats.longestBook}
+                onPress={(id) => router.push(`/book/${id}`)}
+              />
+              <Divider inset={theme.spacing.lg} />
+              <StatRow
+                icon="trending-down-outline"
+                label={t('reading.statsShortestBook')}
+                value={stats.shortestBook ? `${stats.shortestBook.title} (${stats.shortestBook.pages})` : '—'}
+                book={stats.shortestBook}
+                onPress={(id) => router.push(`/book/${id}`)}
+              />
+              <Divider inset={theme.spacing.lg} />
+              <StatRow
+                icon="flash-outline"
+                label={t('reading.statsFastestFinish')}
+                value={
+                  stats.fastestFinish
+                    ? `${stats.fastestFinish.title} (${t('reading.statsDays', { count: stats.fastestFinish.days })})`
+                    : '—'
+                }
+                book={stats.fastestFinish}
+                onPress={(id) => router.push(`/book/${id}`)}
+              />
             </Card>
           </View>
 
@@ -238,11 +300,17 @@ export default function ReadingStatsScreen() {
             {finishedBooks.length === 0 ? (
               <EmptyState icon="checkmark-done-outline" title={t('reading.statsFinishedEmpty')} body={t('reading.statsFinishedEmptyBody')} />
             ) : (
-              <View style={{ gap: theme.spacing.sm }}>
-                {finishedBooks.map((entry) => (
-                  <FinishedBookRow key={entry.id} entry={entry} onPress={() => router.push(`/book/${entry.id}`)} />
-                ))}
-              </View>
+              // Capped rather than left to grow with the whole library — past
+              // ~10 books this scrolls within its own bounded pane instead of
+              // ballooning the page height (and how far a scroll-to-top has
+              // to travel) for someone with a large finished shelf.
+              <ScrollView style={{ maxHeight: 10 * FINISHED_ROW_HEIGHT }} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                <View style={{ gap: theme.spacing.sm }}>
+                  {finishedBooks.map((entry) => (
+                    <FinishedBookRow key={entry.id} entry={entry} onPress={() => router.push(`/book/${entry.id}`)} />
+                  ))}
+                </View>
+              </ScrollView>
             )}
           </View>
         </View>
@@ -258,24 +326,55 @@ export default function ReadingStatsScreen() {
   );
 }
 
-function StatTile({
+/** A left-aligned icon+label row with a right-aligned value — used for every
+ *  numeric stat on this page (Period, Library, Habits). Optionally pressable
+ *  when it references a specific book (Habits' longest/shortest/fastest). */
+function StatRow({
   icon,
   label,
   value,
+  book,
+  onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
-  value: number;
+  value: string;
+  book?: BookRef | null;
+  onPress?: (id: string) => void;
 }) {
   const theme = useTheme();
-  return (
-    <View style={{ width: 84, alignItems: 'center', gap: 4 }}>
-      <Ionicons name={icon} size={18} color={theme.colors.primary} />
-      <Text variant="title">{value}</Text>
-      <Text variant="caption" color="textMuted" numberOfLines={2} style={{ textAlign: 'center' }}>
-        {label}
+  const pressable = Boolean(book && onPress);
+
+  const content = (
+    <View
+      style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: theme.spacing.lg,
+        paddingVertical: theme.spacing.md,
+        gap: theme.spacing.md,
+      }}
+    >
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.sm, flex: 1 }}>
+        <Ionicons name={icon} size={18} color={theme.colors.primary} />
+        <Text variant="body" color="textMuted" numberOfLines={1} style={{ flex: 1 }}>
+          {label}
+        </Text>
+      </View>
+      <Text variant="bodyStrong" numberOfLines={1} style={{ flexShrink: 1, textAlign: 'right' }}>
+        {value}
       </Text>
+      {pressable ? <Ionicons name="chevron-forward" size={16} color={theme.colors.textSubtle} /> : null}
     </View>
+  );
+
+  if (!pressable) return content;
+
+  return (
+    <Pressable onPress={() => onPress!(book!.id)} accessibilityRole="button" style={({ pressed }) => pressed && { opacity: 0.6 }}>
+      {content}
+    </Pressable>
   );
 }
 
@@ -314,7 +413,10 @@ function GoalCard({
           <Text variant="caption" color="textMuted" style={{ textAlign: 'center' }}>
             {t('reading.statsGoalPromptBody')}
           </Text>
-          <Button title={t('reading.statsGoalSet')} variant="secondary" size="sm" onPress={onEdit} />
+          {/* Button sets alignSelf: 'flex-start' internally, which wins over
+              this parent's alignItems — has to be overridden explicitly to
+              actually center, same as wishlist.tsx's footer button. */}
+          <Button title={t('reading.statsGoalSet')} variant="secondary" size="sm" onPress={onEdit} style={{ alignSelf: 'center' }} />
         </View>
       </Card>
     );

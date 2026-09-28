@@ -2,6 +2,8 @@ import { endOfYear, isWithinInterval, startOfMonth, startOfWeek, startOfYear, su
 
 import type { LibraryEntry } from '@/types/database';
 
+export type BookRef = { id: string; title: string };
+
 export type ReadingStats = {
   totals: { library: number; reading: number; wantToRead: number; finished: number };
   finished: { week: number; month: number; year: number; lastYear: number; allTime: number };
@@ -13,6 +15,9 @@ export type ReadingStats = {
   ratingDistribution: [number, number, number, number, number];
   /** Not shown on the page itself — only feeds the "share my year" summary. */
   topAuthor: { name: string; count: number } | null;
+  longestBook: (BookRef & { pages: number }) | null;
+  shortestBook: (BookRef & { pages: number }) | null;
+  fastestFinish: (BookRef & { days: number }) | null;
   /** Finished-book counts for the trailing MONTHLY_CHART_MONTHS months, oldest first. */
   monthly: { monthStart: Date; count: number }[];
 };
@@ -65,6 +70,31 @@ export function computeReadingStats(library: LibraryEntry[]): ReadingStats {
     if (!topAuthor || count > topAuthor.count) topAuthor = { name, count };
   }
 
+  let longestBook: (BookRef & { pages: number }) | null = null;
+  let shortestBook: (BookRef & { pages: number }) | null = null;
+  for (const entry of finishedEntries) {
+    if (!entry.page_count) continue;
+    if (!longestBook || entry.page_count > longestBook.pages) {
+      longestBook = { id: entry.id, title: entry.title, pages: entry.page_count };
+    }
+    if (!shortestBook || entry.page_count < shortestBook.pages) {
+      shortestBook = { id: entry.id, title: entry.title, pages: entry.page_count };
+    }
+  }
+
+  // A same-day finish (0 days between start and finish) isn't a meaningful
+  // "fastest" to show off — usually just means the whole book was logged at
+  // once rather than actually read in under a day — so it's excluded rather
+  // than always winning "fastest finish" by construction.
+  let fastestFinish: (BookRef & { days: number }) | null = null;
+  for (const entry of finishedEntries) {
+    if (!entry.date_started || !entry.date_finished) continue;
+    const days = Math.round((new Date(entry.date_finished).getTime() - new Date(entry.date_started).getTime()) / 86_400_000);
+    if (days > 0 && (!fastestFinish || days < fastestFinish.days)) {
+      fastestFinish = { id: entry.id, title: entry.title, days };
+    }
+  }
+
   const monthly = Array.from({ length: MONTHLY_CHART_MONTHS }, (_, i) => {
     const d = subMonths(now, MONTHLY_CHART_MONTHS - 1 - i);
     const year = d.getFullYear();
@@ -92,6 +122,9 @@ export function computeReadingStats(library: LibraryEntry[]): ReadingStats {
     ratedCount: ratedEntries.length,
     ratingDistribution,
     topAuthor,
+    longestBook,
+    shortestBook,
+    fastestFinish,
     monthly,
   };
 }
