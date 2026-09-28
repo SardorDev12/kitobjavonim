@@ -21,6 +21,13 @@ const appId = IS_PREVIEW ? 'uz.homelibrary.app.preview' : 'uz.homelibrary.app';
 // device used for testing both builds side by side.
 const scheme = IS_PREVIEW ? 'homelibrary-staging' : 'homelibrary';
 
+// The app's own theme.colors.background (src/theme/tokens.ts) — shared here
+// so the splash screen and the native windowBackground fix
+// (./plugins/withAndroidSplashWindowBackground.js) below can't drift apart
+// from each other or from the JS theme again the way they did before.
+const SPLASH_BACKGROUND_LIGHT = '#F5EFE4';
+const SPLASH_BACKGROUND_DARK = '#1A1714';
+
 module.exports = {
   expo: {
     name: IS_PREVIEW ? 'Shelfie (Staging)' : 'Shelfie',
@@ -100,11 +107,20 @@ module.exports = {
       [
         'expo-splash-screen',
         {
-          backgroundColor: '#F5EFE4',
-          dark: { backgroundColor: '#1A1714' },
+          backgroundColor: SPLASH_BACKGROUND_LIGHT,
+          dark: { backgroundColor: SPLASH_BACKGROUND_DARK },
           image: IS_PREVIEW ? './assets/images/splash-icon-preview.png' : './assets/images/splash-icon.png',
           imageWidth: 76,
         },
+      ],
+      // See the plugin's own comment — fixes a real white/black flash
+      // between the splash screen above disappearing and React Native's
+      // first frame painting, by giving the app's *real* activity theme
+      // (which Android switches to the instant it decides the splash is
+      // done) the same background color instead of AppCompat's default.
+      [
+        './plugins/withAndroidSplashWindowBackground',
+        { light: SPLASH_BACKGROUND_LIGHT, dark: SPLASH_BACKGROUND_DARK },
       ],
       [
         'expo-image-picker',
