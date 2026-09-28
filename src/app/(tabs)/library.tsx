@@ -400,6 +400,11 @@ export default function LibraryScreen() {
         // that identical spacing and stays packed to the left instead of
         // stretching to fill the leftover width.
         columnWrapperStyle={viewMode === 'gallery' && galleryColumns > 1 ? { gap: galleryRowGap } : undefined}
+        // Missing entirely before — unlike add.tsx's catalog search (which
+        // has this), tapping a result here while the search box above still
+        // has the keyboard up ate the first tap as a keyboard-dismiss
+        // instead of opening the book, same symptom, same fix.
+        keyboardShouldPersistTaps="always"
         renderItem={({ item }) =>
           viewMode === 'gallery' ? (
             galleryColumns > 0 ? (
