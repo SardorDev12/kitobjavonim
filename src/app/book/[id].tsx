@@ -82,10 +82,19 @@ export default function BookDetailScreen() {
   useEffect(() => {
     if (!entry) return;
     const serverValue = entry.shelf_note ?? '';
-    setShelfNote((current) =>
-      lastSyncedShelfNoteRef.current === null || current === lastSyncedShelfNoteRef.current ? serverValue : current
-    );
+    // Captured *before* the ref below is overwritten, not read from the ref
+    // inside the updater — setShelfNote's updater function only actually
+    // runs during React's next render pass, by which point the plain
+    // synchronous write on the next line has already happened. Reading
+    // `.current` from inside the updater was comparing the field's old text
+    // against the *new* server value instead of the *previous* one, so the
+    // "does this still match what we last synced" check was never true
+    // once the ref had been written at all — including the very first
+    // time a book that already had a location loaded, which always left
+    // the field blank no matter what the server actually had.
+    const previouslySynced = lastSyncedShelfNoteRef.current;
     lastSyncedShelfNoteRef.current = serverValue;
+    setShelfNote((current) => (previouslySynced === null || current === previouslySynced ? serverValue : current));
   }, [entry]);
 
   // A page loaded directly (a deep link, or a browser refresh — both routine
