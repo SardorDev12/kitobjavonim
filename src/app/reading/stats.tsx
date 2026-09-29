@@ -267,7 +267,6 @@ export default function ReadingStatsScreen() {
 
           <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
             <MiniTile icon="document-text-outline" value={String(periodStats.pagesRead)} label={t('reading.statsPagesTile')} />
-            <MiniTile icon="flame-outline" value={String(streak.current)} label={t('reading.statsStreakTile')} />
             <MiniTile icon="library-outline" value={String(stats.finished.year)} label={t('reading.statsBooksYearTile')} />
           </View>
 
@@ -331,8 +330,6 @@ export default function ReadingStatsScreen() {
               </ScrollView>
             )}
           </View>
-
-          <StreakCard streak={streak} />
 
           <View style={{ gap: theme.spacing.sm }}>
             <SectionHeader title={t('reading.statsLibrary')} icon="library-outline" />
@@ -777,32 +774,3 @@ function StatRow({
   );
 }
 
-function StreakCard({ streak }: { streak: { current: number; longest: number } }) {
-  const theme = useTheme();
-  const { t } = useI18n();
-
-  if (streak.current === 0 && streak.longest === 0) return null;
-
-  return (
-    <Card>
-      <View style={{ alignItems: 'center', gap: 4 }}>
-        <View
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: theme.radius.pill,
-            backgroundColor: theme.colors.accentSoft,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Ionicons name="flame" size={22} color={theme.colors.accent} />
-        </View>
-        <Text variant="bodyStrong">{t('reading.statsStreakCurrent', { count: streak.current })}</Text>
-        <Text variant="caption" color="textMuted">
-          {t('reading.statsStreakLongest', { count: streak.longest })}
-        </Text>
-      </View>
-    </Card>
-  );
-}
