@@ -70,14 +70,25 @@ export default function ReadingStatsScreen() {
 
   const [goalOpen, setGoalOpen] = useState(false);
 
+  // Every stat still actually shown on this page gets a line here — nothing
+  // more (no favorite-author line: that detail was dropped from the page
+  // itself, so it stopped belonging in what gets shared too).
   function shareYear() {
     const year = new Date().getFullYear();
     const lines = [
       t('reading.shareHeader', { year }),
       t('reading.shareBooks', { count: stats.finished.year }),
       stats.pagesRead > 0 ? t('reading.sharePages', { count: stats.pagesRead }) : null,
-      stats.topAuthor ? t('reading.shareAuthor', { name: stats.topAuthor.name }) : null,
       stats.avgRating != null ? t('reading.shareRating', { rating: stats.avgRating.toFixed(1) }) : null,
+      stats.longestBook ? t('reading.shareLongest', { title: stats.longestBook.title, pages: stats.longestBook.pages }) : null,
+      stats.shortestBook ? t('reading.shareShortest', { title: stats.shortestBook.title, pages: stats.shortestBook.pages }) : null,
+      stats.fastestFinish
+        ? t('reading.shareFastest', { title: stats.fastestFinish.title, count: stats.fastestFinish.days })
+        : null,
+      streak.current > 0 ? t('reading.shareStreak', { count: streak.current }) : null,
+      profile?.reading_goal_books
+        ? t('reading.shareGoal', { done: stats.finished.year, goal: profile.reading_goal_books })
+        : null,
     ].filter((line): line is string => Boolean(line));
     void Share.share({ message: lines.join('\n') });
   }

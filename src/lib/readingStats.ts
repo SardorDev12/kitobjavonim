@@ -13,8 +13,6 @@ export type ReadingStats = {
   ratedCount: number;
   /** Index 0 = one-star count, ... index 4 = five-star count. */
   ratingDistribution: [number, number, number, number, number];
-  /** Not shown on the page itself — only feeds the "share my year" summary. */
-  topAuthor: { name: string; count: number } | null;
   longestBook: (BookRef & { pages: number }) | null;
   shortestBook: (BookRef & { pages: number }) | null;
   fastestFinish: (BookRef & { days: number }) | null;
@@ -55,19 +53,6 @@ export function computeReadingStats(library: LibraryEntry[]): ReadingStats {
   for (const entry of ratedEntries) {
     const star = Math.min(5, Math.max(1, entry.rating!));
     ratingDistribution[star - 1] += 1;
-  }
-
-  const authorCounts = new Map<string, number>();
-  for (const entry of finishedEntries) {
-    for (const author of entry.authors) {
-      authorCounts.set(author, (authorCounts.get(author) ?? 0) + 1);
-    }
-  }
-  let topAuthor: { name: string; count: number } | null = null;
-  for (const [name, count] of authorCounts) {
-    // First one wins on a tie — Map preserves insertion order, which here
-    // is finished-date order, so a tie favors whichever was finished first.
-    if (!topAuthor || count > topAuthor.count) topAuthor = { name, count };
   }
 
   let longestBook: (BookRef & { pages: number }) | null = null;
@@ -121,7 +106,6 @@ export function computeReadingStats(library: LibraryEntry[]): ReadingStats {
     avgRating,
     ratedCount: ratedEntries.length,
     ratingDistribution,
-    topAuthor,
     longestBook,
     shortestBook,
     fastestFinish,
