@@ -1,0 +1,22 @@
+-- =============================================================================
+-- 0037_grant_plan_limits_select.sql
+--
+-- plan_limits (0008_plans_and_limits.sql) was created without a grant to
+-- `authenticated` and without RLS enabled — harmless for request_contact()
+-- and my_plan_status(), both `security definer` and so reading it under
+-- their own (elevated) privileges regardless. sync_listed_at() is not: a
+-- plain trigger function runs as the *invoking* role, i.e. the actual
+-- client's `authenticated` connection, which has never had select on this
+-- table. Its `select active_listing_cap into cap from plan_limits` was
+-- always going to fail with "permission denied for table plan_limits" —
+-- every time anyone transitioned a book from private into a listed
+-- (exchange/sale) state, the exact moment this trigger's cap check runs.
+--
+-- plan_limits holds nothing but the two plans' cap numbers — no per-user
+-- data, nothing sensitive — so a direct grant is the right fix here, same
+-- as app_config's own "small public reference table" precedent, rather
+-- than making the whole trigger function security definer for one query
+-- inside it.
+-- =============================================================================
+
+grant select on plan_limits to authenticated;
