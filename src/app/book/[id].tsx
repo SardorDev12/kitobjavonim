@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { BookCover } from '@/components/BookCover';
@@ -69,10 +69,14 @@ export default function BookDetailScreen() {
   // onboarding.tsx/profile.tsx: entry loads async, so a plain useState
   // initializer would run before it resolves. Re-synced whenever the
   // server value changes, but only while the field still matches what it
-  // last synced to — otherwise a background refetch racing the focus-loss
-  // flush below (which saves, then invalidates, then refetches) could land
-  // *after* this screen remounts and clobber a value that already saved,
-  // with a stale one read moments earlier from cache.
+  // last synced to — otherwise a background refetch racing the explicit
+  // Save button below (which saves, then invalidates, then refetches)
+  // could land *after* this screen remounts and clobber a value that
+  // already saved, with a stale one read moments earlier from cache.
+  //
+  // Saved only via that explicit button now, not on blur or on leaving the
+  // screen — an implicit autosave meant a stray tap into the field, or a
+  // half-typed value, could get silently persisted with nothing to undo it.
   const [shelfNote, setShelfNote] = useState('');
   const lastSyncedShelfNoteRef = useRef<string | null>(null);
   useEffect(() => {
@@ -83,33 +87,6 @@ export default function BookDetailScreen() {
     );
     lastSyncedShelfNoteRef.current = serverValue;
   }, [entry]);
-
-  // Refs so the focus-loss flush below always reads the latest values
-  // without needing to re-register (and re-fire) the listener every time
-  // entry refetches or the mutation object gets a new identity.
-  const shelfNoteRef = useRef(shelfNote);
-  shelfNoteRef.current = shelfNote;
-  const entryRef = useRef(entry);
-  entryRef.current = entry;
-  const updateBookRef = useRef(updateBook);
-  updateBookRef.current = updateBook;
-
-  // The location TextField's own onBlur save (below) misses a back
-  // navigation that never blurs the input first — Android's back
-  // gesture/button doesn't reliably fire that blur before the screen
-  // unmounts, silently dropping the edit. Flushing on the *screen* losing
-  // focus, not the input, catches every way of leaving this page.
-  useFocusEffect(
-    useCallback(() => {
-      return () => {
-        const current = entryRef.current;
-        const trimmed = shelfNoteRef.current.trim();
-        if (current && trimmed !== (current.shelf_note ?? '')) {
-          updateBookRef.current.mutate({ id: current.id, patch: { shelf_note: trimmed || null } });
-        }
-      };
-    }, [])
-  );
 
   // A page loaded directly (a deep link, or a browser refresh — both routine
   // on web) has no in-app navigation history to pop, so router.back() alone
@@ -308,12 +285,17 @@ export default function BookDetailScreen() {
             placeholder={t('book.locationPlaceholder')}
             value={shelfNote}
             onChangeText={setShelfNote}
-            onBlur={() => {
-              const trimmed = shelfNote.trim();
-              if (trimmed !== (entry.shelf_note ?? '')) patch({ shelf_note: trimmed || null });
-            }}
             maxLength={200}
           />
+          {shelfNote.trim() !== (entry.shelf_note ?? '') ? (
+            <Button
+              title={t('common.save')}
+              size="sm"
+              variant="secondary"
+              loading={updateBook.isPending}
+              onPress={() => patch({ shelf_note: shelfNote.trim() || null })}
+            />
+          ) : null}
         </View>
 
         {/* Household sharing -------------------------------------------------
