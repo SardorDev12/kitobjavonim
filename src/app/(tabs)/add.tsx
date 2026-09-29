@@ -195,14 +195,15 @@ function CandidateRow({ candidate, onPress }: { candidate: BookCandidate; onPres
 
   return (
     <Pressable
-      // onPressIn, not onPress: onPress only fires after a full press-and-
-      // release is resolved through the responder/keyboard-dismiss
-      // negotiation triggered by tapping away from the still-focused search
-      // box (see keyboardShouldPersistTaps="always" above) — on at least
-      // one device that resolution still ate the first tap as a dismiss
-      // regardless. onPressIn fires the instant the finger goes down, ahead
-      // of any of that, so the first tap always opens the book.
-      onPressIn={onPress}
+      // Plain onPress, not onPressIn: onPressIn fired the instant a finger
+      // touched down, which fixed one bug (the first tap on a result being
+      // eaten by the keyboard-dismiss race) but caused a worse one — it also
+      // fired at the *start* of a scroll drag, opening whatever row the
+      // gesture happened to begin on instead of letting the list scroll.
+      // keyboardShouldPersistTaps="always" above is what actually needs to
+      // carry the keyboard-dismiss fix; onPress still won't fire unless the
+      // touch ends where it started, so a scroll drag no longer opens a book.
+      onPress={onPress}
       accessibilityRole="button"
       style={({ pressed }) => [
         styles.row,

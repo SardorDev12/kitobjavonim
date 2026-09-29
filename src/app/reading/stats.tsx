@@ -26,7 +26,7 @@ import { useLibrary } from '@/lib/queries/library';
 import { useUpdateProfile } from '@/lib/queries/profile';
 import { useReadingActivity } from '@/lib/queries/readingActivity';
 import { useCategoryOptions } from '@/lib/queries/reference';
-import { computeReadingStats, computeStreak, type BookRef } from '@/lib/readingStats';
+import { computeReadingStats, computeStreak } from '@/lib/readingStats';
 import { useTheme } from '@/theme';
 import type { LibraryEntry } from '@/types/database';
 
@@ -171,45 +171,6 @@ export default function ReadingStatsScreen() {
             </Card>
           </View>
 
-          <View style={{ gap: theme.spacing.sm }}>
-            <SectionHeader title={t('reading.statsHabits')} icon="sparkles-outline" />
-            <Card padded={false}>
-              <StatRow
-                icon="document-text-outline"
-                label={t('reading.statsPagesRead')}
-                value={stats.pagesRead > 0 ? stats.pagesRead.toLocaleString() : '—'}
-              />
-              <Divider inset={theme.spacing.lg} />
-              <StatRow
-                icon="trending-up-outline"
-                label={t('reading.statsLongestBook')}
-                value={stats.longestBook ? `${stats.longestBook.title} (${stats.longestBook.pages})` : '—'}
-                book={stats.longestBook}
-                onPress={(id) => router.push(`/book/${id}`)}
-              />
-              <Divider inset={theme.spacing.lg} />
-              <StatRow
-                icon="trending-down-outline"
-                label={t('reading.statsShortestBook')}
-                value={stats.shortestBook ? `${stats.shortestBook.title} (${stats.shortestBook.pages})` : '—'}
-                book={stats.shortestBook}
-                onPress={(id) => router.push(`/book/${id}`)}
-              />
-              <Divider inset={theme.spacing.lg} />
-              <StatRow
-                icon="flash-outline"
-                label={t('reading.statsFastestFinish')}
-                value={
-                  stats.fastestFinish
-                    ? `${stats.fastestFinish.title} (${t('reading.statsDays', { count: stats.fastestFinish.days })})`
-                    : '—'
-                }
-                book={stats.fastestFinish}
-                onPress={(id) => router.push(`/book/${id}`)}
-              />
-            </Card>
-          </View>
-
           {stats.ratedCount > 0 ? (
             <View style={{ gap: theme.spacing.sm }}>
               <SectionHeader title={t('reading.statsRatingDistribution')} icon="star-outline" />
@@ -338,25 +299,19 @@ export default function ReadingStatsScreen() {
 }
 
 /** A left-aligned icon+label row with a right-aligned value — used for every
- *  numeric stat on this page (Period, Library, Habits). Optionally pressable
- *  when it references a specific book (Habits' longest/shortest/fastest). */
+ *  numeric stat on this page (Period, Library). */
 function StatRow({
   icon,
   label,
   value,
-  book,
-  onPress,
 }: {
   icon: keyof typeof Ionicons.glyphMap;
   label: string;
   value: string;
-  book?: BookRef | null;
-  onPress?: (id: string) => void;
 }) {
   const theme = useTheme();
-  const pressable = Boolean(book && onPress);
 
-  const content = (
+  return (
     <View
       style={{
         flexDirection: 'row',
@@ -376,16 +331,7 @@ function StatRow({
       <Text variant="bodyStrong" numberOfLines={1} style={{ flexShrink: 1, textAlign: 'right' }}>
         {value}
       </Text>
-      {pressable ? <Ionicons name="chevron-forward" size={16} color={theme.colors.textSubtle} /> : null}
     </View>
-  );
-
-  if (!pressable) return content;
-
-  return (
-    <Pressable onPress={() => onPress!(book!.id)} accessibilityRole="button" style={({ pressed }) => pressed && { opacity: 0.6 }}>
-      {content}
-    </Pressable>
   );
 }
 

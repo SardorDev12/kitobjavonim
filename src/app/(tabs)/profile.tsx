@@ -8,7 +8,7 @@ import { useAuth } from '@/features/auth/AuthProvider';
 import { formatMonthYear } from '@/lib/format';
 import { LOCALE_LABELS, LOCALES, useI18n, type Locale } from '@/lib/i18n';
 import { SUPPORT_EMAIL } from '@/lib/legalContent';
-import { useProfileStats, useUpdateProfile } from '@/lib/queries/profile';
+import { useUpdateProfile } from '@/lib/queries/profile';
 import { useLocationOptions } from '@/lib/queries/reference';
 import { THEME_MODES, useTheme, type ThemeMode } from '@/theme';
 
@@ -18,8 +18,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
-  const { profile, user, signOut } = useAuth();
-  const { data: stats } = useProfileStats(user?.id);
+  const { profile, signOut } = useAuth();
   const locations = useLocationOptions();
   const updateProfile = useUpdateProfile();
 
@@ -67,20 +66,6 @@ export default function ProfileScreen() {
             ) : null}
           </View>
         </View>
-
-        <Card>
-          <Text variant="heading">{t('profile.stats')}</Text>
-          <View style={[styles.stats, { marginTop: theme.spacing.lg }]}>
-            <Stat label={t('profile.totalBooks')} value={stats?.total_books ?? 0} />
-            <Stat label={t('profile.finished')} value={stats?.finished_books ?? 0} />
-            <Stat label={t('profile.reading')} value={stats?.reading_books ?? 0} />
-          </View>
-          <View style={[styles.stats, { marginTop: theme.spacing.lg }]}>
-            <Stat label={t('profile.forExchange')} value={stats?.exchange_count ?? 0} />
-            <Stat label={t('profile.forSale')} value={stats?.sale_count ?? 0} />
-            <Stat label={t('library.filter.want_to_read')} value={stats?.unread_books ?? 0} />
-          </View>
-        </Card>
 
         <Card padded={false}>
           <ListRow
@@ -193,20 +178,7 @@ export default function ProfileScreen() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: number }) {
-  return (
-    <View style={styles.stat}>
-      <Text variant="title">{value}</Text>
-      <Text variant="caption" color="textMuted">
-        {label}
-      </Text>
-    </View>
-  );
-}
-
 const styles = StyleSheet.create({
   identity: { flexDirection: 'row', alignItems: 'center' },
   identityText: { flex: 1, gap: 2 },
-  stats: { flexDirection: 'row' },
-  stat: { flex: 1, gap: 2 },
 });
