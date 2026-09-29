@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   formatAuthors,
   formatPrice,
+  formatWeekRange,
   isValidIsbn,
   normalizeIsbn,
   parseAuthors,
@@ -135,5 +136,15 @@ describe('formatAuthors', () => {
 
   it('collapses three or more authors to the first plus a count', () => {
     expect(formatAuthors(['A', 'B', 'C'])).toBe('A +2');
+  });
+});
+
+describe('formatWeekRange', () => {
+  it('drops the repeated month/year when both ends fall in the same month', () => {
+    expect(formatWeekRange(new Date('2026-03-09'), new Date('2026-03-15'), 'en')).toBe('9–15 Mar 2026');
+  });
+
+  it('spells out the start month when the week crosses a month boundary', () => {
+    expect(formatWeekRange(new Date('2026-03-30'), new Date('2026-04-05'), 'en')).toBe('30 Mar–5 Apr 2026');
   });
 });

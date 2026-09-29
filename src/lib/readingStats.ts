@@ -1,4 +1,23 @@
-import { endOfYear, isWithinInterval, startOfMonth, startOfWeek, startOfYear, subMonths, subYears } from 'date-fns';
+import {
+  addDays,
+  addMonths,
+  addWeeks,
+  addYears,
+  eachDayOfInterval,
+  eachMonthOfInterval,
+  eachWeekOfInterval,
+  endOfDay,
+  endOfMonth,
+  endOfWeek,
+  endOfYear,
+  isWithinInterval,
+  max as maxDate,
+  min as minDate,
+  startOfDay,
+  startOfMonth,
+  startOfWeek,
+  startOfYear,
+} from 'date-fns';
 
 import type { LibraryEntry } from '@/types/database';
 
@@ -6,7 +25,7 @@ export type BookRef = { id: string; title: string };
 
 export type ReadingStats = {
   totals: { library: number; reading: number; wantToRead: number; finished: number };
-  finished: { week: number; month: number; year: number; lastYear: number; allTime: number };
+  finished: { week: number; month: number; year: number };
   pagesRead: number;
   /** Not shown on the page itself — only feeds the "share my year" summary. */
   avgRating: number | null;
@@ -16,11 +35,7 @@ export type ReadingStats = {
   longestBook: (BookRef & { pages: number }) | null;
   shortestBook: (BookRef & { pages: number }) | null;
   fastestFinish: (BookRef & { days: number }) | null;
-  /** Finished-book counts for the trailing MONTHLY_CHART_MONTHS months, oldest first. */
-  monthly: { monthStart: Date; count: number }[];
 };
-
-const MONTHLY_CHART_MONTHS = 6;
 
 /**
  * Every number on the stats page (streak excepted — see readingActivity.ts,
@@ -34,8 +49,6 @@ export function computeReadingStats(library: LibraryEntry[]): ReadingStats {
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const monthStart = startOfMonth(now);
   const yearStart = startOfYear(now);
-  const lastYearStart = startOfYear(subYears(now, 1));
-  const lastYearEnd = endOfYear(subYears(now, 1));
 
   const finishedEntries = library.filter((entry) => entry.reading_status === 'finished' && entry.date_finished);
   const finishedDates = finishedEntries.map((entry) => new Date(entry.date_finished!));
@@ -80,14 +93,6 @@ export function computeReadingStats(library: LibraryEntry[]): ReadingStats {
     }
   }
 
-  const monthly = Array.from({ length: MONTHLY_CHART_MONTHS }, (_, i) => {
-    const d = subMonths(now, MONTHLY_CHART_MONTHS - 1 - i);
-    const year = d.getFullYear();
-    const month = d.getMonth();
-    const count = finishedDates.filter((date) => date.getFullYear() === year && date.getMonth() === month).length;
-    return { monthStart: new Date(year, month, 1), count };
-  });
-
   return {
     totals: {
       library: library.length,
@@ -99,8 +104,6 @@ export function computeReadingStats(library: LibraryEntry[]): ReadingStats {
       week: countSince(weekStart),
       month: countSince(monthStart),
       year: countSince(yearStart),
-      lastYear: finishedDates.filter((date) => isWithinInterval(date, { start: lastYearStart, end: lastYearEnd })).length,
-      allTime: finishedDates.length,
     },
     pagesRead,
     avgRating,
@@ -109,8 +112,111 @@ export function computeReadingStats(library: LibraryEntry[]): ReadingStats {
     longestBook,
     shortestBook,
     fastestFinish,
-    monthly,
   };
+}
+
+export type PeriodType = 'day' | 'week' | 'month' | 'year';
+
+export type BookCard = BookRef & { pages: number; coverUrl: string | null; authors: string[] };
+
+export type PeriodStats = {
+  start: Date;
+  end: Date;
+  booksFinished: number;
+  pagesRead: number;
+  avgRating: number | null;
+  longestBook: BookCard | null;
+  shortestBook: BookCard | null;
+  /** Empty for 'day' — a single bucket isn't a chart. Bucket boundaries
+   *  vary by period (a day, for 'week'/'month'; a month, for 'year') —
+   *  the caller picks the axis label per period. */
+  chart: { bucketStart: Date; count: number }[];
+  /** Finished within [start, end], newest first. */
+  finishedBooks: LibraryEntry[];
+};
+
+/** Moves a period's reference date by one whole period, for the stats page's prev/next controls. */
+export function shiftPeriod(period: PeriodType, referenceDate: Date, direction: 1 | -1): Date {
+  switch (period) {
+    case 'day':
+      return addDays(referenceDate, direction);
+    case 'week':
+      return addWeeks(referenceDate, direction);
+    case 'month':
+      return addMonths(referenceDate, direction);
+    case 'year':
+      return addYears(referenceDate, direction);
+  }
+}
+
+function periodBounds(period: PeriodType, referenceDate: Date): { start: Date; end: Date } {
+  switch (period) {
+    case 'day':
+      return { start: startOfDay(referenceDate), end: endOfDay(referenceDate) };
+    case 'week':
+      return { start: startOfWeek(referenceDate, { weekStartsOn: 1 }), end: endOfWeek(referenceDate, { weekStartsOn: 1 }) };
+    case 'month':
+      return { start: startOfMonth(referenceDate), end: endOfMonth(referenceDate) };
+    case 'year':
+      return { start: startOfYear(referenceDate), end: endOfYear(referenceDate) };
+  }
+}
+
+/**
+ * Same numbers as computeReadingStats, but scoped to a single browsable
+ * period (day/week/month/year, any reference date) instead of always "now"
+ * — powers the stats page's period tabs + prev/next/picker navigation.
+ * Deliberately a separate function rather than a generalization of
+ * computeReadingStats: that one also computes the streak-adjacent "week/
+ * month/year/all-time so far" numbers the goal and mini-tiles still use as
+ * fixed, always-current reference points regardless of which period is
+ * being browsed — conflating the two would make those tiles wrongly track
+ * whatever period is on screen.
+ */
+export function computePeriodStats(library: LibraryEntry[], period: PeriodType, referenceDate: Date): PeriodStats {
+  const { start, end } = periodBounds(period, referenceDate);
+
+  const finishedBooks = library
+    .filter((entry) => entry.reading_status === 'finished' && entry.date_finished)
+    .filter((entry) => isWithinInterval(new Date(entry.date_finished!), { start, end }))
+    .sort((a, b) => b.date_finished!.localeCompare(a.date_finished!));
+
+  const pagesRead = finishedBooks.reduce((sum, entry) => sum + (entry.page_count ?? 0), 0);
+
+  const ratedBooks = finishedBooks.filter((entry) => entry.rating != null);
+  const avgRating = ratedBooks.length
+    ? ratedBooks.reduce((sum, entry) => sum + (entry.rating ?? 0), 0) / ratedBooks.length
+    : null;
+
+  let longestBook: BookCard | null = null;
+  let shortestBook: BookCard | null = null;
+  for (const entry of finishedBooks) {
+    if (!entry.page_count) continue;
+    const card: BookCard = { id: entry.id, title: entry.title, pages: entry.page_count, coverUrl: entry.cover_url, authors: entry.authors };
+    if (!longestBook || entry.page_count > longestBook.pages) longestBook = card;
+    if (!shortestBook || entry.page_count < shortestBook.pages) shortestBook = card;
+  }
+
+  const finishedDates = finishedBooks.map((entry) => new Date(entry.date_finished!));
+  const countBetween = (bucketStart: Date, bucketEnd: Date) =>
+    finishedDates.filter((date) => isWithinInterval(date, { start: bucketStart, end: bucketEnd })).length;
+
+  const chart: { bucketStart: Date; count: number }[] =
+    period === 'day'
+      ? []
+      : period === 'week'
+        ? eachDayOfInterval({ start, end }).map((day) => ({ bucketStart: day, count: countBetween(startOfDay(day), endOfDay(day)) }))
+        : period === 'month'
+          ? eachWeekOfInterval({ start, end }, { weekStartsOn: 1 }).map((weekStart) => ({
+              bucketStart: weekStart,
+              count: countBetween(maxDate([weekStart, start]), minDate([endOfWeek(weekStart, { weekStartsOn: 1 }), end])),
+            }))
+          : eachMonthOfInterval({ start, end }).map((monthStart) => ({
+              bucketStart: monthStart,
+              count: countBetween(startOfMonth(monthStart), endOfMonth(monthStart)),
+            }));
+
+  return { start, end, booksFinished: finishedBooks.length, pagesRead, avgRating, longestBook, shortestBook, chart, finishedBooks };
 }
 
 export type Streak = { current: number; longest: number };

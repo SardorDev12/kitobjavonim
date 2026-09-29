@@ -63,6 +63,19 @@ export function formatMonthShort(value: Date, locale: Locale): string {
   return format(value, 'LLL', { locale: dateLocales[locale] });
 }
 
+/** Single-letter weekday label ("D", "S") — the stats page's weekly chart axis. */
+export function formatWeekdayNarrow(value: Date, locale: Locale): string {
+  return format(value, 'EEEEE', { locale: dateLocales[locale] });
+}
+
+/** "22–28 Sep 2026" (or "28 Sep – 4 Okt 2026" across a month boundary) — the stats page's week picker label. */
+export function formatWeekRange(start: Date, end: Date, locale: Locale): string {
+  const opts = { locale: dateLocales[locale] };
+  const sameMonth = start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear();
+  const startLabel = format(start, sameMonth ? 'd' : 'd MMM', opts);
+  return `${startLabel}–${format(end, 'd MMM yyyy', opts)}`;
+}
+
 /** Reference tables carry one column per language; pick the right one. */
 export function localizedName(
   row: { name_uz: string; name_ru: string; name_en: string } | null | undefined,
