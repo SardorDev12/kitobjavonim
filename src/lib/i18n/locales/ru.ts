@@ -68,6 +68,7 @@ export const ru: LocaleCatalogue = {
   'auth.confirmEmail': 'Мы отправили ссылку для подтверждения на {{email}}.',
 
   'auth.telegramConfirm': 'Подтвердите свой аккаунт Telegram, чтобы продолжить.',
+  'auth.telegramWrongAccount': 'Используется тот аккаунт Telegram, который уже активен в этом браузере. Чтобы войти с другим аккаунтом, сначала выйдите из Telegram здесь.',
   'auth.telegramContinue': 'Перейти в приложение',
   'auth.telegramSuccessTitle': 'Вы вошли в систему',
   'auth.telegramErrorTitle': 'Не удалось войти',

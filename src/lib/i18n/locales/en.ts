@@ -69,6 +69,7 @@ export const en = {
   'auth.confirmEmail': 'We sent a confirmation link to {{email}}.',
 
   'auth.telegramConfirm': 'Confirm your Telegram account to continue.',
+  'auth.telegramWrongAccount': "This uses whichever Telegram account is already active in this browser. To sign in with a different one, log out of Telegram here first.",
   'auth.telegramContinue': 'Continue to the app',
   'auth.telegramSuccessTitle': "You're signed in",
   'auth.telegramErrorTitle': 'Sign-in failed',

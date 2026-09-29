@@ -70,6 +70,21 @@ export function useLibraryEntry(id: string | undefined) {
   return useQuery({
     queryKey: queryKeys.library.entry(id ?? ''),
     enabled: Boolean(id),
+    // Overrides the queryClient's own 2-minute default (see _layout.tsx) —
+    // a shared copy's fields (shelf_note/location, most visibly) can change
+    // from a *different device* at any moment, and this screen has no
+    // realtime subscription to catch that. Within the 2-minute window the
+    // default staleTime allowed, opening the book fresh still showed
+    // whatever was cached from before the other device's edit — "I have to
+    // close and reopen it" was really "wait past the staleTime, then
+    // reopen." Zero here means every mount is treated as stale and
+    // refetches immediately (bounded by an actual network round trip, not
+    // an arbitrary cache window) — this is a single row, cheap enough to
+    // always ask fresh for. useLibrary()'s own list staleTime is untouched;
+    // a slightly-stale library list is an acceptable tradeoff this one
+    // screen — where someone is specifically checking/editing one fact
+    // about one book — isn't.
+    staleTime: 0,
     queryFn: async (): Promise<LibraryEntry | null> => {
       const { data, error } = await supabase.from('library_entries').select('*').eq('id', id!).maybeSingle();
       if (error) throw error;

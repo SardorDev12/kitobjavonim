@@ -169,6 +169,15 @@ export default function TelegramLoginScreen() {
         <Text variant="body" color="textMuted">
           {t('auth.telegramConfirm')}
         </Text>
+        {/* Telegram's own "Log in as [name]?" confirm screen (opened by the
+            widget below, not rendered by us) has no built-in way to switch
+            accounts — it just reuses whatever Telegram session is already
+            active in this browser. The only real way out is logging out of
+            Telegram first, which is genuinely outside anything this page can
+            do — so the best this can offer is saying so before it happens. */}
+        <Text variant="caption" color="textSubtle" style={{ textAlign: 'center', maxWidth: 320 }}>
+          {t('auth.telegramWrongAccount')}
+        </Text>
         {/* React Native Web forwards a View's ref to the underlying DOM node,
             so this ref is safe to use as a real container for the widget's
             injected <script>, even though View's public ref type does not say so. */}
