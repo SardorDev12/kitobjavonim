@@ -6,7 +6,6 @@ import { Pressable, ScrollView, Share, View } from 'react-native';
 import { BookCover, COVER_ASPECT } from '@/components/BookCover';
 import {
   BackHeader,
-  Button,
   Card,
   Divider,
   EmptyState,
@@ -16,14 +15,11 @@ import {
   SectionHeader,
   Sheet,
   Text,
-  TextField,
 } from '@/components/ui';
-import { useAuth } from '@/features/auth/AuthProvider';
 import { formatAuthors, formatDate, formatMonthShort, formatMonthYear, formatWeekRange, formatWeekdayNarrow } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
 import { useLibraryCategoryCounts } from '@/lib/queries/categories';
 import { useLibrary } from '@/lib/queries/library';
-import { useUpdateProfile } from '@/lib/queries/profile';
 import { useReadingActivity } from '@/lib/queries/readingActivity';
 import { useCategoryOptions } from '@/lib/queries/reference';
 import { computePeriodStats, computeReadingStats, computeStreak, shiftPeriod, type BookCard, type PeriodType } from '@/lib/readingStats';
@@ -53,7 +49,6 @@ export default function ReadingStatsScreen() {
   const theme = useTheme();
   const { t, locale } = useI18n();
   const router = useRouter();
-  const { profile } = useAuth();
 
   const { data: library, isPending } = useLibrary();
   const stats = useMemo(() => computeReadingStats(library ?? []), [library]);
@@ -71,7 +66,6 @@ export default function ReadingStatsScreen() {
   }
 
   const now = new Date();
-  const isCurrentYear = refDate.getFullYear() === now.getFullYear();
   const isAtLatestPeriod = now >= periodStats.start && now <= periodStats.end;
 
   const earliestYear = useMemo(() => {
@@ -92,14 +86,14 @@ export default function ReadingStatsScreen() {
   const { data: categoryCounts } = useLibraryCategoryCounts(finishedBookIds);
   const categoryOptions = useCategoryOptions();
 
-  const [goalOpen, setGoalOpen] = useState(false);
   const [yearPickerOpen, setYearPickerOpen] = useState(false);
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const [bestReadsOpen, setBestReadsOpen] = useState(false);
 
   // Every stat still actually shown on this page gets a line here — nothing
   // more (no favorite-author line: that detail was dropped from the page
-  // itself, so it stopped belonging in what gets shared too). Always the
+  // itself, so it stopped belonging in what gets shared too; no goal line
+  // either, now that the reading-goal feature itself is gone). Always the
   // current calendar year, regardless of which period is being browsed —
   // "share my year" means the year, not whatever's on screen.
   function shareYear() {
@@ -115,9 +109,6 @@ export default function ReadingStatsScreen() {
         ? t('reading.shareFastest', { title: stats.fastestFinish.title, count: stats.fastestFinish.days })
         : null,
       streak.current > 0 ? t('reading.shareStreak', { count: streak.current }) : null,
-      profile?.reading_goal_books
-        ? t('reading.shareGoal', { done: stats.finished.year, goal: profile.reading_goal_books })
-        : null,
     ].filter((line): line is string => Boolean(line));
     void Share.share({ message: lines.join('\n') });
   }
@@ -274,10 +265,6 @@ export default function ReadingStatsScreen() {
             </Card>
           ) : null}
 
-          {period === 'year' && isCurrentYear ? (
-            <GoalCard goal={profile?.reading_goal_books ?? null} finishedThisYear={stats.finished.year} onEdit={() => setGoalOpen(true)} />
-          ) : null}
-
           <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
             <MiniTile icon="document-text-outline" value={String(periodStats.pagesRead)} label={t('reading.statsPagesTile')} />
             <MiniTile icon="flame-outline" value={String(streak.current)} label={t('reading.statsStreakTile')} />
@@ -430,13 +417,6 @@ export default function ReadingStatsScreen() {
         </View>
       </Screen>
 
-      <GoalSheet
-        key={`goal-${profile?.reading_goal_books ?? 'none'}`}
-        visible={goalOpen}
-        onClose={() => setGoalOpen(false)}
-        currentGoal={profile?.reading_goal_books ?? null}
-      />
-
       <YearPickerSheet
         visible={yearPickerOpen}
         onClose={() => setYearPickerOpen(false)}
@@ -478,7 +458,7 @@ function PeriodTabs({ period, onSelect }: { period: PeriodType; onSelect: (perio
   };
 
   return (
-    <View style={{ flexDirection: 'row', gap: theme.spacing.lg }}>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
       {PERIODS.map((p) => {
         const active = p === period;
         return (
@@ -794,132 +774,6 @@ function StatRow({
         {value}
       </Text>
     </View>
-  );
-}
-
-/** Progress toward profile.reading_goal_books, or a prompt to set one — both centered, not a left-icon/right-button row. */
-function GoalCard({
-  goal,
-  finishedThisYear,
-  onEdit,
-}: {
-  goal: number | null;
-  finishedThisYear: number;
-  onEdit: () => void;
-}) {
-  const theme = useTheme();
-  const { t } = useI18n();
-
-  if (goal == null) {
-    return (
-      <Card>
-        <View style={{ alignItems: 'center', gap: theme.spacing.sm }}>
-          <View
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: theme.radius.pill,
-              backgroundColor: theme.colors.primarySoft,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Ionicons name="flag-outline" size={22} color={theme.colors.primaryOnSoft} />
-          </View>
-          <Text variant="bodyStrong" style={{ textAlign: 'center' }}>
-            {t('reading.statsGoalPromptTitle')}
-          </Text>
-          <Text variant="caption" color="textMuted" style={{ textAlign: 'center' }}>
-            {t('reading.statsGoalPromptBody')}
-          </Text>
-          {/* Button sets alignSelf: 'flex-start' internally, which wins over
-              this parent's alignItems — has to be overridden explicitly to
-              actually center, same as wishlist.tsx's footer button. */}
-          <Button title={t('reading.statsGoalSet')} variant="secondary" size="sm" onPress={onEdit} style={{ alignSelf: 'center' }} />
-        </View>
-      </Card>
-    );
-  }
-
-  const percent = Math.max(0, Math.min(100, Math.round((finishedThisYear / goal) * 100)));
-  const met = finishedThisYear >= goal;
-
-  return (
-    <Card>
-      <View style={{ alignItems: 'center', gap: 4 }}>
-        <View
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: theme.radius.pill,
-            backgroundColor: met ? theme.colors.successSoft : theme.colors.primarySoft,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Ionicons name="flag" size={22} color={met ? theme.colors.success : theme.colors.primaryOnSoft} />
-        </View>
-        <Text variant="bodyStrong">{t('reading.statsGoalTitle', { year: new Date().getFullYear() })}</Text>
-        <Text variant="caption" color="textMuted">
-          {t('reading.statsGoalProgress', { done: finishedThisYear, goal })}
-        </Text>
-      </View>
-      <View style={{ height: 8, borderRadius: 4, backgroundColor: theme.colors.surfaceSunken, overflow: 'hidden', marginTop: theme.spacing.sm }}>
-        <View
-          style={{
-            height: '100%',
-            width: `${percent}%`,
-            borderRadius: 4,
-            backgroundColor: met ? theme.colors.success : theme.colors.primary,
-          }}
-        />
-      </View>
-      {met ? (
-        <Text variant="caption" style={{ color: theme.colors.success, textAlign: 'center', marginTop: 6 }}>
-          {t('reading.statsGoalMet')}
-        </Text>
-      ) : null}
-      <Pressable onPress={onEdit} hitSlop={8} accessibilityRole="button" style={{ alignSelf: 'center', marginTop: theme.spacing.sm }}>
-        <Text variant="caption" color="primary">
-          {t('common.edit')}
-        </Text>
-      </Pressable>
-    </Card>
-  );
-}
-
-function GoalSheet({ visible, onClose, currentGoal }: { visible: boolean; onClose: () => void; currentGoal: number | null }) {
-  const theme = useTheme();
-  const { t } = useI18n();
-  const updateProfile = useUpdateProfile();
-  const [input, setInput] = useState(currentGoal != null ? String(currentGoal) : '');
-
-  const parsed = Number(input);
-  const canSave = Number.isFinite(parsed) && parsed > 0;
-
-  function save() {
-    if (!canSave) return;
-    updateProfile.mutate({ reading_goal_books: Math.round(parsed) }, { onSuccess: onClose });
-  }
-
-  function clear() {
-    updateProfile.mutate({ reading_goal_books: null }, { onSuccess: onClose });
-  }
-
-  return (
-    <Sheet visible={visible} onClose={onClose} title={t('reading.statsGoalSheetTitle')}>
-      <View style={{ gap: theme.spacing.lg }}>
-        <TextField
-          label={t('reading.statsGoalSheetLabel')}
-          value={input}
-          onChangeText={setInput}
-          keyboardType="number-pad"
-          inputMode="numeric"
-        />
-        <Button title={t('common.save')} fullWidth loading={updateProfile.isPending} disabled={!canSave} onPress={save} />
-        {currentGoal != null ? <Button title={t('reading.statsGoalClear')} variant="ghost" fullWidth onPress={clear} /> : null}
-      </View>
-    </Sheet>
   );
 }
 
