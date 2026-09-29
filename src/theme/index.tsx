@@ -4,13 +4,14 @@ import { useColorScheme, useWindowDimensions } from 'react-native';
 
 import {
   breakpoints,
+  colorThemes,
   maxContentWidth,
-  palette,
   radius,
   shadow,
   spacing,
   typography,
   type Breakpoint,
+  type ColorTheme,
   type Colors,
 } from './tokens';
 
@@ -20,7 +21,8 @@ export type ThemeMode = 'light' | 'dark' | 'system';
 
 export const THEME_MODES: readonly ThemeMode[] = ['light', 'dark', 'system'] as const;
 
-const STORAGE_KEY = 'settings.themeMode';
+const MODE_STORAGE_KEY = 'settings.themeMode';
+const COLOR_THEME_STORAGE_KEY = 'settings.colorTheme';
 
 type Theme = {
   colors: Colors;
@@ -28,6 +30,9 @@ type Theme = {
   /** The user's stored preference — distinct from `scheme`, which is the resolved value 'system' maps to. */
   mode: ThemeMode;
   setMode: (mode: ThemeMode) => void;
+  /** Which of the four palettes (default/emerald/burgundy/indigo) is active — independent of light/dark. */
+  colorTheme: ColorTheme;
+  setColorTheme: (theme: ColorTheme) => void;
   /**
    * False until the stored preference (or its absence) has been read from
    * AsyncStorage — root _layout.tsx keeps the native splash screen up
@@ -37,6 +42,20 @@ type Theme = {
    * splash screen disappears.
    */
   modeLoaded: boolean;
+  /**
+   * Same reasoning as modeLoaded, for colorTheme — a device with a stored
+   * non-default color theme shouldn't flash 'default' first either. Note
+   * that only the *default* theme's colors are what the native splash
+   * screen itself is actually built with (app.config.js's SPLASH_BACKGROUND_
+   * LIGHT/DARK are static, baked in at build time) — someone on 'emerald'
+   * still briefly sees the default-colored splash before the app itself
+   * loads and repaints in their chosen theme, same as anyone always has on
+   * first cold start before modeLoaded/colorThemeLoaded resolve. There's no
+   * way to make the native splash itself track an in-app preference; this
+   * flag only prevents an *additional* default-then-chosen flash on top of
+   * that once the JS side takes over.
+   */
+  colorThemeLoaded: boolean;
   spacing: typeof spacing;
   radius: typeof radius;
   typography: typeof typography;
@@ -54,9 +73,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<ThemeMode>('light');
   const [modeLoaded, setModeLoaded] = useState(false);
 
+  const [colorTheme, setColorThemeState] = useState<ColorTheme>('default');
+  const [colorThemeLoaded, setColorThemeLoaded] = useState(false);
+
   useEffect(() => {
     let cancelled = false;
-    AsyncStorage.getItem(STORAGE_KEY)
+    AsyncStorage.getItem(MODE_STORAGE_KEY)
       .then((stored) => {
         if (!cancelled && stored && THEME_MODES.includes(stored as ThemeMode)) {
           setModeState(stored as ThemeMode);
@@ -71,26 +93,51 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    AsyncStorage.getItem(COLOR_THEME_STORAGE_KEY)
+      .then((stored) => {
+        if (!cancelled && stored && stored in colorThemes) {
+          setColorThemeState(stored as ColorTheme);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setColorThemeLoaded(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const setMode = useCallback((next: ThemeMode) => {
     setModeState(next);
-    AsyncStorage.setItem(STORAGE_KEY, next).catch(() => {});
+    AsyncStorage.setItem(MODE_STORAGE_KEY, next).catch(() => {});
+  }, []);
+
+  const setColorTheme = useCallback((next: ColorTheme) => {
+    setColorThemeState(next);
+    AsyncStorage.setItem(COLOR_THEME_STORAGE_KEY, next).catch(() => {});
   }, []);
 
   const scheme = mode === 'system' ? systemScheme : mode;
 
   const value = useMemo<Theme>(
     () => ({
-      colors: palette[scheme],
+      colors: colorThemes[colorTheme][scheme],
       scheme,
       mode,
       setMode,
+      colorTheme,
+      setColorTheme,
       modeLoaded,
+      colorThemeLoaded,
       spacing,
       radius,
       typography,
       shadow,
     }),
-    [scheme, mode, setMode, modeLoaded]
+    [scheme, mode, setMode, colorTheme, setColorTheme, modeLoaded, colorThemeLoaded]
   );
 
   return <ThemeContext value={value}>{children}</ThemeContext>;

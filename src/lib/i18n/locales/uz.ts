@@ -410,6 +410,11 @@ export const uz: LocaleCatalogue = {
   'profile.appearance.system': 'Qurilma sozlamasi',
 
   'profile.appearance': 'Koʻrinish',
+  'profile.colorTheme': 'Rang mavzusi',
+  'profile.colorTheme.default': 'Asl',
+  'profile.colorTheme.emerald': 'Zumrad va tilla',
+  'profile.colorTheme.burgundy': 'Bordo va bronza',
+  'profile.colorTheme.indigo': 'Indigo siyoh',
   'profile.sendInquiry': 'Murojaat yoʻllash',
   'profile.signOutConfirm': 'Hisobdan chiqasizmi?',
   'profile.memberSince': '{{date}} dan beri kitobxon',

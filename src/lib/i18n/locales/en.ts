@@ -405,6 +405,11 @@ export const en = {
   'profile.appearance.system': 'Match device',
 
   'profile.appearance': 'Appearance',
+  'profile.colorTheme': 'Color theme',
+  'profile.colorTheme.default': 'Original',
+  'profile.colorTheme.emerald': 'Emerald & Gilt',
+  'profile.colorTheme.burgundy': 'Burgundy & Brass',
+  'profile.colorTheme.indigo': 'Indigo Ink',
   'profile.sendInquiry': 'Send an inquiry',
   'profile.signOutConfirm': 'Sign out of this account?',
   'profile.memberSince': 'Reader since {{date}}',

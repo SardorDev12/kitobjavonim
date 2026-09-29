@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Alert, Linking, Platform, StyleSheet, View } from 'react-native';
+import { Alert, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar, Button, Card, Divider, ListRow, Screen, Sheet, Text } from '@/components/ui';
@@ -10,7 +10,7 @@ import { LOCALE_LABELS, LOCALES, useI18n, type Locale } from '@/lib/i18n';
 import { SUPPORT_EMAIL } from '@/lib/legalContent';
 import { useUpdateProfile } from '@/lib/queries/profile';
 import { useLocationOptions } from '@/lib/queries/reference';
-import { THEME_MODES, useTheme, type ThemeMode } from '@/theme';
+import { COLOR_THEMES, THEME_MODES, colorThemes, useTheme, type ColorTheme, type ThemeMode } from '@/theme';
 
 export default function ProfileScreen() {
   const theme = useTheme();
@@ -24,6 +24,7 @@ export default function ProfileScreen() {
 
   const [languageOpen, setLanguageOpen] = useState(false);
   const [appearanceOpen, setAppearanceOpen] = useState(false);
+  const [colorThemeOpen, setColorThemeOpen] = useState(false);
 
   const location = locations.describe(profile?.district_id ?? null, profile?.region_id ?? null);
 
@@ -113,6 +114,13 @@ export default function ProfileScreen() {
           />
           <Divider inset={theme.spacing.lg} />
           <ListRow
+            icon="color-palette-outline"
+            label={t('profile.colorTheme')}
+            value={t(`profile.colorTheme.${theme.colorTheme}`)}
+            onPress={() => setColorThemeOpen(true)}
+          />
+          <Divider inset={theme.spacing.lg} />
+          <ListRow
             icon="document-text-outline"
             label={t('legal.termsOfService')}
             onPress={() => router.push('/legal/terms')}
@@ -174,11 +182,61 @@ export default function ProfileScreen() {
           </View>
         ))}
       </Sheet>
+
+      <Sheet visible={colorThemeOpen} onClose={() => setColorThemeOpen(false)} title={t('profile.colorTheme')}>
+        {COLOR_THEMES.map((option, index) => (
+          <View key={option}>
+            {index > 0 ? <Divider /> : null}
+            <ColorThemeRow
+              option={option}
+              selected={option === theme.colorTheme}
+              onPress={() => {
+                theme.setColorTheme(option);
+                setColorThemeOpen(false);
+              }}
+            />
+          </View>
+        ))}
+      </Sheet>
     </Screen>
+  );
+}
+
+/** Same row rhythm as ListRow, plus a swatch of the theme's own primary
+ *  color — a hex/name alone doesn't actually show what's being picked. */
+function ColorThemeRow({ option, selected, onPress }: { option: ColorTheme; selected: boolean; onPress: () => void }) {
+  const theme = useTheme();
+  const { t } = useI18n();
+  const swatchColor = colorThemes[option][theme.scheme].primary;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityState={{ selected }}
+      style={({ pressed }) => [
+        styles.colorThemeRow,
+        { paddingVertical: theme.spacing.md, paddingHorizontal: theme.spacing.lg },
+        pressed && { backgroundColor: theme.colors.surfaceSunken },
+      ]}
+    >
+      <View style={[styles.colorThemeSwatch, { backgroundColor: swatchColor, borderColor: theme.colors.border }]} />
+      <Text variant="body" style={styles.colorThemeLabel} numberOfLines={1}>
+        {t(`profile.colorTheme.${option}`)}
+      </Text>
+      {selected ? (
+        <Text variant="label" color="primary">
+          ✓
+        </Text>
+      ) : null}
+    </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
   identity: { flexDirection: 'row', alignItems: 'center' },
   identityText: { flex: 1, gap: 2 },
+  colorThemeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  colorThemeSwatch: { width: 22, height: 22, borderRadius: 11, borderWidth: 1 },
+  colorThemeLabel: { flex: 1 },
 });

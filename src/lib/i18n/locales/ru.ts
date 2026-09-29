@@ -429,6 +429,11 @@ export const ru: LocaleCatalogue = {
   'profile.appearance.system': 'Как на устройстве',
 
   'profile.appearance': 'Оформление',
+  'profile.colorTheme': 'Цветовая тема',
+  'profile.colorTheme.default': 'Оригинальная',
+  'profile.colorTheme.emerald': 'Изумруд и позолота',
+  'profile.colorTheme.burgundy': 'Бордовый и латунь',
+  'profile.colorTheme.indigo': 'Чернильный индиго',
   'profile.sendInquiry': 'Отправить обращение',
   'profile.signOutConfirm': 'Выйти из аккаунта?',
   'profile.memberSince': 'Читатель с {{date}}',

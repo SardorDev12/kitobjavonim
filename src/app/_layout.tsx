@@ -263,18 +263,21 @@ function RootNavigator({ updateChecked }: { updateChecked: boolean }) {
   // timing.
   //
   // See preventAutoHideAsync() above for why the splash stays up at all
-  // until `theme.modeLoaded`: once the stored preference has actually been
-  // read and this native surface carries its color, everything the splash
-  // could reveal is already in its final state. Also waits on
-  // `updateChecked` (see checkForUpdateWithTimeout()) so this launch is
-  // already running the latest published update, if any, before anyone
-  // sees its first frame — no second relaunch required.
+  // until `theme.modeLoaded`/`theme.colorThemeLoaded`: once both stored
+  // preferences have actually been read and this native surface carries
+  // its color, everything the splash could reveal is already in its final
+  // state. (background happens to be identical across every colorTheme
+  // today, so colorThemeLoaded is a no-op here in practice — included
+  // anyway so this doesn't quietly break if that ever stops being true.)
+  // Also waits on `updateChecked` (see checkForUpdateWithTimeout()) so
+  // this launch is already running the latest published update, if any,
+  // before anyone sees its first frame — no second relaunch required.
   useEffect(() => {
     (async () => {
       await SystemUI.setBackgroundColorAsync(theme.colors.background).catch(() => {});
-      if (theme.modeLoaded && updateChecked) await SplashScreen.hideAsync().catch(() => {});
+      if (theme.modeLoaded && theme.colorThemeLoaded && updateChecked) await SplashScreen.hideAsync().catch(() => {});
     })();
-  }, [theme.colors.background, theme.modeLoaded, updateChecked]);
+  }, [theme.colors.background, theme.modeLoaded, theme.colorThemeLoaded, updateChecked]);
 
   // Mandatory edge-to-edge (Expo SDK 54+) draws Android's system navigation
   // bar transparently over the app's own background, so its button/gesture-
