@@ -80,6 +80,22 @@ describe('computePeriodStats', () => {
     expect(result.chart.reduce((sum, b) => sum + b.count, 0)).toBe(result.booksFinished);
   });
 
+  it('sums pages per chart bucket alongside count', () => {
+    const library = [
+      makeEntry({ date_finished: '2026-03-09', page_count: 100 }), // Monday
+      makeEntry({ date_finished: '2026-03-09', page_count: 50 }), // Monday, second book
+      makeEntry({ date_finished: '2026-03-11', page_count: 30 }), // Wednesday
+      makeEntry({ date_finished: '2026-03-10', page_count: null }), // Tuesday, no page count
+    ];
+
+    const result = computePeriodStats(library, 'week', new Date('2026-03-15T12:00:00'));
+
+    expect(result.chart[0].pages).toBe(150); // Monday
+    expect(result.chart[1].pages).toBe(0); // Tuesday, uncounted book
+    expect(result.chart[2].pages).toBe(30); // Wednesday
+    expect(result.chart.reduce((sum, b) => sum + b.pages, 0)).toBe(result.pagesRead);
+  });
+
   it('buckets "month" into weeks that sum to the month total, ignoring spillover from neighboring months', () => {
     const library = [
       makeEntry({ date_finished: '2026-03-01', page_count: 10 }),
