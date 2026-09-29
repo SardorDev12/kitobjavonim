@@ -239,18 +239,8 @@ function RootNavigator({ updateChecked }: { updateChecked: boolean }) {
     setNavigationReady(true);
   }, []);
 
-  // See preventAutoHideAsync() above — once the theme's stored preference has
-  // actually been read, everything already on screen is in its final color
-  // and the splash screen can safely come down with nothing left to flash to.
-  // Also waits on updateChecked (see checkForUpdateWithTimeout()) so this
-  // launch is already running the latest published update, if any, before
-  // anyone sees its first frame — no second relaunch required.
-  useEffect(() => {
-    if (theme.modeLoaded && updateChecked) SplashScreen.hideAsync().catch(() => {});
-  }, [theme.modeLoaded, updateChecked]);
-
   // The root *native* view's background — distinct from the splash screen
-  // above (that's only shown once, at cold start) and from any RN-level
+  // (that's only shown once, at cold start) and from any RN-level
   // `backgroundColor` style (those only paint once JS has actually laid
   // out and rendered a frame). Without this, that native surface defaults
   // to plain white, which is what's actually behind the "white flash"
@@ -260,9 +250,31 @@ function RootNavigator({ updateChecked }: { updateChecked: boolean }) {
   // is underneath. expo-system-ui is already linked (it's a default Expo
   // package, not one newly added), so this is safe as a plain static import
   // unlike expo-navigation-bar below.
+  //
+  // This used to run as its own effect, independent of the splash-hide
+  // effect below despite both keying off the same theme values — two
+  // separate async calls with nothing ordering them against each other.
+  // On a cold start with a dark preference, `hideAsync()` could win that
+  // race and reveal this surface still holding whatever it defaulted to
+  // (white), a moment before `setBackgroundColorAsync()`'s own result
+  // painted over it — a second, distinct white flash between the (correctly
+  // dark) native splash screen and the real themed app. Awaiting this call
+  // before hiding the splash closes that gap by construction instead of by
+  // timing.
+  //
+  // See preventAutoHideAsync() above for why the splash stays up at all
+  // until `theme.modeLoaded`: once the stored preference has actually been
+  // read and this native surface carries its color, everything the splash
+  // could reveal is already in its final state. Also waits on
+  // `updateChecked` (see checkForUpdateWithTimeout()) so this launch is
+  // already running the latest published update, if any, before anyone
+  // sees its first frame — no second relaunch required.
   useEffect(() => {
-    SystemUI.setBackgroundColorAsync(theme.colors.background).catch(() => {});
-  }, [theme.colors.background]);
+    (async () => {
+      await SystemUI.setBackgroundColorAsync(theme.colors.background).catch(() => {});
+      if (theme.modeLoaded && updateChecked) await SplashScreen.hideAsync().catch(() => {});
+    })();
+  }, [theme.colors.background, theme.modeLoaded, updateChecked]);
 
   // Mandatory edge-to-edge (Expo SDK 54+) draws Android's system navigation
   // bar transparently over the app's own background, so its button/gesture-
