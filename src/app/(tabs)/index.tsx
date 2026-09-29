@@ -5,7 +5,6 @@ import { Alert, FlatList, Platform, Pressable, StyleSheet, View } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/BookCover';
-import { FinishBookSheet } from '@/components/FinishBookSheet';
 import { Button, Card, EmptyState, LoadingState, Sheet, Text, TextField } from '@/components/ui';
 import { setPendingAddQuery } from '@/features/add/pendingAddQuery';
 import { goToTab } from '@/features/tabs/activeTab';
@@ -262,19 +261,12 @@ function HeroReadingCard({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: (
   const { t, locale } = useI18n();
   const router = useRouter();
   const updateProgress = useUpdateReadingProgress();
-  const [finishPromptOpen, setFinishPromptOpen] = useState(false);
 
   const progressLabel = useMemo(() => describeProgress(entry, t), [entry, t]);
   const percent = useMemo(() => effectivePercent(entry), [entry]);
   const paceEstimate = useMemo(() => describePace(entry, t), [entry, t]);
 
   function finish() {
-    // See FinishBookSheet's own comment — a missing page count would
-    // otherwise stay null forever once the book is marked finished.
-    if (!entry.page_count) {
-      setFinishPromptOpen(true);
-      return;
-    }
     updateProgress.mutate({
       userBookId: entry.id,
       patch: { reading_status: 'finished', date_finished: entry.date_finished ?? new Date().toISOString().slice(0, 10) },
@@ -333,8 +325,6 @@ function HeroReadingCard({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: (
           style={{ flex: 1 }}
         />
       </View>
-
-      <FinishBookSheet entry={finishPromptOpen ? entry : null} onClose={() => setFinishPromptOpen(false)} />
     </Card>
   );
 }
@@ -344,19 +334,12 @@ function ReadingRow({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: () => 
   const { t, locale } = useI18n();
   const router = useRouter();
   const updateProgress = useUpdateReadingProgress();
-  const [finishPromptOpen, setFinishPromptOpen] = useState(false);
 
   const progressLabel = useMemo(() => describeProgress(entry, t), [entry, t]);
   const percent = useMemo(() => effectivePercent(entry), [entry]);
   const paceEstimate = useMemo(() => describePace(entry, t), [entry, t]);
 
   function finish() {
-    // See FinishBookSheet's own comment — a missing page count would
-    // otherwise stay null forever once the book is marked finished.
-    if (!entry.page_count) {
-      setFinishPromptOpen(true);
-      return;
-    }
     updateProgress.mutate({
       userBookId: entry.id,
       patch: { reading_status: 'finished', date_finished: entry.date_finished ?? new Date().toISOString().slice(0, 10) },
@@ -411,8 +394,6 @@ function ReadingRow({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: () => 
           style={{ flex: 1 }}
         />
       </View>
-
-      <FinishBookSheet entry={finishPromptOpen ? entry : null} onClose={() => setFinishPromptOpen(false)} />
     </Card>
   );
 }

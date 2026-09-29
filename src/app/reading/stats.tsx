@@ -58,7 +58,6 @@ export default function ReadingStatsScreen() {
 
   const [period, setPeriod] = useState<PeriodType>('year');
   const [refDate, setRefDate] = useState(() => new Date());
-  const [metric, setMetric] = useState<'books' | 'pages'>('books');
   const periodStats = useMemo(() => computePeriodStats(library ?? [], period, refDate), [library, period, refDate]);
 
   function selectPeriod(next: PeriodType) {
@@ -138,7 +137,7 @@ export default function ReadingStatsScreen() {
     return String(bucketStart.getDate());
   }
 
-  const maxChartValue = Math.max(1, ...periodStats.chart.map((b) => (metric === 'books' ? b.count : b.pages)));
+  const maxChartCount = Math.max(1, ...periodStats.chart.map((b) => b.count));
   const maxRatingCount = Math.max(1, ...stats.ratingDistribution);
   const categoryEntries = categoryOptions
     .map((option) => ({ ...option, count: categoryCounts?.[option.value] ?? 0 }))
@@ -218,29 +217,12 @@ export default function ReadingStatsScreen() {
             </View>
           </View>
 
-          <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
-            <MetricToggleButton
-              label={t('reading.statsMetricBooks')}
-              active={metric === 'books'}
-              onPress={() => setMetric('books')}
-            />
-            <MetricToggleButton
-              label={t('reading.statsMetricPages')}
-              active={metric === 'pages'}
-              onPress={() => setMetric('pages')}
-            />
-          </View>
-
           <Card>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
               <View style={{ flex: 1 }}>
-                <Text variant="display">
-                  {metric === 'books'
-                    ? t('reading.statsBooksCount', { count: periodStats.booksFinished })
-                    : String(periodStats.pagesRead)}
-                </Text>
+                <Text variant="display">{t('reading.statsBooksCount', { count: periodStats.booksFinished })}</Text>
                 <Text variant="body" color="textMuted">
-                  {metric === 'books' ? t('reading.statsFinishedBooks') : t('reading.statsPagesTile')}
+                  {t('reading.statsFinishedBooks')}
                 </Text>
               </View>
               <View
@@ -253,7 +235,7 @@ export default function ReadingStatsScreen() {
                   justifyContent: 'center',
                 }}
               >
-                <Ionicons name={metric === 'books' ? 'book' : 'document-text-outline'} size={26} color={theme.colors.primaryOnSoft} />
+                <Ionicons name="book" size={26} color={theme.colors.primaryOnSoft} />
               </View>
             </View>
           </Card>
@@ -261,27 +243,24 @@ export default function ReadingStatsScreen() {
           {period !== 'day' ? (
             <Card>
               <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: theme.spacing.xs, height: 100 }}>
-                {periodStats.chart.map((bucket, index) => {
-                  const value = metric === 'books' ? bucket.count : bucket.pages;
-                  return (
-                    <View key={index} style={{ flex: 1, alignItems: 'center', gap: 6 }}>
-                      <Text variant="micro" color="textMuted">
-                        {value > 0 ? value : ''}
-                      </Text>
-                      <View
-                        style={{
-                          width: '100%',
-                          height: Math.max(4, (value / maxChartValue) * 64),
-                          borderRadius: theme.radius.sm,
-                          backgroundColor: value > 0 ? theme.colors.primary : theme.colors.surfaceSunken,
-                        }}
-                      />
-                      <Text variant="micro" color="textSubtle">
-                        {chartLabel(bucket.bucketStart)}
-                      </Text>
-                    </View>
-                  );
-                })}
+                {periodStats.chart.map((bucket, index) => (
+                  <View key={index} style={{ flex: 1, alignItems: 'center', gap: 6 }}>
+                    <Text variant="micro" color="textMuted">
+                      {bucket.count > 0 ? bucket.count : ''}
+                    </Text>
+                    <View
+                      style={{
+                        width: '100%',
+                        height: Math.max(4, (bucket.count / maxChartCount) * 64),
+                        borderRadius: theme.radius.sm,
+                        backgroundColor: bucket.count > 0 ? theme.colors.primary : theme.colors.surfaceSunken,
+                      }}
+                    />
+                    <Text variant="micro" color="textSubtle">
+                      {chartLabel(bucket.bucketStart)}
+                    </Text>
+                  </View>
+                ))}
               </View>
             </Card>
           ) : null}
@@ -494,30 +473,6 @@ function PeriodTabs({ period, onSelect }: { period: PeriodType; onSelect: (perio
         );
       })}
     </View>
-  );
-}
-
-/** One half of the hero card's books/pages switch — which number the card and chart plot for the selected period. */
-function MetricToggleButton({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  const theme = useTheme();
-
-  return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityState={{ selected: active }}
-      style={{
-        flex: 1,
-        alignItems: 'center',
-        paddingVertical: theme.spacing.sm,
-        borderRadius: theme.radius.pill,
-        backgroundColor: active ? theme.colors.primary : theme.colors.surfaceSunken,
-      }}
-    >
-      <Text variant="label" style={{ color: active ? theme.colors.textInverted : theme.colors.textMuted }}>
-        {label}
-      </Text>
-    </Pressable>
   );
 }
 

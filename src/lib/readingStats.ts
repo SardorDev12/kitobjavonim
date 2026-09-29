@@ -129,10 +129,8 @@ export type PeriodStats = {
   shortestBook: BookCard | null;
   /** Empty for 'day' — a single bucket isn't a chart. Bucket boundaries
    *  vary by period (a day, for 'week'/'month'; a month, for 'year') —
-   *  the caller picks the axis label per period. Carries both count and
-   *  pages so the stats page's books/pages toggle can switch which one
-   *  the chart plots without a second pass over the data. */
-  chart: { bucketStart: Date; count: number; pages: number }[];
+   *  the caller picks the axis label per period. */
+  chart: { bucketStart: Date; count: number }[];
   /** Finished within [start, end], newest first. */
   finishedBooks: LibraryEntry[];
 };
@@ -199,24 +197,23 @@ export function computePeriodStats(library: LibraryEntry[], period: PeriodType, 
     if (!shortestBook || entry.page_count < shortestBook.pages) shortestBook = card;
   }
 
-  const bucketBetween = (bucketStart: Date, bucketEnd: Date) => {
-    const inBucket = finishedBooks.filter((entry) => isWithinInterval(new Date(entry.date_finished!), { start: bucketStart, end: bucketEnd }));
-    return { count: inBucket.length, pages: inBucket.reduce((sum, entry) => sum + (entry.page_count ?? 0), 0) };
-  };
+  const finishedDates = finishedBooks.map((entry) => new Date(entry.date_finished!));
+  const countBetween = (bucketStart: Date, bucketEnd: Date) =>
+    finishedDates.filter((date) => isWithinInterval(date, { start: bucketStart, end: bucketEnd })).length;
 
-  const chart: { bucketStart: Date; count: number; pages: number }[] =
+  const chart: { bucketStart: Date; count: number }[] =
     period === 'day'
       ? []
       : period === 'week'
-        ? eachDayOfInterval({ start, end }).map((day) => ({ bucketStart: day, ...bucketBetween(startOfDay(day), endOfDay(day)) }))
+        ? eachDayOfInterval({ start, end }).map((day) => ({ bucketStart: day, count: countBetween(startOfDay(day), endOfDay(day)) }))
         : period === 'month'
           ? eachWeekOfInterval({ start, end }, { weekStartsOn: 1 }).map((weekStart) => ({
               bucketStart: weekStart,
-              ...bucketBetween(maxDate([weekStart, start]), minDate([endOfWeek(weekStart, { weekStartsOn: 1 }), end])),
+              count: countBetween(maxDate([weekStart, start]), minDate([endOfWeek(weekStart, { weekStartsOn: 1 }), end])),
             }))
           : eachMonthOfInterval({ start, end }).map((monthStart) => ({
               bucketStart: monthStart,
-              ...bucketBetween(startOfMonth(monthStart), endOfMonth(monthStart)),
+              count: countBetween(startOfMonth(monthStart), endOfMonth(monthStart)),
             }));
 
   return { start, end, booksFinished: finishedBooks.length, pagesRead, avgRating, longestBook, shortestBook, chart, finishedBooks };

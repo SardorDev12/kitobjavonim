@@ -5,7 +5,6 @@ import { Alert, Platform, Pressable, StyleSheet, View } from 'react-native';
 
 import { BookCover } from '@/components/BookCover';
 import { CategoryPicker } from '@/components/CategoryPicker';
-import { FinishBookSheet } from '@/components/FinishBookSheet';
 import { ListingSheet } from '@/components/ListingSheet';
 import {
   AuthorsField,
@@ -65,7 +64,6 @@ export default function BookDetailScreen() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [listingOpen, setListingOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [finishPromptOpen, setFinishPromptOpen] = useState(false);
 
   // Free-text "where is this book" note — same reasoning as districtName in
   // onboarding.tsx/profile.tsx: entry loads async, so a plain useState
@@ -173,12 +171,6 @@ export default function BookDetailScreen() {
     }
 
     if (status === 'finished' && !entry!.date_finished) {
-      // See FinishBookSheet's own comment — a missing page count would
-      // otherwise stay null forever once the book is marked finished.
-      if (!entry!.page_count) {
-        setFinishPromptOpen(true);
-        return;
-      }
       patchProgress({ reading_status: status, date_finished: new Date().toISOString().slice(0, 10) });
       return;
     }
@@ -442,8 +434,6 @@ export default function BookDetailScreen() {
           })
         }
       />
-
-      <FinishBookSheet entry={finishPromptOpen ? entry : null} onClose={() => setFinishPromptOpen(false)} />
 
       </Screen>
 
