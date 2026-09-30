@@ -57,11 +57,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // on_auth_user_created trigger normally creates it, but a user who signed up
     // before the trigger existed would otherwise be stuck on a blank screen.
     if (!error && !data) {
-      const { data: created } = await supabase
+      const { data: created, error: insertError } = await supabase
         .from('profiles')
         .insert({ id: userId, display_name: '' })
         .select()
         .maybeSingle();
+
+      // 23505 = unique_violation — something else (the on_auth_user_created
+      // trigger finishing late, or another loadProfile call) already
+      // created this row between the select above and this insert. Re-read
+      // it instead of overwriting whatever it wrote with null.
+      if (insertError?.code === '23505') {
+        const { data: existing } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+        setProfile((existing as Profile) ?? null);
+        return;
+      }
+
       setProfile((created as Profile) ?? null);
       return;
     }
@@ -83,8 +94,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (active) setInitializing(false);
       });
 
-    const { data: subscription } = supabase.auth.onAuthStateChange(async (_event, nextSession) => {
+    const { data: subscription } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
       if (!active) return;
+      // supabase-js fires this once immediately on subscribe, with the same
+      // restored session getSession() above is already loading — event:
+      // 'INITIAL_SESSION'. Without this check both calls raced to load the
+      // same profile concurrently; harmless most of the time, but a real bug
+      // in the missing-profile branch above: both could find no row and
+      // both try to insert one, and whichever call's state update landed
+      // second — not necessarily the one whose insert actually won — could
+      // overwrite an already-correct profile with null. Only react here to
+      // an actual change after mount.
+      if (event === 'INITIAL_SESSION') return;
       setSession(nextSession);
       await loadProfile(nextSession?.user.id);
     });

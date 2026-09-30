@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
-import { QueryClient, focusManager } from '@tanstack/react-query';
+import { MutationCache, QueryClient, focusManager } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
 import { Stack, useRouter, usePathname, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -18,7 +18,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 // production and staging are built by two separate Cloudflare Workers this
 // repo has no control over the build env vars of.
 import stagingFaviconAsset from '@/assets/images/favicon-preview.png';
-import { ErrorBoundary, installGlobalErrorReporting } from '@/components/ErrorBoundary';
+import { ErrorBoundary, installGlobalErrorReporting, reportError } from '@/components/ErrorBoundary';
 import { InstallAppPrompt } from '@/components/InstallAppPrompt';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { EmptyState, Screen } from '@/components/ui';
@@ -53,6 +53,26 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
     },
   },
+  // A safety net, not a replacement for a screen's own onError/error UI —
+  // plenty of mutations across the app (quick actions like finish()/reread()
+  // on the Reading tab, bulk share/delete on Library, the locale-change
+  // patch on Profile) call .mutate() with no onError of their own at all.
+  // Without this, a failure there was invisible twice over: nothing tells
+  // the user it didn't work, and nothing tells us either, since reportError()
+  // is otherwise only reached from render-phase crashes and unhandled
+  // rejections (see ErrorBoundary.tsx) — a rejected mutation is neither.
+  // This just makes sure every mutation failure reaches Crashlytics even
+  // when a screen doesn't handle it itself; it deliberately doesn't also
+  // show anything to the user (no app-wide toast/snackbar exists yet to
+  // hook into), so an un-instrumented screen still silently doesn't update
+  // on failure — only the "nobody finds out" half of the gap is closed here.
+  mutationCache: new MutationCache({
+    onError: (error, _variables, _context, mutation) => {
+      const normalized = error instanceof Error ? error : new Error(String(error));
+      const label = mutation.options.mutationKey ? JSON.stringify(mutation.options.mutationKey) : 'unnamed mutation';
+      reportError(normalized, `mutation failed: ${label}`);
+    },
+  }),
 });
 
 /**

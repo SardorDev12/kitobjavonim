@@ -4,7 +4,6 @@ import { File } from 'expo-file-system';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { Platform, View } from 'react-native';
-import * as XLSX from 'xlsx';
 
 import { BackHeader, Button, Card, Divider, LoadingState, Screen, Text } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
@@ -116,7 +115,12 @@ function inferStatus(rawStatus: unknown, startDate: string | null, endDate: stri
 
 type ParsedFile = { headers: string[]; rows: SheetRow[]; columns: Partial<Record<FieldKey, string>> };
 
+// Loaded on demand rather than imported at the top of the file — xlsx is a
+// large parser nobody needs unless they actually open this one rarely-used
+// bulk-import screen and pick a file, so a static import would ship it in
+// every user's bundle for a feature most never touch.
 async function parseWorkbook(data: ArrayBuffer): Promise<ParsedFile> {
+  const XLSX = await import('xlsx');
   const workbook = XLSX.read(data, { type: 'array', cellDates: true });
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json<SheetRow>(sheet, { defval: '' });
