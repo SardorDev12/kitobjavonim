@@ -403,6 +403,7 @@ export const en = {
   'profile.colorTheme.emerald': 'Emerald & Gilt',
   'profile.colorTheme.burgundy': 'Burgundy & Brass',
   'profile.colorTheme.indigo': 'Indigo Ink',
+  'profile.colorTheme.white': 'White & Ink',
   'profile.sendInquiry': 'Send an inquiry',
   'profile.signOutConfirm': 'Sign out of this account?',
   'profile.memberSince': 'Reader since {{date}}',

@@ -423,6 +423,7 @@ export const ru: LocaleCatalogue = {
   'profile.colorTheme.emerald': 'Изумруд и позолота',
   'profile.colorTheme.burgundy': 'Бордовый и латунь',
   'profile.colorTheme.indigo': 'Чернильный индиго',
+  'profile.colorTheme.white': 'Белый и чернила',
   'profile.sendInquiry': 'Отправить обращение',
   'profile.signOutConfirm': 'Выйти из аккаунта?',
   'profile.memberSince': 'Читатель с {{date}}',

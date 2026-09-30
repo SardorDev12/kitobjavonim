@@ -1,21 +1,24 @@
 /**
  * Design tokens.
  *
- * Four selectable color themes (Settings → Appearance → Color theme), each
- * still warm-paper-and-ink underneath: background, surface, border and text
- * are identical across all four (and between light/dark within a theme, the
- * same relationship the original already had) — only primary/accent, the
- * "book binding" color, actually changes. success/danger/warning also stay
- * fixed across themes on purpose: they're status colors, not brand identity,
- * and should mean the same thing regardless of which theme is active.
+ * Five selectable color themes (Settings → Appearance → Color theme).
+ * success/danger/warning stay fixed across every one of them on purpose —
+ * they're status colors, not brand identity, and should mean the same thing
+ * regardless of which theme is active.
  *
- * 'default' is the original, unchanged palette — burnt-sienna primary,
- * ochre accent, aged paper. The other three were proposed as an explicit
- * alternative-and-let-people-pick request:
- * - 'emerald': forest-green cloth binding, gilt page-edge gold accent.
- * - 'burgundy': wine-leather binding, the same gilt gold.
- * - 'indigo': fountain-pen-ink blue, the same gilt gold — the most
- *   contemporary-reading of the three, least "obviously a book" at a glance.
+ * 'default' is the original, unchanged palette — burnt-sienna primary, ochre
+ * accent, aged paper. 'emerald'/'burgundy'/'indigo' share that same aged-
+ * paper background/border/text (only primary/accent, the "book binding"
+ * color, changes) plus one shared "gilt page-edge" gold accent:
+ * - 'emerald': forest-green cloth binding.
+ * - 'burgundy': wine-leather binding.
+ * - 'indigo': fountain-pen-ink blue — the most contemporary-reading of the
+ *   three, least "obviously a book" at a glance.
+ *
+ * 'white' breaks from all four of those on purpose — a genuinely plain
+ * white/gray background and near-black ink, not the shared warm paper tone,
+ * for anyone who finds the aged-paper look too busy or too warm. Still
+ * carries the same gilt accent as a quiet thread back to the other three.
  */
 
 const neutrals = {
@@ -86,6 +89,48 @@ const neutrals = {
 const gilt = {
   light: { accent: '#C9A24B', accentSoft: '#F5EBD3' },
   dark: { accent: '#E0C179', accentSoft: '#33290F' },
+} as const;
+
+// 'white' theme's own neutrals — plain white/gray and near-black, not the
+// warm aged-paper tone every other theme shares. success/danger/warning are
+// still pulled from `neutrals` (below) rather than redefined here: those
+// pale tints read fine against a plain white/gray background too, and
+// there's no reason for what "success" looks like to change with the theme.
+const whiteNeutrals = {
+  light: {
+    background: '#FFFFFF',
+    surface: '#FFFFFF',
+    surfaceSunken: '#F2F2F0',
+    surfaceRaised: '#FFFFFF',
+
+    border: '#E6E6E3',
+    borderStrong: '#D4D4D0',
+
+    text: '#1C1C1A',
+    textMuted: '#6B6A63',
+    textSubtle: '#96958D',
+    textInverted: '#FFFFFF',
+
+    overlay: 'rgba(20, 20, 18, 0.45)',
+    skeleton: '#E8E8E5',
+  },
+  dark: {
+    background: '#121212',
+    surface: '#121212',
+    surfaceSunken: '#0A0A0A',
+    surfaceRaised: '#1E1E1E',
+
+    border: '#2E2E2E',
+    borderStrong: '#3D3D3D',
+
+    text: '#F0F0EE',
+    textMuted: '#A8A7A0',
+    textSubtle: '#7A7972',
+    textInverted: '#121212',
+
+    overlay: 'rgba(0, 0, 0, 0.6)',
+    skeleton: '#1E1E1E',
+  },
 } as const;
 
 export const colorThemes = {
@@ -168,10 +213,33 @@ export const colorThemes = {
       primaryOnSoft: '#B7C2E6',
     },
   },
+  // Plain white/gray background, near-black ink — see this file's own
+  // top-of-file comment for why this one breaks from the shared warm paper
+  // tone the other four all use.
+  white: {
+    light: {
+      ...neutrals.light,
+      ...whiteNeutrals.light,
+      ...gilt.light,
+      primary: '#2B2B29',
+      primaryHover: '#1C1C1A',
+      primarySoft: '#E8E8E5',
+      primaryOnSoft: '#1C1C1A',
+    },
+    dark: {
+      ...neutrals.dark,
+      ...whiteNeutrals.dark,
+      ...gilt.dark,
+      primary: '#D8D8D4',
+      primaryHover: '#E8E8E5',
+      primarySoft: '#2A2A28',
+      primaryOnSoft: '#F0F0EE',
+    },
+  },
 } as const;
 
 export type ColorTheme = keyof typeof colorThemes;
-export const COLOR_THEMES: readonly ColorTheme[] = ['default', 'emerald', 'burgundy', 'indigo'] as const;
+export const COLOR_THEMES: readonly ColorTheme[] = ['default', 'emerald', 'burgundy', 'indigo', 'white'] as const;
 
 export type ColorName = keyof typeof colorThemes.default.light;
 export type Colors = Record<ColorName, string>;

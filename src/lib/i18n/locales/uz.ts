@@ -408,6 +408,7 @@ export const uz: LocaleCatalogue = {
   'profile.colorTheme.emerald': 'Zumrad va tilla',
   'profile.colorTheme.burgundy': 'Bordo va bronza',
   'profile.colorTheme.indigo': 'Indigo siyoh',
+  'profile.colorTheme.white': 'Oq va siyoh',
   'profile.sendInquiry': 'Murojaat yoʻllash',
   'profile.signOutConfirm': 'Hisobdan chiqasizmi?',
   'profile.memberSince': '{{date}} dan beri kitobxon',
