@@ -14,15 +14,14 @@
  *
  * This function does not verify the login itself — that is still
  * `telegram-auth`'s job, unchanged. All this does is get a `login_url`
- * button in front of the user; the button's own `url` points straight at
- * `telegram-auth/callback`, so the signed payload that comes back afterward
- * is verified exactly the same way it always was.
+ * button in front of the user; the button's own `url` points at
+ * `telegram-login.tsx` on the app's own web origin (see buildLoginUrl's own
+ * comment for why it can't point at the Edge Function directly), which then
+ * forwards Telegram's signed payload on to `telegram-auth/callback` — same
+ * verification as always, just one hop further along than before.
  */
 
 const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') ?? '';
-// Only used to build the callback URL below — this function never talks to
-// the database itself, so no service-role key is needed here.
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 
 /**
  * Checked against Telegram's `X-Telegram-Bot-Api-Secret-Token` header on
@@ -50,7 +49,6 @@ function missingConfig(): string | null {
   if (!BOT_TOKEN) return 'TELEGRAM_BOT_TOKEN is not set';
   if (!WEBHOOK_SECRET) return 'TELEGRAM_WEBHOOK_SECRET is not set';
   if (!WEB_ORIGIN) return 'TELEGRAM_WEB_ORIGIN is not set';
-  if (!SUPABASE_URL) return 'SUPABASE_URL is not available';
   return null;
 }
 
@@ -97,16 +95,21 @@ Deno.serve(async (request) => {
 });
 
 /**
- * Builds the same `telegram-auth/callback?redirect_to=...&origin=...` URL
- * `telegram-login.tsx` used to build client-side for the widget's
- * `data-auth-url` — same target, same query params, just assembled here
- * instead, since there is no page render to assemble it from anymore.
+ * Telegram validates a `login_url` button's own `url` field against the
+ * domain bound via BotFather's `/setdomain` — unlike the old widget, which
+ * only checked the *embedding* page's domain and left `data-auth-url` free
+ * to point anywhere. Pointing this straight at the Edge Function
+ * (`*.supabase.co`) fails with `BOT_DOMAIN_INVALID`, confirmed against a
+ * real deploy. So this has to target `telegram-login.tsx` on the bound web
+ * origin instead — that page now has a branch (see its own comment) that
+ * forwards Telegram's signed payload on to telegram-auth/callback for
+ * verification, rather than only relaying an already-verified result back
+ * into the app the way it originally did.
  */
 function buildLoginUrl(platform: 'web' | 'native'): string {
-  const callbackUrl = `${SUPABASE_URL}/functions/v1/telegram-auth/callback`;
   const redirectTo = platform === 'native' ? `${APP_SCHEME}://auth/callback` : `${WEB_ORIGIN}/auth/callback`;
 
-  const url = new URL(callbackUrl);
+  const url = new URL(`${WEB_ORIGIN}/auth/telegram-login`);
   url.searchParams.set('redirect_to', redirectTo);
   // Only native needs the bounce-back origin — telegram-auth only reads this
   // when redirect_to is the app's own custom scheme (see its finalTarget()).

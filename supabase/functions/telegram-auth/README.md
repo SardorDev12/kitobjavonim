@@ -107,12 +107,17 @@ Native builds need no entry here; they are covered by `APP_SCHEME`.
    (`src/features/auth/providers.ts`) — a deep link into the Telegram app
    itself, not a page this app hosts.
 2. `telegram-bot-webhook` receives the resulting `/start` and replies with a
-   message carrying a `login_url` button pointed at this function's
-   `/callback`, with the right `redirect_to` (and `origin`, for native)
-   already baked in. See that function's README for the full mechanics.
+   message carrying a `login_url` button pointed at `/auth/telegram-login`
+   **on the app's own web origin**, with the right `redirect_to` (and
+   `origin`, for native) already baked in — not at this function directly,
+   since Telegram checks a `login_url`'s own domain against BotFather's
+   `/setdomain` and rejects anything else. See that function's README for
+   the full mechanics.
 3. The user taps it, confirms in Telegram's own native dialog, and Telegram
-   opens the button's `url` with the signed payload and an HMAC `hash`
-   appended to the query string.
+   opens `/auth/telegram-login` with the signed payload and an HMAC `hash`
+   appended to the query string. That page can't verify it itself — the
+   HMAC key is the bot token, which never reaches a web page — so it
+   forwards the whole query string on to this function's `/callback`, unread.
 4. This function records the attempt in `telegram_auth_attempts`
    (`0038_telegram_auth_hardening.sql`) and rejects it if either the calling
    Telegram id or the client IP has made too many attempts in the last five

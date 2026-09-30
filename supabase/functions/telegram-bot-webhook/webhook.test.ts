@@ -7,14 +7,14 @@ function parseStartPlatform(text: string): 'web' | 'native' | null {
   return match[1] === 'native' ? 'native' : 'web';
 }
 
-function buildLoginUrl(
-  platform: 'web' | 'native',
-  env: { supabaseUrl: string; appScheme: string; webOrigin: string }
-): string {
-  const callbackUrl = `${env.supabaseUrl}/functions/v1/telegram-auth/callback`;
+function buildLoginUrl(platform: 'web' | 'native', env: { appScheme: string; webOrigin: string }): string {
   const redirectTo = platform === 'native' ? `${env.appScheme}://auth/callback` : `${env.webOrigin}/auth/callback`;
 
-  const url = new URL(callbackUrl);
+  // Must be on the bound web origin, never the Edge Function's own
+  // *.supabase.co domain — Telegram rejects a login_url whose own `url`
+  // isn't the domain registered via /setdomain (BOT_DOMAIN_INVALID),
+  // confirmed against a real deploy. See telegram-login.tsx.
+  const url = new URL(`${env.webOrigin}/auth/telegram-login`);
   url.searchParams.set('redirect_to', redirectTo);
   if (platform === 'native') url.searchParams.set('origin', env.webOrigin);
 
@@ -22,7 +22,6 @@ function buildLoginUrl(
 }
 
 const ENV = {
-  supabaseUrl: 'https://project-ref.supabase.co',
   appScheme: 'homelibrary',
   webOrigin: 'https://homelibrary.uz',
 };
@@ -55,9 +54,14 @@ describe('telegram-bot-webhook /start parsing', () => {
 });
 
 describe('telegram-bot-webhook login_url construction', () => {
+  it('always targets telegram-login.tsx on the bound web origin, never the Edge Function directly', () => {
+    expect(new URL(buildLoginUrl('web', ENV)).origin).toBe('https://homelibrary.uz');
+    expect(new URL(buildLoginUrl('native', ENV)).origin).toBe('https://homelibrary.uz');
+  });
+
   it('builds a plain callback redirect for web, with no origin bounce param', () => {
     const url = new URL(buildLoginUrl('web', ENV));
-    expect(url.origin + url.pathname).toBe('https://project-ref.supabase.co/functions/v1/telegram-auth/callback');
+    expect(url.pathname).toBe('/auth/telegram-login');
     expect(url.searchParams.get('redirect_to')).toBe('https://homelibrary.uz/auth/callback');
     expect(url.searchParams.has('origin')).toBe(false);
   });

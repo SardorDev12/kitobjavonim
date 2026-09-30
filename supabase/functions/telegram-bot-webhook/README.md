@@ -22,15 +22,22 @@ reply.
    app itself, not a page in a browser.
 2. Telegram sends that `/start` command to this webhook.
 3. This function replies (via the Bot API's `sendMessage`) with one button:
-   a `login_url` pointing at `telegram-auth/callback`, carrying the right
-   `redirect_to` (and `origin`, for native) for whichever platform the
-   `start` payload said.
+   a `login_url` pointing at `/auth/telegram-login` **on the app's own web
+   origin** (`TELEGRAM_WEB_ORIGIN`), carrying the right `redirect_to` (and
+   `origin`, for native) for whichever platform the `start` payload said.
+   It does **not** point at the Edge Function directly — Telegram checks a
+   `login_url` button's own domain against whatever BotFather's
+   `/setdomain` is bound to and rejects anything else with
+   `BOT_DOMAIN_INVALID` (learned this the hard way against a real deploy).
 4. The user taps it. Telegram shows the confirm dialog, lets them pick
    which account if they have more than one active, and — on approval —
-   opens the button's `url` with the signed payload appended to the query
-   string. Same fields, same HMAC, as the old widget ever sent.
-5. `telegram-auth/callback` verifies it exactly as before and mints a
-   session. This function is not involved in that step at all.
+   opens `/auth/telegram-login` with the signed payload appended to the
+   query string.
+5. `telegram-login.tsx` can't verify that itself (the HMAC key is the bot
+   token, which never reaches a web page), so it forwards the whole query
+   string on to `telegram-auth/callback`, unread.
+6. `telegram-auth/callback` verifies it exactly as it always has and mints
+   a session. This function is not involved in that step at all.
 
 ## Deploying
 
