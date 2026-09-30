@@ -316,13 +316,15 @@ async function exchangeCode(
     redirect_uri: redirectUri,
     code_verifier: codeVerifier,
   });
-  if (OIDC_CLIENT_SECRET) form.set('client_secret', OIDC_CLIENT_SECRET);
 
-  const response = await fetch(OIDC_TOKEN_ENDPOINT, {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' },
-    body: form,
-  });
+  const headers: Record<string, string> = {
+    'content-type': 'application/x-www-form-urlencoded',
+    accept: 'application/json',
+  };
+  // Telegram's docs require the secret as HTTP Basic auth, not a body field.
+  if (OIDC_CLIENT_SECRET) headers.authorization = `Basic ${btoa(`${clientId}:${OIDC_CLIENT_SECRET}`)}`;
+
+  const response = await fetch(OIDC_TOKEN_ENDPOINT, { method: 'POST', headers, body: form });
   const text = await response.text();
   if (!response.ok) return { error: `HTTP ${response.status}: ${text}` };
 
