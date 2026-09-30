@@ -437,11 +437,13 @@ function RootNavigator({ updateChecked }: { updateChecked: boolean }) {
   }
 
   // auth/telegram-login and auth/callback run as real web pages (Platform.OS
-  // === 'web' is true) even when opened from the native app's own in-app
-  // browser sheet for the Telegram OAuth handoff — not a genuine website
-  // visit. InstallAppPrompt can't tell those apart on its own, so it's kept
-  // out of this route group entirely rather than nudging someone who
-  // already has the app to go install it, mid-sign-in.
+  // === 'web' is true) even during a native sign-in — auth/telegram-login is
+  // only ever reached there as the tail end of the Telegram bot-chat login
+  // flow bouncing a completed native sign-in back into the app's own scheme
+  // (src/features/auth/providers.ts), not a genuine website visit.
+  // InstallAppPrompt can't tell those apart on its own, so it's kept out of
+  // this route group entirely rather than nudging someone who already has
+  // the app to go install it, mid-sign-in.
   const isAuthFlowRoute = (segments as readonly string[])[0] === 'auth';
 
   return (

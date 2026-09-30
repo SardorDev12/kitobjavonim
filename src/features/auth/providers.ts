@@ -144,47 +144,35 @@ export async function isAppleSignInAvailable(): Promise<boolean> {
   }
 }
 
+const TELEGRAM_BOT_USERNAME = (process.env.EXPO_PUBLIC_TELEGRAM_BOT_USERNAME ?? '').replace(/^@/, '').trim();
+
 /**
  * Telegram.
  *
- * Telegram has no OAuth endpoint Supabase can talk to directly: it posts a
- * signed payload to a page on a domain registered against the bot. That page is
- * `/auth/telegram-login` in this app — not the Edge Function. Supabase's shared
- * `*.supabase.co` domain refuses to serve `text/html` on an ordinary GET (see
- * the comment atop `supabase/functions/telegram-auth/index.ts`), so a widget
- * hosted there renders as raw source instead of a page; it has to live
- * somewhere the app controls. The Edge Function only verifies the signed
- * result and redirects back here with a one-time code. See
- * supabase/functions/telegram-auth/README.md for setup.
+ * Deep-links straight into the Telegram app itself rather than opening any
+ * page this app hosts — `telegram-bot-webhook` replies to the resulting
+ * `/start` with a message carrying a `login_url` button, which is what gets
+ * Telegram's own native confirm dialog (and its account picker, if more than
+ * one Telegram account is signed in) instead of the old browser-widget popup.
+ * See supabase/functions/telegram-bot-webhook/README.md for how that button
+ * is built and where it points.
  *
- * On web the widget page is this same origin, so `location.origin` reaches it.
- * Native has no origin of its own — it needs the deployed web app's URL, which
- * is also where BotFather's `/setdomain` must point, since that is the actual
- * page Telegram's widget script checks against.
+ * Nothing here awaits a browser session or reads a returned URL — the button
+ * still ends up at telegram-auth/callback, which redirects back into this
+ * app the same way every other sign-in does (src/app/auth/callback.tsx),
+ * arriving later as an ordinary deep link once the user finishes in Telegram.
+ * `start=web`/`start=native` is the only thing that varies per platform: it
+ * tells the webhook which `redirect_to` to build the button's url with.
  */
 export async function signInWithTelegram(): Promise<void> {
-  const redirectTo = redirectUri();
-
-  if (Platform.OS === 'web') {
-    const startUrl = `${globalThis.location.origin}/auth/telegram-login?redirect_to=${encodeURIComponent(redirectTo)}`;
-    globalThis.location.assign(startUrl);
-    return;
-  }
-
-  const webOrigin = process.env.EXPO_PUBLIC_WEB_ORIGIN;
-  if (!webOrigin) {
+  if (!TELEGRAM_BOT_USERNAME) {
     throw new Error(
-      'Telegram sign-in needs EXPO_PUBLIC_WEB_ORIGIN set to the deployed web app’s URL ' +
-        '(the domain registered with BotFather) — the widget cannot run on a domain Telegram has not seen.'
+      'Telegram sign-in needs EXPO_PUBLIC_TELEGRAM_BOT_USERNAME set to the bot’s username.'
     );
   }
 
-  const startUrl = `${webOrigin}/auth/telegram-login?redirect_to=${encodeURIComponent(redirectTo)}`;
-
-  const result = await WebBrowser.openAuthSessionAsync(startUrl, redirectTo);
-  if (result.type !== 'success') return;
-
-  await completeFromUrl(result.url);
+  const platform = Platform.OS === 'web' ? 'web' : 'native';
+  await Linking.openURL(`https://t.me/${TELEGRAM_BOT_USERNAME}?start=${platform}`);
 }
 
 export { completeFromUrl, redirectUri };

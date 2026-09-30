@@ -67,13 +67,9 @@ export const ru: LocaleCatalogue = {
   'auth.nameRequired': 'Введите ваше имя',
   'auth.confirmEmail': 'Мы отправили ссылку для подтверждения на {{email}}.',
 
-  'auth.telegramConfirm': 'Подтвердите свой аккаунт Telegram, чтобы продолжить.',
-  'auth.telegramWrongAccount': 'Используется тот аккаунт Telegram, который уже активен в этом браузере. Чтобы войти с другим аккаунтом, сначала выйдите из Telegram здесь.',
   'auth.telegramContinue': 'Перейти в приложение',
   'auth.telegramSuccessTitle': 'Вы вошли в систему',
   'auth.telegramErrorTitle': 'Не удалось войти',
-  'auth.telegramNotConfigured': 'Вход через Telegram не настроен',
-  'auth.telegramNotConfiguredBody': 'Отсутствует EXPO_PUBLIC_TELEGRAM_BOT_USERNAME или адрес Supabase.',
 
   'onboarding.title': 'Немного о вас',
   'onboarding.subtitle':
