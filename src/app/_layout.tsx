@@ -472,6 +472,7 @@ function RootNavigator({ updateChecked }: { updateChecked: boolean }) {
             normally overwrites it with "Kitobjavonim" may never get the
             chance to visibly register first. */}
         <Stack.Screen name="auth/telegram-login" options={{ headerShown: false, title: '' }} />
+        <Stack.Screen name="auth/telegram-oidc" options={{ headerShown: false, title: '' }} />
         {/* Both render their own header (back button + actions) rather than
             the native one — react-navigation's default back button only
             appears when there's in-app history to pop, which a direct link

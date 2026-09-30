@@ -5,6 +5,8 @@ import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 
+import { getTelegramOidcClientId, startTelegramOidc } from './telegramOidc';
+
 // Required on web so the OAuth popup can hand control back to the opener.
 WebBrowser.maybeCompleteAuthSession();
 
@@ -149,7 +151,13 @@ const TELEGRAM_BOT_USERNAME = (process.env.EXPO_PUBLIC_TELEGRAM_BOT_USERNAME ?? 
 /**
  * Telegram.
  *
- * Deep-links straight into the Telegram app itself rather than opening any
+ * Uses Telegram's OpenID Connect login (the native "Log in to <App>" sheet —
+ * see ./telegramOidc.ts) once a client id is set in app_config; until then,
+ * or if that row is ever removed, the bot-chat flow below keeps working
+ * exactly as before. Checked on every tap, so turning OIDC on or off needs no
+ * app update.
+ *
+ * Bot-chat flow: deep-links straight into the Telegram app itself rather than opening any
  * page this app hosts — `telegram-bot-webhook` replies to the resulting
  * `/start` with a message carrying a `login_url` button, which is what gets
  * Telegram's own native confirm dialog (and its account picker, if more than
@@ -165,6 +173,12 @@ const TELEGRAM_BOT_USERNAME = (process.env.EXPO_PUBLIC_TELEGRAM_BOT_USERNAME ?? 
  * tells the webhook which `redirect_to` to build the button's url with.
  */
 export async function signInWithTelegram(): Promise<void> {
+  const oidcClientId = await getTelegramOidcClientId();
+  if (oidcClientId) {
+    await startTelegramOidc(oidcClientId);
+    return;
+  }
+
   if (!TELEGRAM_BOT_USERNAME) {
     throw new Error(
       'Telegram sign-in needs EXPO_PUBLIC_TELEGRAM_BOT_USERNAME set to the bot’s username.'

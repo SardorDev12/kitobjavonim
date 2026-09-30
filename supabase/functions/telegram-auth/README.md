@@ -1,7 +1,75 @@
 # Telegram sign-in
 
-Telegram is not an OAuth provider, so unlike Google and Apple it cannot be
-switched on from the Supabase dashboard. Three pieces stand in for that:
+There are two flows. **OpenID Connect** (below) is the current one: the
+Telegram app itself shows a native "Log in to Shelfie" sheet with an account
+picker. The **bot-chat flow** (the rest of this file) is what the app falls
+back to whenever no OIDC client id is configured.
+
+## OpenID Connect (native sign-in sheet)
+
+The same flow Telegram's own official SDKs use
+(`TelegramMessenger/telegram-login-android` / `-ios`), reimplemented in
+`src/features/auth/telegramOidc.ts` since there's no React Native SDK. On
+native, the app asks `oauth.telegram.org/crossapp` for a `tg://` link and opens
+it, Telegram shows its sheet, and the user comes back to
+`homelibrary://auth/telegram-oidc` with a code. The app exchanges that code on
+the device (PKCE, no secret) for a signed `id_token`, and this function's
+`POST /oidc` checks the token's signature against Telegram's published keys
+(issuer, audience, max 10 min old) before creating the session. Web does the
+same through `oauth.telegram.org/auth`; its code is exchanged here instead,
+with the client secret. Accounts are matched on the token's numeric `id`
+claim (the same Telegram user id as the bot-chat flow uses), so existing users
+land on their existing account.
+
+**Switch:** the app uses OIDC only when `app_config` has a
+`telegram_oidc_client_id` row, and checks on every tap, so it can be turned on
+or off without an app update or redeploy. Delete the row to go back to the
+bot-chat flow.
+
+### Setup
+
+Use a **dedicated bot** for this, not `@home_library_signin_bot`: one
+third-party guide reports that turning on OIDC for a bot can't be undone,
+which could break the bot-chat flow the fallback depends on. Telegram user
+ids are global, so accounts still match across bots.
+
+1. **Create the bot.** In [@BotFather](https://t.me/BotFather), `/newbot`.
+   Give it the name users should see (e.g. `Shelfie`) and set its profile
+   photo to the app icon, since the sign-in sheet shows the app's name and
+   icon.
+2. **Register the app.** Open BotFather **as a Mini App** (the "Open" button in
+   the BotFather chat, not the text commands) → pick the new bot →
+   **Bot Settings → Login Widget** (some guides call it "Web Login"). Labels
+   may differ slightly.
+   - **Android:** package name `uz.homelibrary.app`, and the **SHA-256
+     fingerprint of the Play App Signing key** (Play Console → the app →
+     Test and release → Setup → App integrity → App signing → "App signing
+     key certificate"). Redirect URI: `homelibrary://auth/telegram-oidc`.
+   - **Web:** allowed URL `https://app.kitobjavonim.uz`, redirect URL
+     `https://app.kitobjavonim.uz/auth/telegram-oidc`.
+   - Copy the **Client ID** and the **Client Secret**. The secret is not the
+     bot token.
+3. **Secret.** In Supabase → Edge Functions → Secrets, add
+   `TELEGRAM_OIDC_CLIENT_SECRET` = the Client Secret (used only for web
+   sign-ins).
+4. **Deploy** this function (`telegram-auth`) so `/oidc` exists.
+5. **Turn it on** in the SQL editor:
+
+   ```sql
+   insert into app_config (key, value) values ('telegram_oidc_client_id', '<Client ID>')
+   on conflict (key) do update set value = excluded.value;
+   ```
+
+   To turn it off: `delete from app_config where key = 'telegram_oidc_client_id';`
+
+After the first real sign-in, check that it reused the existing account and
+didn't create a new one. Sign in with a Telegram account that already has a
+profile, then confirm that `profiles.telegram_id` for that same profile got a
+fresh `telegram_last_login_at`.
+
+## Bot-chat flow
+
+Three pieces stand in for OIDC here:
 
 - **`supabase/functions/telegram-bot-webhook`** — the bot's active logic.
   Replies to `/start` with a message carrying a `login_url` button, which is
