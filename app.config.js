@@ -40,7 +40,7 @@ module.exports = {
     name: IS_PREVIEW ? 'Shelfie (Staging)' : 'Shelfie',
     slug: 'kitobjavonim',
     owner: 'walterobrien1226',
-    version: '0.5.3',
+    version: '0.5.4',
     orientation: 'default',
     icon: IS_PREVIEW ? './assets/images/icon-preview.png' : './assets/images/icon.png',
     scheme,
@@ -91,6 +91,23 @@ module.exports = {
       },
       predictiveBackGestureEnabled: false,
       permissions: ['android.permission.CAMERA'],
+      // Telegram login's verified return link (src/features/auth/
+      // telegramAppLink.ts — keep the host in sync). Telegram hosts the
+      // domain's assetlinks.json from the package name + SHA-256 registered
+      // in BotFather, which only exist for the production package, so the
+      // preview build doesn't claim it.
+      ...(IS_PREVIEW
+        ? {}
+        : {
+            intentFilters: [
+              {
+                action: 'VIEW',
+                autoVerify: true,
+                data: [{ scheme: 'https', host: 'app2863632339-login.tg.dev', pathPrefix: '/tglogin' }],
+                category: ['BROWSABLE', 'DEFAULT'],
+              },
+            ],
+          }),
     },
     web: {
       output: 'static',

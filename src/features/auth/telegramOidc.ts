@@ -42,34 +42,51 @@ type Pending = {
   createdAt: number;
 };
 
+export type TelegramOidcConfig = {
+  clientId: string;
+  /**
+   * Android only: the verified App Link Telegram generated for this app
+   * (`https://app<id>-login.tg.dev/tglogin`). With it, Telegram can prove the
+   * login returns to this app and shows its name instead of "Unverified App".
+   * Unset means the custom-scheme redirect, which always works but is
+   * unverified. It's a row rather than a constant so it can be switched on
+   * only once builds carrying the matching intent filter are out, and
+   * switched off again if Android's link verification ever fails.
+   */
+  nativeRedirect: string | null;
+};
+
 /**
- * The client id of the bot registered for OIDC in BotFather, or null if none
- * is configured — in which case Telegram sign-in keeps using the older
- * bot-chat flow. Lives in app_config, not an env var, so the switch-over
- * needs no rebuild or redeploy (see supabase/functions/telegram-auth/README.md).
+ * OIDC settings from app_config, or null if no client id is set — in which
+ * case Telegram sign-in keeps using the older bot-chat flow. Rows, not env
+ * vars, so switching needs no rebuild or redeploy (see
+ * supabase/functions/telegram-auth/README.md).
  */
-export async function getTelegramOidcClientId(): Promise<string | null> {
+export async function getTelegramOidcConfig(): Promise<TelegramOidcConfig | null> {
   const { data, error } = await supabase
     .from('app_config')
-    .select('value')
-    .eq('key', 'telegram_oidc_client_id')
-    .maybeSingle();
+    .select('key, value')
+    .in('key', ['telegram_oidc_client_id', 'telegram_oidc_native_redirect']);
   if (error) throw error;
-  return data?.value?.trim() || null;
+
+  const value = (key: string) => data?.find((row) => row.key === key)?.value?.trim() || null;
+  const clientId = value('telegram_oidc_client_id');
+  return clientId ? { clientId, nativeRedirect: value('telegram_oidc_native_redirect') } : null;
 }
 
-function redirectUri(): string {
-  return Platform.OS === 'web'
-    ? `${globalThis.location.origin}/auth/telegram-oidc`
-    : Linking.createURL('auth/telegram-oidc');
+function redirectUri(config: TelegramOidcConfig): string {
+  if (Platform.OS === 'web') return `${globalThis.location.origin}/auth/telegram-oidc`;
+  if (Platform.OS === 'android' && config.nativeRedirect) return config.nativeRedirect;
+  return Linking.createURL('auth/telegram-oidc');
 }
 
-export async function startTelegramOidc(clientId: string): Promise<void> {
+export async function startTelegramOidc(config: TelegramOidcConfig): Promise<void> {
+  const { clientId } = config;
   const verifier = randomStringFromBytes(Crypto.getRandomBytes(64));
   const digest = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, verifier, {
     encoding: Crypto.CryptoEncoding.BASE64,
   });
-  const redirect = redirectUri();
+  const redirect = redirectUri(config);
   const params = new URLSearchParams({
     client_id: clientId,
     response_type: 'code',

@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 
 import { supabase } from '@/lib/supabase';
 
-import { getTelegramOidcClientId, startTelegramOidc } from './telegramOidc';
+import { getTelegramOidcConfig, startTelegramOidc } from './telegramOidc';
 
 // Required on web so the OAuth popup can hand control back to the opener.
 WebBrowser.maybeCompleteAuthSession();
@@ -173,9 +173,9 @@ const TELEGRAM_BOT_USERNAME = (process.env.EXPO_PUBLIC_TELEGRAM_BOT_USERNAME ?? 
  * tells the webhook which `redirect_to` to build the button's url with.
  */
 export async function signInWithTelegram(): Promise<void> {
-  const oidcClientId = await getTelegramOidcClientId();
-  if (oidcClientId) {
-    await startTelegramOidc(oidcClientId);
+  const oidcConfig = await getTelegramOidcConfig();
+  if (oidcConfig) {
+    await startTelegramOidc(oidcConfig);
     return;
   }
 

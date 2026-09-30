@@ -62,6 +62,22 @@ ids are global, so accounts still match across bots.
 
    To turn it off: `delete from app_config where key = 'telegram_oidc_client_id';`
 
+**Verified app link (Android).** With the custom-scheme redirect, Telegram
+can't prove the login returns to this app and labels it "Unverified App".
+BotFather's Native Login entry shows an App URL
+(`https://app2863632339-login.tg.dev`), and builds from 0.5.4 claim it as a
+verified App Link (`app.config.js` intent filter; see
+`src/features/auth/telegramAppLink.ts`). Once 0.5.4 is installed, switch it on:
+
+```sql
+insert into app_config (key, value) values ('telegram_oidc_native_redirect', 'https://app2863632339-login.tg.dev/tglogin')
+on conflict (key) do update set value = excluded.value;
+```
+
+If sign-in then opens a browser instead of returning to the app, Android
+didn't verify the link (usually the registered SHA-256 isn't the Play App
+Signing key). Delete the row to go back to the custom scheme.
+
 After the first real sign-in, check that it reused the existing account and
 didn't create a new one. Sign in with a Telegram account that already has a
 profile, then confirm that `profiles.telegram_id` for that same profile got a
