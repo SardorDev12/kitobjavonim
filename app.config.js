@@ -115,7 +115,16 @@ module.exports = {
         'expo-splash-screen',
         {
           backgroundColor: SPLASH_BACKGROUND,
-          dark: { backgroundColor: SPLASH_BACKGROUND },
+          // Deliberately no `dark: {...}` here. expo-splash-screen's own
+          // plugin only writes a values-night/colors.xml override for
+          // splashscreen_background when a dark color is passed in — so
+          // omitting it entirely means there is no night-qualified
+          // resource for Android to resolve to at all, not just one that
+          // happens to hold the same value. That's the difference between
+          // "should always be light" and "guaranteed to always be light
+          // regardless of what the OS does with dark-mode resource
+          // resolution" — the former is what shipped in versionCode 17 and
+          // still rendered dark on a system-dark-mode device.
           image: IS_PREVIEW ? './assets/images/splash-icon-preview.png' : './assets/images/splash-icon.png',
           imageWidth: 76,
         },
@@ -125,12 +134,9 @@ module.exports = {
       // first frame painting, by giving the app's *real* activity theme
       // (which Android switches to the instant it decides the splash is
       // done) the same background color instead of AppCompat's default.
-      // Same SPLASH_BACKGROUND value for both light and dark here too —
-      // see that constant's own comment for why they're no longer distinct.
-      [
-        './plugins/withAndroidSplashWindowBackground',
-        { light: SPLASH_BACKGROUND, dark: SPLASH_BACKGROUND },
-      ],
+      // No dark variant passed here either, same reasoning as the
+      // expo-splash-screen config above — see this plugin's own comment.
+      ['./plugins/withAndroidSplashWindowBackground', { color: SPLASH_BACKGROUND }],
       [
         'expo-image-picker',
         {

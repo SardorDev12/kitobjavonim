@@ -1,4 +1,4 @@
-const { withAndroidColors, withAndroidColorsNight, withAndroidStyles, AndroidConfig } = require('expo/config-plugins');
+const { withAndroidColors, withAndroidStyles, AndroidConfig } = require('expo/config-plugins');
 
 const COLOR_NAME = 'windowBackground';
 
@@ -16,22 +16,23 @@ const COLOR_NAME = 'windowBackground';
  *
  * No app.config.js field reaches this (expo-splash-screen's own config only
  * covers its own splash theme, not the one control passes to afterward), so
- * this patches AppTheme directly at prebuild time — same color values as
- * the splash screen's own backgroundColor/dark.backgroundColor, so there is
- * nothing left to flash to in that gap.
+ * this patches AppTheme directly at prebuild time — same color as the
+ * splash screen's own backgroundColor, so there is nothing left to flash to
+ * in that gap.
+ *
+ * Deliberately writes only the base (no qualifier) colors.xml, never a
+ * values-night override — no `withAndroidColorsNight` call at all. A prior
+ * version passed the same color to both, which should behave identically,
+ * but a production build (versionCode 17) still rendered dark on a
+ * system-dark-mode device despite both files holding the same value.
+ * Whatever caused that mismatch, having no night-qualified resource at all
+ * to possibly resolve to is a strictly stronger guarantee than two
+ * matching ones.
  */
-function withAndroidSplashWindowBackground(config, { light, dark }) {
+function withAndroidSplashWindowBackground(config, { color }) {
   config = withAndroidColors(config, (config) => {
     config.modResults = AndroidConfig.Colors.assignColorValue(config.modResults, {
-      value: light,
-      name: COLOR_NAME,
-    });
-    return config;
-  });
-
-  config = withAndroidColorsNight(config, (config) => {
-    config.modResults = AndroidConfig.Colors.assignColorValue(config.modResults, {
-      value: dark,
+      value: color,
       name: COLOR_NAME,
     });
     return config;
