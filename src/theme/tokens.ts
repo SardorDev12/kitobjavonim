@@ -30,10 +30,12 @@ const neutrals = {
     // instead of the near-white it used to be, that tiny, previously
     // invisible gap between the two read as two different background
     // colors split across the screen. Matching them exactly is what "one
-    // color" actually requires; see app.config.js's SPLASH_BACKGROUND_LIGHT
-    // (kept in sync with this value) for the native side of that fix. Only
+    // color" actually requires; see app.config.js's SPLASH_BACKGROUND (kept
+    // in sync with this value) for the native side of that fix. Only
     // 'default' actually drives the native splash — see ThemeProvider's own
-    // comment on colorTheme for why the other three can't.
+    // comment on colorTheme for why the other four can't — and even then
+    // only this light value: the splash no longer varies with dark mode at
+    // all (see SPLASH_BACKGROUND's own comment).
     background: '#FFFDF8',
     surface: '#FFFDF8',
     surfaceSunken: '#F0E9DB',

@@ -38,22 +38,21 @@ type Theme = {
    * AsyncStorage — root _layout.tsx keeps the native splash screen up
    * until this flips true, so a device with a stored 'dark'/'system'
    * preference never briefly paints the `mode: 'light'` default first and
-   * flashes light-then-dark right after the (already scheme-correct)
-   * splash screen disappears.
+   * flashes light-then-dark right after the splash screen disappears.
    */
   modeLoaded: boolean;
   /**
    * Same reasoning as modeLoaded, for colorTheme — a device with a stored
    * non-default color theme shouldn't flash 'default' first either. Note
-   * that only the *default* theme's colors are what the native splash
-   * screen itself is actually built with (app.config.js's SPLASH_BACKGROUND_
-   * LIGHT/DARK are static, baked in at build time) — someone on 'emerald'
-   * still briefly sees the default-colored splash before the app itself
-   * loads and repaints in their chosen theme, same as anyone always has on
-   * first cold start before modeLoaded/colorThemeLoaded resolve. There's no
-   * way to make the native splash itself track an in-app preference; this
-   * flag only prevents an *additional* default-then-chosen flash on top of
-   * that once the JS side takes over.
+   * that the native splash screen itself is a fixed color, the same for
+   * every colorTheme and every mode (app.config.js's SPLASH_BACKGROUND,
+   * baked in at build time) — someone on 'emerald' still opens on that
+   * same splash before the app itself loads and repaints in their chosen
+   * theme, same as anyone always has on first cold start before modeLoaded/
+   * colorThemeLoaded resolve. There's no way to make the native splash
+   * itself track an in-app preference; this flag only prevents an
+   * *additional* default-then-chosen flash on top of that once the JS side
+   * takes over.
    */
   colorThemeLoaded: boolean;
   spacing: typeof spacing;

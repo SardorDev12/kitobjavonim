@@ -31,10 +31,12 @@ import { ThemeProvider, useTheme } from '@/theme';
 // first render commits — before ThemeProvider's AsyncStorage read (below)
 // resolves. A device with a stored 'dark' (or 'system', with the OS in dark
 // mode) preference would then briefly paint the `mode: 'light'` default that
-// read hasn't overridden yet, right after the splash screen (whose own
-// background already tracks the OS scheme) disappears — read as a flash of
-// the wrong color for a moment. Holding the splash up ourselves until
-// `theme.modeLoaded` (see RootNavigator below) closes that gap instead.
+// read hasn't overridden yet, before correcting to dark once it resolves —
+// a visible flash of light-then-dark content right after the splash
+// disappears. Holding the splash up ourselves until `theme.modeLoaded` (see
+// RootNavigator below) closes that gap instead. (The splash's own
+// background is a separate, fixed color — see app.config.js's
+// SPLASH_BACKGROUND — not something this is trying to match.)
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 /**
@@ -257,10 +259,9 @@ function RootNavigator({ updateChecked }: { updateChecked: boolean }) {
   // On a cold start with a dark preference, `hideAsync()` could win that
   // race and reveal this surface still holding whatever it defaulted to
   // (white), a moment before `setBackgroundColorAsync()`'s own result
-  // painted over it — a second, distinct white flash between the (correctly
-  // dark) native splash screen and the real themed app. Awaiting this call
-  // before hiding the splash closes that gap by construction instead of by
-  // timing.
+  // painted over it — a second, distinct white flash between the native
+  // splash screen and the real themed app. Awaiting this call before hiding
+  // the splash closes that gap by construction instead of by timing.
   //
   // See preventAutoHideAsync() above for why the splash stays up at all
   // until `theme.modeLoaded`/`theme.colorThemeLoaded`: once both stored

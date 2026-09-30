@@ -21,12 +21,19 @@ const appId = IS_PREVIEW ? 'uz.homelibrary.app.preview' : 'uz.homelibrary.app';
 // device used for testing both builds side by side.
 const scheme = IS_PREVIEW ? 'homelibrary-staging' : 'homelibrary';
 
-// The app's own theme.colors.background (src/theme/tokens.ts) — shared here
-// so the splash screen and the native windowBackground fix
-// (./plugins/withAndroidSplashWindowBackground.js) below can't drift apart
-// from each other or from the JS theme again the way they did before.
-const SPLASH_BACKGROUND_LIGHT = '#FFFDF8';
-const SPLASH_BACKGROUND_DARK = '#211C16';
+// The splash screen's background, in both light and dark mode — deliberately
+// the *same* value now, not each mirroring the JS light/dark theme's own
+// background the way they used to. The splash always reads as light/white
+// regardless of the device's system dark-mode setting; a dark-mode device
+// then fades into its real (dark) theme once the app itself loads, rather
+// than opening on a dark splash. That fade is intentional, not a bug:
+// _layout.tsx's SystemUI-before-hideAsync sequencing already guarantees the
+// app's real background is painted before the splash is ever allowed to
+// reveal it, so there's nothing to flash to mid-transition — just this one
+// deliberate color change for anyone whose device is in dark mode. Shared
+// with the native windowBackground fix (./plugins/withAndroidSplashWindow
+// Background.js) below so the two can't drift apart from each other.
+const SPLASH_BACKGROUND = '#FFFDF8';
 
 module.exports = {
   expo: {
@@ -107,8 +114,8 @@ module.exports = {
       [
         'expo-splash-screen',
         {
-          backgroundColor: SPLASH_BACKGROUND_LIGHT,
-          dark: { backgroundColor: SPLASH_BACKGROUND_DARK },
+          backgroundColor: SPLASH_BACKGROUND,
+          dark: { backgroundColor: SPLASH_BACKGROUND },
           image: IS_PREVIEW ? './assets/images/splash-icon-preview.png' : './assets/images/splash-icon.png',
           imageWidth: 76,
         },
@@ -118,9 +125,11 @@ module.exports = {
       // first frame painting, by giving the app's *real* activity theme
       // (which Android switches to the instant it decides the splash is
       // done) the same background color instead of AppCompat's default.
+      // Same SPLASH_BACKGROUND value for both light and dark here too —
+      // see that constant's own comment for why they're no longer distinct.
       [
         './plugins/withAndroidSplashWindowBackground',
-        { light: SPLASH_BACKGROUND_LIGHT, dark: SPLASH_BACKGROUND_DARK },
+        { light: SPLASH_BACKGROUND, dark: SPLASH_BACKGROUND },
       ],
       [
         'expo-image-picker',
