@@ -105,6 +105,44 @@ function missingConfig(): string | null {
   return null;
 }
 
+/**
+ * Supabase's edge runtime sits behind a proxy, so the real client address is
+ * only available via this header — `request.headers.get('host')` or similar
+ * would just return Supabase's own infrastructure. The header is a
+ * comma-separated list (client, then each proxy hop); the first entry is the
+ * original client. Falls back to a constant so a missing header still buckets
+ * together rather than bypassing the per-IP cap entirely.
+ */
+function clientIp(headers: Headers): string {
+  const forwardedFor = headers.get('x-forwarded-for');
+  return forwardedFor?.split(',')[0]?.trim() || 'unknown';
+}
+
+/**
+ * Records this attempt and checks it against both caps enforced by
+ * telegram_auth_rate_limit (0038_telegram_auth_hardening.sql) — per
+ * telegram_id and per client IP, independently, within a 5-minute window.
+ * The insert itself IS the check: the trigger rejects it once either cap is
+ * exceeded, so a successful insert always means "under both caps."
+ *
+ * Fails open on any error other than the rate-limit rejection itself — a
+ * broken rate-limit table must never be able to lock every real user out of
+ * signing in.
+ */
+async function isRateLimited(
+  admin: ReturnType<typeof createClient>,
+  telegramId: string,
+  ip: string
+): Promise<boolean> {
+  const { error } = await admin.from('telegram_auth_attempts').insert({ telegram_id: telegramId, client_ip: ip });
+
+  if (!error) return false;
+  if (error.code === 'P0001') return true;
+
+  console.error('telegram_auth_attempts insert failed (failing open):', error.message);
+  return false;
+}
+
 type TelegramUser = {
   id: string;
   first_name?: string;
@@ -126,7 +164,7 @@ Deno.serve(async (request) => {
   const url = new URL(request.url);
 
   if (url.pathname.endsWith('/callback')) {
-    return await handleCallback(url);
+    return await handleCallback(url, request.headers);
   }
 
   // Anyone hitting the base URL directly — a stale bookmark, a curl check — gets
@@ -142,7 +180,7 @@ Deno.serve(async (request) => {
 // Verify the payload and mint a session
 // -----------------------------------------------------------------------------
 
-async function handleCallback(url: URL): Promise<Response> {
+async function handleCallback(url: URL, headers: Headers): Promise<Response> {
   const redirectTo = url.searchParams.get('redirect_to');
   if (!redirectTo || !isAllowedRedirect(redirectTo)) {
     // Deliberately not redirected: if the target is not trusted, sending
@@ -165,6 +203,16 @@ async function handleCallback(url: URL): Promise<Response> {
   const telegramUser = payload as unknown as TelegramUser;
   if (!telegramUser.id || !telegramUser.hash) return fail('Incomplete Telegram response', redirectTo, origin);
 
+  const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  // Recorded — and capped — before the signature check itself, so a flood of
+  // requests is throttled whether or not any of them turn out to be genuine.
+  if (await isRateLimited(admin, telegramUser.id, clientIp(headers))) {
+    return fail('Too many attempts — try again in a few minutes', redirectTo, origin);
+  }
+
   if (!(await isSignatureValid(payload))) {
     return fail('Could not verify the Telegram response', redirectTo, origin);
   }
@@ -175,10 +223,6 @@ async function handleCallback(url: URL): Promise<Response> {
   if (!Number.isFinite(age) || age > MAX_AUTH_AGE_SECONDS) {
     return fail('That sign-in link has expired', redirectTo, origin);
   }
-
-  const admin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
 
   // Telegram accounts have no email address, so a stable synthetic one keyed on
   // the immutable Telegram id acts as the account identifier. The username is
@@ -218,13 +262,22 @@ async function handleCallback(url: URL): Promise<Response> {
     return fail(linkError?.message ?? 'Could not start a session', redirectTo, origin);
   }
 
-  if (telegramUser.username && link.user?.id) {
-    // `.is(null)` so a handle the user has since edited in the app is left alone.
+  if (link.user?.id) {
+    // telegram_id/telegram_last_login_at are bookkeeping, not user-editable
+    // data, so every login overwrites them unconditionally.
     await admin
       .from('profiles')
-      .update({ telegram_username: telegramUser.username })
-      .eq('id', link.user.id)
-      .is('telegram_username', null);
+      .update({ telegram_id: Number(telegramUser.id), telegram_last_login_at: new Date().toISOString() })
+      .eq('id', link.user.id);
+
+    if (telegramUser.username) {
+      // `.is(null)` so a handle the user has since edited in the app is left alone.
+      await admin
+        .from('profiles')
+        .update({ telegram_username: telegramUser.username })
+        .eq('id', link.user.id)
+        .is('telegram_username', null);
+    }
   }
 
   return redirect(finalTarget(redirectTo, origin, { token_hash: link.properties.hashed_token, type: 'magiclink' }));

@@ -50,6 +50,15 @@ export type Profile = {
   plan_expires_at: string | null;
   /** Optional personal target ("read 20 books this year") — the reading-stats page's goal card. */
   reading_goal_books: number | null;
+  /**
+   * Telegram's numeric user id — the actual stable identity key for a Telegram
+   * sign-in (unlike telegram_username, which a person can change). Null for
+   * accounts that never signed in with Telegram. Written only by the
+   * telegram-auth Edge Function via the service-role key, never client-writable.
+   */
+  telegram_id: number | null;
+  /** Updated on every successful Telegram sign-in by the telegram-auth Edge Function. */
+  telegram_last_login_at: string | null;
   /** Set directly in the database, never client-writable — gates /admin/reports. */
   is_admin: boolean;
   created_at: string;

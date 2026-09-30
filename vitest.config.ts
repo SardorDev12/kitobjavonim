@@ -14,7 +14,11 @@ export default defineConfig({
   test: {
     environment: 'node',
     setupFiles: ['./vitest.setup.ts'],
-    include: ['src/**/*.test.ts'],
+    // telegram-auth's tests reimplement its HMAC/redirect-allowlist logic
+    // independently with Node's own crypto/URL (the function itself runs on
+    // Deno and can't be imported directly), so they run fine under the same
+    // Node-environment vitest as everything else — no Deno runtime needed.
+    include: ['src/**/*.test.ts', 'supabase/functions/**/*.test.ts'],
   },
   resolve: {
     alias: {

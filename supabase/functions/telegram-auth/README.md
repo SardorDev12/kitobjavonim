@@ -114,11 +114,16 @@ Native builds need no entry here; they are covered by `APP_SCHEME`.
 2. That screen injects Telegram's widget script. The user confirms in Telegram.
 3. Telegram redirects to `/functions/v1/telegram-auth/callback` with the user's
    details and an HMAC `hash`.
-4. The function recomputes the HMAC using `SHA256(bot_token)` as the key and
+4. The function records the attempt in `telegram_auth_attempts`
+   (`0038_telegram_auth_hardening.sql`) and rejects it if either the calling
+   Telegram id or the client IP has made too many attempts in the last five
+   minutes — before the HMAC check, so this throttles malformed requests too.
+5. The function recomputes the HMAC using `SHA256(bot_token)` as the key and
    compares it in constant time. A mismatch, or a payload more than five minutes
    old, is rejected — this is what prevents someone from simply calling
    `/callback` with an arbitrary Telegram id.
-5. On success it finds or creates the auth user, issues a one-time token, and
+6. On success it finds or creates the auth user, writes `telegram_id` and
+   `telegram_last_login_at` onto `profiles`, issues a one-time token, and
    redirects back to the app, which exchanges it for a session.
 
 ## Notes on the account model
@@ -127,6 +132,15 @@ Telegram accounts have no email address, so the function derives a stable one
 from the numeric Telegram id: `tg_<id>@telegram.local`. The id is used rather
 than the username because usernames can be changed or released, and reusing one
 would hand a stranger someone else's library.
+
+That synthetic email makes the id-to-account mapping unique implicitly (two
+Telegram ids can never collide on the same `auth.users.email`), but nothing
+made it *queryable* until `0038_telegram_auth_hardening.sql` added
+`profiles.telegram_id` (explicit `unique` column) and
+`profiles.telegram_last_login_at` (updated on every sign-in). Run that
+migration before deploying a version of this function newer than it — the
+`profiles` update after `generateLink` will otherwise fail against a database
+that doesn't have those columns yet.
 
 That address is never mailed to. If you later want Telegram users to be able to
 add a real email and a password, they can do it from the profile screen through
