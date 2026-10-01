@@ -21,26 +21,24 @@ const appId = IS_PREVIEW ? 'uz.homelibrary.app.preview' : 'uz.homelibrary.app';
 // device used for testing both builds side by side.
 const scheme = IS_PREVIEW ? 'homelibrary-staging' : 'homelibrary';
 
-// The splash screen's background, in both light and dark mode — deliberately
-// the *same* value now, not each mirroring the JS light/dark theme's own
-// background the way they used to. The splash always reads as light/white
-// regardless of the device's system dark-mode setting; a dark-mode device
-// then fades into its real (dark) theme once the app itself loads, rather
-// than opening on a dark splash. That fade is intentional, not a bug:
-// _layout.tsx's SystemUI-before-hideAsync sequencing already guarantees the
-// app's real background is painted before the splash is ever allowed to
-// reveal it, so there's nothing to flash to mid-transition — just this one
-// deliberate color change for anyone whose device is in dark mode. Shared
-// with the native windowBackground fix (./plugins/withAndroidSplashWindow
-// Background.js) below so the two can't drift apart from each other.
-const SPLASH_BACKGROUND = '#FFFDF8';
+// The splash screen's background: one fixed dark green in both light and dark
+// mode, sampled from the splash icon's own green square (#213E33) so the
+// square blends in and only the arch and books show. It used to be the light
+// theme's cream (#FFFDF8), but Xiaomi's HyperOS dark-mode filter inverts the
+// lightness of light colors in app windows (that cream was measured on a
+// device as #1F1D19) and no manifest or theme flag turned the filter off.
+// Dark, saturated colors like this one are left alone, so the splash looks
+// the same everywhere. The app then fades into its own light or dark theme
+// once it loads. Shared with ./plugins/withAndroidSplashWindowBackground.js
+// below so the two can't drift apart.
+const SPLASH_BACKGROUND = '#213E33';
 
 module.exports = {
   expo: {
     name: IS_PREVIEW ? 'Shelfie (Staging)' : 'Shelfie',
     slug: 'kitobjavonim',
     owner: 'walterobrien1226',
-    version: '0.5.4',
+    version: '0.5.5',
     orientation: 'default',
     icon: IS_PREVIEW ? './assets/images/icon-preview.png' : './assets/images/icon.png',
     scheme,
@@ -132,16 +130,9 @@ module.exports = {
         'expo-splash-screen',
         {
           backgroundColor: SPLASH_BACKGROUND,
-          // Deliberately no `dark: {...}` here. expo-splash-screen's own
-          // plugin only writes a values-night/colors.xml override for
-          // splashscreen_background when a dark color is passed in — so
-          // omitting it entirely means there is no night-qualified
-          // resource for Android to resolve to at all, not just one that
-          // happens to hold the same value. That's the difference between
-          // "should always be light" and "guaranteed to always be light
-          // regardless of what the OS does with dark-mode resource
-          // resolution" — the former is what shipped in versionCode 17 and
-          // still rendered dark on a system-dark-mode device.
+          // Deliberately no `dark: {...}` here: without one, expo-splash-screen
+          // writes no values-night override, so the splash can't vary with
+          // the system dark-mode setting.
           image: IS_PREVIEW ? './assets/images/splash-icon-preview.png' : './assets/images/splash-icon.png',
           imageWidth: 76,
         },

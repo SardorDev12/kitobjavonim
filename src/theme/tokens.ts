@@ -23,19 +23,11 @@
 
 const neutrals = {
   light: {
-    // Deliberately identical to `surface`, not just close to it — this was
-    // briefly '#F5EFE4' (an aged-paper tan) to match the native splash
-    // screen's own configured color, but every card/the tab bar/etc. use
-    // `surface` underneath, and against a visibly tan page background
-    // instead of the near-white it used to be, that tiny, previously
-    // invisible gap between the two read as two different background
-    // colors split across the screen. Matching them exactly is what "one
-    // color" actually requires; see app.config.js's SPLASH_BACKGROUND (kept
-    // in sync with this value) for the native side of that fix. Only
-    // 'default' actually drives the native splash — see ThemeProvider's own
-    // comment on colorTheme for why the other four can't — and even then
-    // only this light value: the splash no longer varies with dark mode at
-    // all (see SPLASH_BACKGROUND's own comment).
+    // Deliberately identical to `surface`, not just close to it: cards and
+    // the tab bar use `surface`, and any gap between the two reads as two
+    // different background colors split across the screen. (The native
+    // splash no longer uses this value; see app.config.js's
+    // SPLASH_BACKGROUND.)
     background: '#FFFDF8',
     surface: '#FFFDF8',
     surfaceSunken: '#F0E9DB',
