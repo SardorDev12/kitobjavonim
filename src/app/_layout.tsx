@@ -389,7 +389,7 @@ function RootNavigator({ updateChecked }: { updateChecked: boolean }) {
     const isPublicRoute =
       (group === '(tabs)' && path[1] === 'discover') || group === 'listing' || group === 'legal';
 
-    // auth/callback and auth/telegram-login run before a session exists by
+    // auth/callback and auth/telegram-oidc run before a session exists by
     // definition — bouncing them to sign-in would abort the token exchange
     // they were opened to finish.
     const isAuthFlowRoute = group === 'auth';
@@ -436,14 +436,11 @@ function RootNavigator({ updateChecked }: { updateChecked: boolean }) {
     );
   }
 
-  // auth/telegram-login and auth/callback run as real web pages (Platform.OS
-  // === 'web' is true) even during a native sign-in — auth/telegram-login is
-  // only ever reached there as the tail end of the Telegram bot-chat login
-  // flow bouncing a completed native sign-in back into the app's own scheme
-  // (src/features/auth/providers.ts), not a genuine website visit.
-  // InstallAppPrompt can't tell those apart on its own, so it's kept out of
-  // this route group entirely rather than nudging someone who already has
-  // the app to go install it, mid-sign-in.
+  // auth/callback and auth/telegram-oidc can run as real web pages
+  // (Platform.OS === 'web' is true) even during a native sign-in, not a
+  // genuine website visit. InstallAppPrompt can't tell those apart on its own,
+  // so it's kept out of this route group entirely rather than nudging someone
+  // who already has the app to go install it, mid-sign-in.
   const isAuthFlowRoute = (segments as readonly string[])[0] === 'auth';
 
   return (
@@ -471,7 +468,6 @@ function RootNavigator({ updateChecked }: { updateChecked: boolean }) {
             redirect away within a second, the root effect below that
             normally overwrites it with "Kitobjavonim" may never get the
             chance to visibly register first. */}
-        <Stack.Screen name="auth/telegram-login" options={{ headerShown: false, title: '' }} />
         <Stack.Screen name="auth/telegram-oidc" options={{ headerShown: false, title: '' }} />
         {/* Both render their own header (back button + actions) rather than
             the native one — react-navigation's default back button only

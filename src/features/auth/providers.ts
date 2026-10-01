@@ -146,47 +146,17 @@ export async function isAppleSignInAvailable(): Promise<boolean> {
   }
 }
 
-const TELEGRAM_BOT_USERNAME = (process.env.EXPO_PUBLIC_TELEGRAM_BOT_USERNAME ?? '').replace(/^@/, '').trim();
-
 /**
- * Telegram.
- *
- * Uses Telegram's OpenID Connect login (the native "Log in to <App>" sheet —
- * see ./telegramOidc.ts) once a client id is set in app_config; until then,
- * or if that row is ever removed, the bot-chat flow below keeps working
- * exactly as before. Checked on every tap, so turning OIDC on or off needs no
- * app update.
- *
- * Bot-chat flow: deep-links straight into the Telegram app itself rather than opening any
- * page this app hosts — `telegram-bot-webhook` replies to the resulting
- * `/start` with a message carrying a `login_url` button, which is what gets
- * Telegram's own native confirm dialog (and its account picker, if more than
- * one Telegram account is signed in) instead of the old browser-widget popup.
- * See supabase/functions/telegram-bot-webhook/README.md for how that button
- * is built and where it points.
- *
- * Nothing here awaits a browser session or reads a returned URL — the button
- * still ends up at telegram-auth/callback, which redirects back into this
- * app the same way every other sign-in does (src/app/auth/callback.tsx),
- * arriving later as an ordinary deep link once the user finishes in Telegram.
- * `start=web`/`start=native` is the only thing that varies per platform: it
- * tells the webhook which `redirect_to` to build the button's url with.
+ * Telegram — OpenID Connect login (the native "Log in to <App>" sheet inside
+ * the Telegram app on mobile, Telegram's own login page on web). The whole
+ * flow lives in ./telegramOidc.ts. It is switched on by the
+ * `telegram_oidc_client_id` row in app_config; without one there is nothing to
+ * sign in with, so this says so rather than quietly doing nothing.
  */
 export async function signInWithTelegram(): Promise<void> {
   const oidcConfig = await getTelegramOidcConfig();
-  if (oidcConfig) {
-    await startTelegramOidc(oidcConfig);
-    return;
-  }
-
-  if (!TELEGRAM_BOT_USERNAME) {
-    throw new Error(
-      'Telegram sign-in needs EXPO_PUBLIC_TELEGRAM_BOT_USERNAME set to the bot’s username.'
-    );
-  }
-
-  const platform = Platform.OS === 'web' ? 'web' : 'native';
-  await Linking.openURL(`https://t.me/${TELEGRAM_BOT_USERNAME}?start=${platform}`);
+  if (!oidcConfig) throw new Error('Telegram sign-in is not set up yet.');
+  await startTelegramOidc(oidcConfig);
 }
 
 export { completeFromUrl, redirectUri };

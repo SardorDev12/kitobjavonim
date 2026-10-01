@@ -67,10 +67,6 @@ export const ru: LocaleCatalogue = {
   'auth.nameRequired': 'Введите ваше имя',
   'auth.confirmEmail': 'Мы отправили ссылку для подтверждения на {{email}}.',
 
-  'auth.telegramContinue': 'Перейти в приложение',
-  'auth.telegramSuccessTitle': 'Вы вошли в систему',
-  'auth.telegramErrorTitle': 'Не удалось войти',
-
   'onboarding.title': 'Немного о вас',
   'onboarding.subtitle':
     'Имя и район видны на книгах, которые вы выставляете. Контакты показываются только тому, кто нажал «Связаться с владельцем».',

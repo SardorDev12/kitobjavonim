@@ -68,10 +68,6 @@ export const en = {
   'auth.nameRequired': 'Please enter your name',
   'auth.confirmEmail': 'We sent a confirmation link to {{email}}.',
 
-  'auth.telegramContinue': 'Continue to the app',
-  'auth.telegramSuccessTitle': "You're signed in",
-  'auth.telegramErrorTitle': 'Sign-in failed',
-
   'onboarding.title': 'Tell us a little about you',
   'onboarding.subtitle':
     'Your name and area appear on books you list. Contact details are only shown to someone who taps “Contact owner”.',

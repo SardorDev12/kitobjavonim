@@ -111,5 +111,4 @@ jobs:
           UPDATE_MESSAGE: "[${{ matrix.channel }}] ${{ github.event.head_commit.message }}"
           EXPO_PUBLIC_SUPABASE_URL: ${{ matrix.supabase_url }}
           EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ matrix.supabase_anon_key }}
-          EXPO_PUBLIC_TELEGRAM_BOT_USERNAME: home_library_signin_bot
           EXPO_PUBLIC_WEB_ORIGIN: ${{ matrix.web_origin }}

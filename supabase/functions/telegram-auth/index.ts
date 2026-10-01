@@ -1,43 +1,25 @@
 /**
- * Telegram sign-in — verification and session minting only.
+ * Telegram sign-in — verification and session minting.
  *
- * Telegram is not an OAuth provider, so Supabase cannot talk to it the way it
- * talks to Google. Instead the Login Widget posts a signed payload to a page
- * registered against the bot, and that page hands the payload here.
+ * Telegram's OpenID Connect login ("Log In With Telegram"), the flow behind the
+ * native "Log in to <App>" sheet inside the Telegram app on mobile and
+ * Telegram's own login page on web. Endpoints and the on-device code exchange
+ * mirror Telegram's official SDKs (TelegramMessenger/telegram-login-android
+ * and -ios).
  *
- *   GET  /telegram-auth/callback?...&hash=...   → verifies, mints a session,
- *                                                 redirects back to the app
+ *   POST /telegram-auth/oidc   → verifies the id_token, mints a session
  *
- * The widget itself is NOT served from here, deliberately. An earlier version
- * of this function rendered the widget's HTML page directly, and it looked
- * fine in every manual check — until a real browser requested it. Supabase's
- * shared *.supabase.co domain will not return `text/html` to a normal GET; it
- * substitutes `text/plain` with `X-Content-Type-Options: nosniff`, almost
- * certainly to stop the domain being used to host arbitrary pages under a
- * trusted hostname. The practical effect is that a browser shows the raw
- * source instead of a rendered page — which is also why HEAD requests and
- * curl without Accept-Encoding looked fine during testing: neither reflects
- * what happens on an actual page load. The widget now lives in the app itself
- * (`src/app/auth/telegram-login.tsx`), on a domain you control.
- *
- * The same restriction is why a completed native (custom-scheme) sign-in
- * bounces back through that same page rather than being redirected to
- * straight from here: Android's Chrome won't follow a server-issued redirect
- * into a non-http scheme without a fresh user gesture, which only a
- * same-document JS navigation carries, and that needs real HTML to run in —
- * see `redirect()` below.
- *
- * The HMAC check is the security boundary: without it, anyone could POST any
- * Telegram id here and take over that account. Payloads older than 5 minutes are
- * rejected so a captured URL cannot be replayed later.
+ * The id_token's signature, issuer, audience and age are checked against
+ * Telegram's published keys before anything else happens: that check, not the
+ * transport, is what makes the identity trustworthy. The client id is read
+ * from app_config (telegram_oidc_client_id) rather than a secret, so the app
+ * and this function can never disagree on it.
  *
  * Setup is documented in README.md next to this file.
  */
 
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { createRemoteJWKSet, jwtVerify, type JWTPayload } from 'npm:jose@5.9.6';
-
-const BOT_TOKEN = Deno.env.get('TELEGRAM_BOT_TOKEN') ?? '';
 
 /**
  * Telegram's OpenID Connect login ("Log In With Telegram") — the flow behind
@@ -57,63 +39,14 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
 /**
- * The app's deep-link scheme, matching `scheme` in app.config.js — 'homelibrary'
- * for the production build. The preview/staging build uses a different scheme
- * ('homelibrary-staging'), since two apps registering the same one means
- * Android can't tell which should catch the redirect on a device with both
- * installed. Set this secret to 'homelibrary-staging' on the staging project.
- */
-const APP_SCHEME = Deno.env.get('APP_SCHEME') ?? 'homelibrary';
-
-/**
- * Web origins allowed to receive a completed sign-in, comma separated —
- * for example `http://localhost:8081,https://homelibrary.uz`.
+ * Web origins allowed to sign in, comma separated — for example
+ * `http://localhost:8081,https://app.kitobjavonim.uz`. Used for CORS and to
+ * validate the web redirect_uri.
  */
 const ALLOWED_ORIGINS = (Deno.env.get('TELEGRAM_ALLOWED_ORIGINS') ?? '')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
-
-/** How old a Telegram payload may be before it is refused. */
-const MAX_AUTH_AGE_SECONDS = 300;
-
-/**
- * Whether a `redirect_to` may be honoured.
- *
- * This is a security boundary, not tidiness. The callback finishes by appending
- * a `token_hash` — which is exchangeable for a real session — to this URL. An
- * unchecked value would let anyone send a victim to
- * `/telegram-auth?redirect_to=https://attacker.example`, have them complete a
- * genuine Telegram login, and receive their session token. So the target must be
- * the app's own scheme or an origin listed at deploy time.
- */
-function isAllowedRedirect(value: string): boolean {
-  let parsed: URL;
-  try {
-    parsed = new URL(value);
-  } catch {
-    return false;
-  }
-
-  // Custom schemes have no meaningful origin, so they are matched on scheme.
-  if (parsed.protocol === `${APP_SCHEME}:`) return true;
-
-  return ALLOWED_ORIGINS.includes(parsed.origin);
-}
-
-/** Whether `redirect_to` is the app's own custom scheme rather than a web origin. */
-function isNativeTarget(redirectTo: string): boolean {
-  try {
-    return new URL(redirectTo).protocol === `${APP_SCHEME}:`;
-  } catch {
-    return false;
-  }
-}
-
-/** Redirects by hand: Response.redirect rejects non-HTTP schemes in Deno. */
-function redirect(target: string): Response {
-  return new Response(null, { status: 303, headers: { location: target } });
-}
 
 function createAdminClient() {
   return createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
@@ -123,12 +56,6 @@ function createAdminClient() {
 
 /** Inferred from the real constructor call — `ReturnType<typeof createClient>` alone resolves to a client whose tables are typed `never`. */
 type AdminClient = ReturnType<typeof createAdminClient>;
-
-function missingConfig(): string | null {
-  if (!BOT_TOKEN) return 'TELEGRAM_BOT_TOKEN is not set';
-  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) return 'Supabase environment is not available';
-  return null;
-}
 
 /**
  * Supabase's edge runtime sits behind a proxy, so the real client address is
@@ -168,42 +95,14 @@ async function isRateLimited(
   return false;
 }
 
-type TelegramUser = {
-  id: string;
-  first_name?: string;
-  last_name?: string;
-  username?: string;
-  photo_url?: string;
-  auth_date: string;
-  hash: string;
-};
-
 Deno.serve(async (request) => {
   const url = new URL(request.url);
+  if (url.pathname.endsWith('/oidc')) return await handleOidc(request);
 
-  // Routed ahead of missingConfig(): OIDC never touches the bot token, so a
-  // deployment that only uses OIDC shouldn't be refused for lacking one.
-  if (url.pathname.endsWith('/oidc')) {
-    return await handleOidc(request);
-  }
-
-  const configError = missingConfig();
-  if (configError) {
-    // Surfaced as plain text rather than a redirect: this is a deploy mistake,
-    // and bouncing it back into the app would disguise it as a login failure.
-    return new Response(`telegram-auth is misconfigured: ${configError}`, { status: 500 });
-  }
-
-  if (url.pathname.endsWith('/callback')) {
-    return await handleCallback(url, request.headers);
-  }
-
-  // Anyone hitting the base URL directly — a stale bookmark, a curl check — gets
-  // an explanation rather than a 404, since this endpoint used to do more.
-  return new Response(
-    'This endpoint only verifies Telegram sign-ins: /callback (Login Widget / login_url) or /oidc (OpenID Connect).',
-    { status: 200, headers: { 'content-type': 'text/plain; charset=utf-8' } }
-  );
+  return new Response('This endpoint only verifies Telegram OpenID Connect sign-ins: POST /oidc.', {
+    status: 200,
+    headers: { 'content-type': 'text/plain; charset=utf-8' },
+  });
 });
 
 // -----------------------------------------------------------------------------
@@ -222,8 +121,8 @@ Deno.serve(async (request) => {
  * Either way the id_token's signature, issuer, audience and age are verified
  * against Telegram's published keys before anything else happens — that
  * check, not the transport, is what makes the identity trustworthy. Responds
- * `{ token_hash, type }` for the client to hand to supabase.auth.verifyOtp,
- * the same one-time token the legacy /callback redirects with.
+ * `{ token_hash, type }`, a one-time token the client hands to
+ * supabase.auth.verifyOtp.
  */
 async function handleOidc(request: Request): Promise<Response> {
   const cors = corsHeaders(request);
@@ -344,8 +243,7 @@ async function verifyIdToken(idToken: string, clientId: string): Promise<Telegra
       issuer: OIDC_ISSUER,
       audience: clientId,
       algorithms: ['RS256', 'ES256', 'EdDSA'],
-      // Same intent as MAX_AUTH_AGE_SECONDS for the legacy payload: a token
-      // lifted off a device later can't be replayed into a fresh session.
+      // A token lifted off a device later can't be replayed into a fresh session.
       maxTokenAge: '10m',
     });
     return identityFromClaims(payload);
@@ -356,8 +254,8 @@ async function verifyIdToken(idToken: string, clientId: string): Promise<Telegra
 }
 
 /**
- * Keyed on the `id` claim — Telegram's own numeric user id, the same value
- * the legacy widget payload carries — so an existing account
+ * Keyed on the `id` claim — Telegram's own numeric user id, the value every
+ * earlier Telegram sign-in was keyed on — so an existing account
  * (tg_<id>@telegram.local) is found rather than duplicated. `sub` is
  * deliberately not used as a fallback: nothing reachable from here documents
  * it as equal to that id, and guessing wrong would map one person onto
@@ -404,64 +302,7 @@ function json(body: unknown, status: number, headers: Record<string, string>): R
   return new Response(JSON.stringify(body), { status, headers: { ...headers, 'content-type': 'application/json' } });
 }
 
-// -----------------------------------------------------------------------------
-// Verify the payload and mint a session
-// -----------------------------------------------------------------------------
-
-async function handleCallback(url: URL, headers: Headers): Promise<Response> {
-  const redirectTo = url.searchParams.get('redirect_to');
-  if (!redirectTo || !isAllowedRedirect(redirectTo)) {
-    // Deliberately not redirected: if the target is not trusted, sending
-    // anything to it — including an error — is the thing being prevented.
-    return new Response('Invalid redirect target', { status: 400 });
-  }
-
-  // Where a native sign-in bounces back through, since only a page on this
-  // origin can run the JS that a custom-scheme navigation needs. Sent by
-  // telegram-login.tsx as its own location.origin — checked against the same
-  // allow-list as redirectTo, since it ends up carrying the same token_hash.
-  const bounceOrigin = url.searchParams.get('origin');
-  const origin = bounceOrigin && ALLOWED_ORIGINS.includes(bounceOrigin) ? bounceOrigin : null;
-
-  const payload: Record<string, string> = {};
-  for (const [key, value] of url.searchParams) {
-    if (key !== 'redirect_to' && key !== 'origin') payload[key] = value;
-  }
-
-  const telegramUser = payload as unknown as TelegramUser;
-  if (!telegramUser.id || !telegramUser.hash) return fail('Incomplete Telegram response', redirectTo, origin);
-
-  const admin = createAdminClient();
-
-  // Recorded — and capped — before the signature check itself, so a flood of
-  // requests is throttled whether or not any of them turn out to be genuine.
-  if (await isRateLimited(admin, telegramUser.id, clientIp(headers))) {
-    return fail('Too many attempts — try again in a few minutes', redirectTo, origin);
-  }
-
-  if (!(await isSignatureValid(payload))) {
-    return fail('Could not verify the Telegram response', redirectTo, origin);
-  }
-
-  // Math.abs so a clock skewed into the future is refused too, rather than
-  // yielding a negative age that sails past the maximum.
-  const age = Math.abs(Math.floor(Date.now() / 1000) - Number(telegramUser.auth_date));
-  if (!Number.isFinite(age) || age > MAX_AUTH_AGE_SECONDS) {
-    return fail('That sign-in link has expired', redirectTo, origin);
-  }
-
-  const minted = await mintSession(admin, {
-    id: telegramUser.id,
-    displayName: [telegramUser.first_name, telegramUser.last_name].filter(Boolean).join(' ').trim(),
-    username: telegramUser.username ?? null,
-    photoUrl: telegramUser.photo_url ?? null,
-  });
-  if ('error' in minted) return fail(minted.error, redirectTo, origin);
-
-  return redirect(finalTarget(redirectTo, origin, { token_hash: minted.tokenHash, type: 'magiclink' }));
-}
-
-/** A Telegram identity that has already been verified — by HMAC or by a signed OIDC id_token. */
+/** A Telegram identity that has already been verified from a signed OIDC id_token. */
 type TelegramIdentity = {
   /** Telegram's numeric user id, as a string — the same value either flow yields for the same person. */
   id: string;
@@ -472,9 +313,7 @@ type TelegramIdentity = {
 
 /**
  * Turns a verified Telegram identity into a one-time Supabase magic-link
- * token the client exchanges for a session. Shared by the legacy
- * widget/login_url callback and the OIDC route, so both land on the same
- * account for the same Telegram user.
+ * token the client exchanges for a session.
  */
 async function mintSession(
   admin: AdminClient,
@@ -538,29 +377,6 @@ async function mintSession(
   return { tokenHash: link.properties.hashed_token };
 }
 
-/**
- * Where a completed (or failed) sign-in goes.
- *
- * Web targets go straight there — a plain redirect between http(s) origins
- * has no user-gesture requirement to satisfy. A native target only goes
- * straight there if there's no bounce origin to use instead (an older cached
- * build that doesn't send one yet); otherwise it goes to that origin's
- * `/auth/telegram-login`, carrying the real target as `redirect_to` again so
- * that page can finish the handoff with a JS navigation of its own.
- */
-function finalTarget(redirectTo: string, origin: string | null, params: Record<string, string>): string {
-  if (origin && isNativeTarget(redirectTo)) {
-    const bounce = new URL('/auth/telegram-login', origin);
-    bounce.searchParams.set('redirect_to', redirectTo);
-    for (const [key, value] of Object.entries(params)) bounce.searchParams.set(key, value);
-    return bounce.toString();
-  }
-
-  const target = new URL(redirectTo);
-  for (const [key, value] of Object.entries(params)) target.searchParams.set(key, value);
-  return target.toString();
-}
-
 /** supabase-js has reported this differently across versions, so check all three. */
 function isAlreadyRegistered(error: { message?: string; status?: number; code?: string }): boolean {
   return (
@@ -568,51 +384,4 @@ function isAlreadyRegistered(error: { message?: string; status?: number; code?: 
     error.status === 422 ||
     /already (been )?registered|already exists/i.test(error.message ?? '')
   );
-}
-
-/**
- * Telegram's documented check: build a newline-joined `key=value` list of every
- * field except `hash`, sorted by key, and HMAC it with SHA256(bot_token).
- */
-async function isSignatureValid(payload: Record<string, string>): Promise<boolean> {
-  const { hash } = payload;
-  if (!hash) return false;
-
-  const expected = await computeExpectedHash(payload);
-  return timingSafeEqual(expected, hash);
-}
-
-async function computeExpectedHash(payload: Record<string, string>): Promise<string> {
-  const { hash: _hash, ...fields } = payload;
-
-  const dataCheckString = Object.keys(fields)
-    .sort()
-    .map((key) => `${key}=${fields[key]}`)
-    .join('\n');
-
-  const encoder = new TextEncoder();
-  const secret = await crypto.subtle.digest('SHA-256', encoder.encode(BOT_TOKEN));
-
-  const key = await crypto.subtle.importKey('raw', secret, { name: 'HMAC', hash: 'SHA-256' }, false, [
-    'sign',
-  ]);
-  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(dataCheckString));
-
-  return Array.from(new Uint8Array(signature))
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('');
-}
-
-/** Constant-time comparison so the HMAC cannot be guessed byte by byte. */
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
-}
-
-/** Callers reach this only after `redirectTo` has been checked against the allow-list. */
-function fail(message: string, redirectTo: string | null, origin: string | null): Response {
-  if (!redirectTo) return new Response(message, { status: 400 });
-  return redirect(finalTarget(redirectTo, origin, { error_description: message }));
 }

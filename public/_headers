@@ -9,13 +9,6 @@
 # class, so disallowing inline styles would break the entire app's
 # rendering, not just tighten security.
 #
-# telegram.org (host allowance, frame-src, and a pinned inline-script hash)
-# used to be here for the Telegram Login Widget, which telegram-login.tsx
-# injected directly into this page. Telegram sign-in now deep-links into the
-# Telegram app itself instead (src/features/auth/providers.ts) — nothing in
-# this app ever loads a script from or frames telegram.org anymore, so those
-# allowances are gone rather than left in place unused.
-#
 # img-src allows any https: origin rather than naming hosts one by one —
 # book covers come from Google Books, Open Library, and user uploads to
 # Supabase storage, and Google/Open Library's own cover CDNs are not fixed,

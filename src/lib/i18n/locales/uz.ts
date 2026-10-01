@@ -71,10 +71,6 @@ export const uz: LocaleCatalogue = {
   'auth.nameRequired': 'Ismingizni kiriting',
   'auth.confirmEmail': '{{email}} manziliga tasdiqlash havolasi yuborildi.',
 
-  'auth.telegramContinue': 'Ilovaga o‘tish',
-  'auth.telegramSuccessTitle': 'Tizimga kirdingiz',
-  'auth.telegramErrorTitle': 'Kirish amalga oshmadi',
-
   'onboarding.title': 'Oʻzingiz haqingizda qisqacha',
   'onboarding.subtitle':
     'Ismingiz va hududingiz eʼlon qilgan kitoblaringizda koʻrinadi. Bogʻlanish maʼlumotlari faqat «Egasi bilan bogʻlanish» tugmasini bosgan odamga koʻrsatiladi.',
