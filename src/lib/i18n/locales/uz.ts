@@ -96,7 +96,7 @@ export const uz: LocaleCatalogue = {
   'tabs.add': 'Qoʻshish',
   'tabs.profile': 'Profil',
 
-  'library.title': 'Mening kutubxonam',
+  'library.title': 'Kutubxonam',
   'library.searchPlaceholder': 'Kitoblaringizni qidiring',
   'library.empty.title': 'Hozircha kitob yoʻq',
   'library.empty.body':
