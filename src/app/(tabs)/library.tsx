@@ -7,6 +7,7 @@ import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCard } from '@/components/BookCard';
+import { BookCompactRow, COMPACT_FIELDS, type CompactField } from '@/components/BookCompactRow';
 import { BookGridCard } from '@/components/BookGridCard';
 import { GALLERY_TILE_WIDTH } from '@/components/BookCover';
 import { PullToRefreshIndicator } from '@/components/PullToRefreshIndicator';
@@ -29,7 +30,22 @@ import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useLayout, useTheme } from '@/theme';
 
 const SORTS: LibrarySort[] = ['recent', 'title', 'author', 'finished'];
-type ViewMode = 'list' | 'gallery';
+type ViewMode = 'list' | 'gallery' | 'compact';
+// The view button cycles through these in order; the icon shows the one a tap
+// switches to.
+const VIEW_MODES: ViewMode[] = ['list', 'gallery', 'compact'];
+const VIEW_MODE_ICONS: Record<ViewMode, keyof typeof Ionicons.glyphMap> = {
+  list: 'list-outline',
+  gallery: 'grid-outline',
+  compact: 'menu-outline',
+};
+const VIEW_MODE_LABELS = {
+  list: 'library.viewList',
+  gallery: 'library.viewGallery',
+  compact: 'library.viewCompact',
+} as const;
+const VIEW_MODE_STORAGE_KEY = 'settings.libraryViewMode';
+const COMPACT_FIELD_STORAGE_KEY = 'settings.libraryCompactField';
 
 // 'all' is pinned outside the draggable row (see the header below) — these
 // are the ones the user can reorder.
@@ -73,7 +89,9 @@ export default function LibraryScreen() {
   const [filter, setFilter] = useState<LibraryFilter>('all');
   const [sort, setSort] = useState<LibrarySort>('recent');
   const [sortOpen, setSortOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [viewMode, setViewModeState] = useState<ViewMode>('list');
+  const [compactField, setCompactFieldState] = useState<CompactField>('pages');
+  const [compactFieldOpen, setCompactFieldOpen] = useState(false);
   const [filterOrder, setFilterOrder] = useState<LibraryFilter[]>(REORDERABLE_FILTERS);
 
   // Multiselect — entered via the header button or a long-press on any card.
@@ -155,6 +173,34 @@ export default function LibraryScreen() {
       cancelled = true;
     };
   }, []);
+
+  // Remembered across restarts, same "don't trust old local storage blindly"
+  // rule as the filter order above: anything unrecognised is ignored.
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all([AsyncStorage.getItem(VIEW_MODE_STORAGE_KEY), AsyncStorage.getItem(COMPACT_FIELD_STORAGE_KEY)])
+      .then(([storedMode, storedField]) => {
+        if (cancelled) return;
+        if (VIEW_MODES.includes(storedMode as ViewMode)) setViewModeState(storedMode as ViewMode);
+        if (COMPACT_FIELDS.includes(storedField as CompactField)) setCompactFieldState(storedField as CompactField);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  function setViewMode(next: ViewMode) {
+    setViewModeState(next);
+    AsyncStorage.setItem(VIEW_MODE_STORAGE_KEY, next).catch(() => {});
+  }
+
+  function setCompactField(next: CompactField) {
+    setCompactFieldState(next);
+    AsyncStorage.setItem(COMPACT_FIELD_STORAGE_KEY, next).catch(() => {});
+  }
+
+  const nextViewMode = VIEW_MODES[(VIEW_MODES.indexOf(viewMode) + 1) % VIEW_MODES.length];
 
   function reorderFilters(next: LibraryFilter[]) {
     setFilterOrder(next);
@@ -316,10 +362,10 @@ export default function LibraryScreen() {
 
             <View style={styles.headerActions}>
               <Pressable
-                onPress={() => setViewMode(viewMode === 'list' ? 'gallery' : 'list')}
+                onPress={() => setViewMode(nextViewMode)}
                 hitSlop={8}
                 accessibilityRole="button"
-                accessibilityLabel={viewMode === 'list' ? t('library.viewGallery') : t('library.viewList')}
+                accessibilityLabel={t(VIEW_MODE_LABELS[nextViewMode])}
                 style={({ pressed }) => [
                   styles.iconButton,
                   {
@@ -330,12 +376,28 @@ export default function LibraryScreen() {
                   },
                 ]}
               >
-                <Ionicons
-                  name={viewMode === 'list' ? 'grid-outline' : 'list-outline'}
-                  size={18}
-                  color={theme.colors.textMuted}
-                />
+                <Ionicons name={VIEW_MODE_ICONS[nextViewMode]} size={18} color={theme.colors.textMuted} />
               </Pressable>
+
+              {viewMode === 'compact' ? (
+                <Pressable
+                  onPress={() => setCompactFieldOpen(true)}
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('library.compactField')}
+                  style={({ pressed }) => [
+                    styles.iconButton,
+                    {
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.border,
+                      borderRadius: theme.radius.md,
+                      opacity: pressed ? 0.7 : 1,
+                    },
+                  ]}
+                >
+                  <Ionicons name="options-outline" size={18} color={theme.colors.textMuted} />
+                </Pressable>
+              ) : null}
 
               <Pressable
                 onPress={() => setSortOpen(true)}
@@ -453,6 +515,15 @@ export default function LibraryScreen() {
                 selected={selectedIds.has(item.id)}
               />
             ) : null
+          ) : viewMode === 'compact' ? (
+            <BookCompactRow
+              entry={item}
+              field={compactField}
+              onPress={handleCardPress}
+              onLongPress={handleCardLongPress}
+              selectable={selectMode}
+              selected={selectedIds.has(item.id)}
+            />
           ) : (
             <BookCard
               entry={item}
@@ -568,6 +639,31 @@ export default function LibraryScreen() {
           disabled={bulkDelete.isPending}
           onPress={confirmBulkDelete}
         />
+      </Sheet>
+
+      <Sheet visible={compactFieldOpen} onClose={() => setCompactFieldOpen(false)} title={t('library.compactField')}>
+        <Text variant="caption" color="textMuted" style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
+          {t('library.compactFieldHint')}
+        </Text>
+        {COMPACT_FIELDS.map((option) => (
+          <Pressable
+            key={option}
+            onPress={() => {
+              setCompactField(option);
+              setCompactFieldOpen(false);
+            }}
+            style={({ pressed }) => [
+              styles.sortOption,
+              { paddingVertical: theme.spacing.md },
+              pressed && { backgroundColor: theme.colors.surfaceSunken },
+            ]}
+          >
+            <Text variant={compactField === option ? 'bodyStrong' : 'body'} color={compactField === option ? 'primary' : 'text'}>
+              {t(`library.field.${option}`)}
+            </Text>
+            {compactField === option ? <Ionicons name="checkmark" size={20} color={theme.colors.primary} /> : null}
+          </Pressable>
+        ))}
       </Sheet>
 
       <Sheet visible={sortOpen} onClose={() => setSortOpen(false)} title={t('common.sort')}>
