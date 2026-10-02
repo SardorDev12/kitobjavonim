@@ -170,6 +170,7 @@ export const uz: LocaleCatalogue = {
   'book.progressEstimate_other': 'Shu sur’atda ~{{days}} kun qoldi',
   'book.currentPage': 'Joriy bet',
   'book.currentPageHint': '{{total}} betdan',
+  'book.readToday': 'Bugungi mutolaa',
   'book.rating': 'Bahoyingiz',
   'book.review': 'Sharhingiz',
   'book.reviewPlaceholder': 'Siz hali sharh yozmadingiz',

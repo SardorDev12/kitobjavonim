@@ -168,6 +168,7 @@ export const en = {
   'book.progressEstimate_other': '~{{days}} days left at this pace',
   'book.currentPage': 'Current page',
   'book.currentPageHint': 'of {{total}} pages',
+  'book.readToday': 'Read today',
   'book.rating': 'Your rating',
   'book.review': 'Your review',
   'book.reviewPlaceholder': "You haven't written a review yet",

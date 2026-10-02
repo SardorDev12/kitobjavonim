@@ -174,6 +174,7 @@ export const ru: LocaleCatalogue = {
   'book.progressEstimate_other': 'Осталось примерно {{days}} дней в этом темпе',
   'book.currentPage': 'Текущая страница',
   'book.currentPageHint': 'из {{total}} страниц',
+  'book.readToday': 'Прочитано сегодня',
   'book.rating': 'Ваша оценка',
   'book.review': 'Ваш отзыв',
   'book.reviewPlaceholder': 'Вы ещё не написали отзыв',

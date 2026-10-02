@@ -10,6 +10,7 @@ import { setPendingAddQuery } from '@/features/add/pendingAddQuery';
 import { goToTab } from '@/features/tabs/activeTab';
 import { formatAuthors, formatDate } from '@/lib/format';
 import { useI18n } from '@/lib/i18n';
+import { pageFromRead, readFromPage } from '@/lib/progressInput';
 import { selectLibrary, useLibrary, useUpdateReadingProgress, useUpdateUserBook } from '@/lib/queries/library';
 import { computeReadingStats } from '@/lib/readingStats';
 import { useLayout, useTheme } from '@/theme';
@@ -620,7 +621,9 @@ function ProgressSheetForm({
 }) {
   const knownTotal = effectiveTotal(entry);
   const [totalPagesInput, setTotalPagesInput] = useState('');
+  const savedPage = entry.current_page ?? 0;
   const [page, setPage] = useState(entry.current_page?.toString() ?? '');
+  const [readToday, setReadToday] = useState('');
 
   const enteredTotal = knownTotal ?? (Number.isFinite(Number(totalPagesInput)) ? Number(totalPagesInput) : 0);
   const canSave = enteredTotal > 0;
@@ -647,11 +650,30 @@ function ProgressSheetForm({
         />
       ) : null}
 
+      {/* Two ways in to the same number: how much was read since the saved
+          page, or the page itself. Typing in one fills the other, and the
+          current page stays freely editable (down as well as up) so a wrong
+          entry can be corrected by just retyping it. */}
+      <TextField
+        label={t('book.readToday')}
+        value={readToday}
+        onChangeText={(text) => {
+          setReadToday(text);
+          setPage(pageFromRead(savedPage, text, enteredTotal));
+        }}
+        keyboardType="number-pad"
+        inputMode="numeric"
+        maxLength={enteredTotal > 0 ? String(enteredTotal).length : undefined}
+      />
+
       <TextField
         label={t('book.currentPage')}
         hint={enteredTotal > 0 ? t('book.currentPageHint', { total: enteredTotal }) : undefined}
         value={page}
-        onChangeText={setPage}
+        onChangeText={(text) => {
+          setPage(text);
+          setReadToday(readFromPage(savedPage, text));
+        }}
         keyboardType="number-pad"
         inputMode="numeric"
         maxLength={enteredTotal > 0 ? String(enteredTotal).length : undefined}
