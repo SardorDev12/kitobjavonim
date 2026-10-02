@@ -7,21 +7,15 @@ import { useI18n } from '@/lib/i18n';
 import { useTheme } from '@/theme';
 import type { LibraryEntry } from '@/types/database';
 
-import { Chip, Text } from './ui';
+import { Text } from './ui';
 
 /** The one optional field the compact list shows next to author and title. */
 export type CompactField = 'pages' | 'location' | 'status' | 'rating' | 'availability';
 export const COMPACT_FIELDS: CompactField[] = ['pages', 'location', 'status', 'rating', 'availability'];
 
-const STATUS_TONE = {
-  want_to_read: 'neutral',
-  reading: 'primary',
-  finished: 'success',
-} as const;
-
 /**
- * One-line row for Library's compact view: author, title, and a single field
- * the reader picked. Memoized and given the same stable-callback props as
+ * Row for Library's compact view: three columns — author, title, and a single
+ * field the reader picked — each wrapping to at most two lines. Memoized and given the same stable-callback props as
  * BookCard, for the same virtualized-list reason (see its docstring).
  */
 export const BookCompactRow = memo(function BookCompactRow({
@@ -63,7 +57,7 @@ export const BookCompactRow = memo(function BookCompactRow({
         extra = (
           <View style={styles.inline}>
             <Ionicons name="location-outline" size={13} color={theme.colors.textSubtle} />
-            <Text variant="caption" color="textSubtle" numberOfLines={1} style={styles.locationText}>
+            <Text variant="caption" color="textSubtle" numberOfLines={2} style={styles.inlineText}>
               {entry.shelf_note}
             </Text>
           </View>
@@ -71,7 +65,11 @@ export const BookCompactRow = memo(function BookCompactRow({
       }
       break;
     case 'status':
-      extra = <Chip readOnly label={t(`status.${entry.reading_status}`)} tone={STATUS_TONE[entry.reading_status]} />;
+      extra = (
+        <Text variant="caption" color={STATUS_COLOR[entry.reading_status]} numberOfLines={2}>
+          {t(`status.${entry.reading_status}`)}
+        </Text>
+      );
       break;
     case 'rating':
       if (entry.rating) {
@@ -88,16 +86,15 @@ export const BookCompactRow = memo(function BookCompactRow({
     case 'availability':
       if (entry.availability_type !== 'private') {
         extra = (
-          <Chip
-            readOnly
-            tone="warning"
-            icon={entry.availability_type === 'exchange' ? 'swap-horizontal' : 'pricetag'}
-            label={t(`availability.${entry.availability_type}`)}
-          />
+          <Text variant="caption" color="warning" numberOfLines={2}>
+            {t(`availability.${entry.availability_type}`)}
+          </Text>
         );
       }
       break;
   }
+
+  const divider = <View style={[styles.divider, { backgroundColor: theme.colors.border }]} />;
 
   return (
     <Pressable
@@ -108,9 +105,7 @@ export const BookCompactRow = memo(function BookCompactRow({
       style={({ pressed }) => [
         styles.row,
         {
-          paddingVertical: theme.spacing.sm + 2,
           paddingHorizontal: theme.spacing.lg,
-          gap: theme.spacing.md,
           borderBottomColor: theme.colors.border,
           backgroundColor: selected
             ? theme.colors.primarySoft
@@ -121,35 +116,53 @@ export const BookCompactRow = memo(function BookCompactRow({
       ]}
     >
       {selectable ? (
-        <Ionicons
-          name={selected ? 'checkmark-circle' : 'ellipse-outline'}
-          size={20}
-          color={selected ? theme.colors.primary : theme.colors.textSubtle}
-        />
+        <View style={[styles.checkbox, { paddingRight: theme.spacing.sm }]}>
+          <Ionicons
+            name={selected ? 'checkmark-circle' : 'ellipse-outline'}
+            size={20}
+            color={selected ? theme.colors.primary : theme.colors.textSubtle}
+          />
+        </View>
       ) : null}
 
-      <Text numberOfLines={1} style={styles.text}>
-        {authors ? (
-          <Text variant="caption" color="textMuted">
-            {authors} –{' '}
-          </Text>
-        ) : null}
-        <Text variant="bodyStrong">{entry.title}</Text>
-      </Text>
-
-      {extra ? <View style={styles.extra}>{extra}</View> : null}
+      <View style={[styles.cell, styles.authorCell, { paddingVertical: theme.spacing.sm + 2, paddingRight: theme.spacing.sm }]}>
+        <Text variant="caption" color="textMuted" numberOfLines={2}>
+          {authors ?? ''}
+        </Text>
+      </View>
+      {divider}
+      <View style={[styles.cell, styles.titleCell, { paddingVertical: theme.spacing.sm + 2, paddingHorizontal: theme.spacing.sm }]}>
+        <Text variant="label" numberOfLines={2} style={styles.title}>
+          {entry.title}
+        </Text>
+      </View>
+      {divider}
+      <View style={[styles.cell, styles.fieldCell, { paddingVertical: theme.spacing.sm + 2, paddingLeft: theme.spacing.sm }]}>
+        {extra}
+      </View>
     </Pressable>
   );
 });
 
+const STATUS_COLOR = {
+  want_to_read: 'textMuted',
+  reading: 'primary',
+  finished: 'success',
+} as const;
+
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', borderBottomWidth: StyleSheet.hairlineWidth },
-  // Author and title share whatever the optional field leaves free, and
-  // cut off with an ellipsis so every row stays one line tall.
-  text: { flex: 1 },
-  // The field keeps its own width (capped for long shelf notes) so it never
-  // gets squeezed out by a long title.
-  extra: { maxWidth: '35%', flexShrink: 0, alignItems: 'flex-end' },
+  row: { flexDirection: 'row', alignItems: 'stretch', borderBottomWidth: StyleSheet.hairlineWidth },
+  checkbox: { justifyContent: 'center' },
+  // Three fixed-proportion columns (flexBasis 0, so the share doesn't depend
+  // on content): author gets the most room, title a bit less, the one extra
+  // field the least. Each wraps to at most two lines; the dividers stretch the
+  // full row height so the columns line up from row to row.
+  cell: { flexBasis: 0, justifyContent: 'center', minWidth: 0 },
+  authorCell: { flexGrow: 4 },
+  titleCell: { flexGrow: 3 },
+  fieldCell: { flexGrow: 2 },
+  title: { fontWeight: '700' },
+  divider: { width: StyleSheet.hairlineWidth },
   inline: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  locationText: { flexShrink: 1 },
+  inlineText: { flexShrink: 1 },
 });
