@@ -121,6 +121,7 @@ export const ru: LocaleCatalogue = {
   'library.bookCount_other': '{{count}} книг',
   'library.select': 'Выбрать',
   'library.selectAll': 'Выбрать все',
+  'library.deselectAll': 'Снять выбор',
   'library.selectedCount': 'Выбрано: {{count}}',
   'library.selectedCount_one': 'Выбрано: {{count}}',
   'library.selectedCount_few': 'Выбрано: {{count}}',

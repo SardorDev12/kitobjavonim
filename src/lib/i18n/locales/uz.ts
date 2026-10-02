@@ -123,6 +123,7 @@ export const uz: LocaleCatalogue = {
   'library.bookCount_other': '{{count}} ta kitob',
   'library.select': 'Tanlash',
   'library.selectAll': 'Barchasini tanlash',
+  'library.deselectAll': 'Tanlovni bekor qilish',
   'library.selectedCount': '{{count}} ta tanlandi',
   'library.selectedCount_one': '{{count}} ta tanlandi',
   'library.selectedCount_other': '{{count}} ta tanlandi',

@@ -183,6 +183,10 @@ export default function LibraryScreen() {
     setSelectedIds(new Set(entries.map((entry) => entry.id)));
   }
 
+  // Turns the header's select-all button into "deselect all" once there's
+  // nothing visible left to add.
+  const allVisibleSelected = entries.length > 0 && entries.every((entry) => selectedIds.has(entry.id));
+
   // Sharing is only ever the copy's own creator's call to make (0015's RLS
   // — book/[id].tsx's own household-share toggle is disabled the same way
   // for the same reason), so a household member's shared-with-you book in
@@ -250,16 +254,35 @@ export default function LibraryScreen() {
     <View style={[styles.fill, { width: '100%', maxWidth: maxContentWidth }]}>
       <View style={[styles.header, { paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.md }]}>
         {selectMode ? (
-          <View style={styles.titleRow}>
-            <View style={styles.titleText}>
-              <Text variant="display">{t('library.selectedCount', { count: selectedIds.size })}</Text>
-              <Pressable onPress={selectAllVisible} hitSlop={8}>
-                <Text variant="label" color="primary">
-                  {t('library.selectAll')}
-                </Text>
-              </Pressable>
-            </View>
+          <View style={styles.selectBar}>
+            <Pressable
+              onPress={exitSelectMode}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.cancel')}
+            >
+              <Ionicons name="close" size={24} color={theme.colors.text} />
+            </Pressable>
+            <Text
+              variant="title"
+              style={styles.selectCount}
+              accessibilityLabel={t('library.selectedCount', { count: selectedIds.size })}
+            >
+              {selectedIds.size}
+            </Text>
 
+            <Pressable
+              onPress={allVisibleSelected ? () => setSelectedIds(new Set()) : selectAllVisible}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={allVisibleSelected ? t('library.deselectAll') : t('library.selectAll')}
+            >
+              <Ionicons
+                name={allVisibleSelected ? 'checkbox' : 'checkbox-outline'}
+                size={24}
+                color={allVisibleSelected ? theme.colors.primary : theme.colors.text}
+              />
+            </Pressable>
             <Pressable
               onPress={() => setSelectionActionsOpen(true)}
               hitSlop={8}
@@ -532,8 +555,6 @@ export default function LibraryScreen() {
           disabled={bulkDelete.isPending}
           onPress={confirmBulkDelete}
         />
-        <Divider inset={theme.spacing.lg} />
-        <ListRow icon="close-outline" label={t('common.cancel')} onPress={exitSelectMode} />
       </Sheet>
 
       <Sheet visible={sortOpen} onClose={() => setSortOpen(false)} title={t('common.sort')}>
@@ -572,6 +593,8 @@ const styles = StyleSheet.create({
   header: { gap: 12 },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   titleText: { flex: 1, gap: 2 },
+  selectBar: { flexDirection: 'row', alignItems: 'center', gap: 16, minHeight: 40 },
+  selectCount: { flex: 1, fontVariant: ['tabular-nums'] },
   headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
   iconButton: {
     width: 34,

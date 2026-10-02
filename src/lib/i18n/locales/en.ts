@@ -121,6 +121,7 @@ export const en = {
   'library.bookCount_other': '{{count}} books',
   'library.select': 'Select',
   'library.selectAll': 'Select all',
+  'library.deselectAll': 'Deselect all',
   'library.selectedCount': '{{count}} selected',
   'library.selectedCount_one': '{{count}} selected',
   'library.selectedCount_other': '{{count}} selected',
