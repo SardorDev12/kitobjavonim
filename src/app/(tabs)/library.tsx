@@ -31,8 +31,7 @@ import { useLayout, useTheme } from '@/theme';
 
 const SORTS: LibrarySort[] = ['recent', 'title', 'author', 'finished'];
 type ViewMode = 'list' | 'gallery' | 'compact';
-// The view button cycles through these in order; the icon shows the one a tap
-// switches to.
+// The view button opens a menu of these; its own icon shows the current one.
 const VIEW_MODES: ViewMode[] = ['list', 'gallery', 'compact'];
 const VIEW_MODE_ICONS: Record<ViewMode, keyof typeof Ionicons.glyphMap> = {
   list: 'list-outline',
@@ -40,9 +39,9 @@ const VIEW_MODE_ICONS: Record<ViewMode, keyof typeof Ionicons.glyphMap> = {
   compact: 'menu-outline',
 };
 const VIEW_MODE_LABELS = {
-  list: 'library.viewList',
-  gallery: 'library.viewGallery',
-  compact: 'library.viewCompact',
+  list: 'library.viewOption.list',
+  gallery: 'library.viewOption.gallery',
+  compact: 'library.viewOption.compact',
 } as const;
 const VIEW_MODE_STORAGE_KEY = 'settings.libraryViewMode';
 const COMPACT_FIELD_STORAGE_KEY = 'settings.libraryCompactField';
@@ -92,6 +91,7 @@ export default function LibraryScreen() {
   const [viewMode, setViewModeState] = useState<ViewMode>('list');
   const [compactField, setCompactFieldState] = useState<CompactField>('pages');
   const [compactFieldOpen, setCompactFieldOpen] = useState(false);
+  const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const [filterOrder, setFilterOrder] = useState<LibraryFilter[]>(REORDERABLE_FILTERS);
 
   // Multiselect — entered via the header button or a long-press on any card.
@@ -199,8 +199,6 @@ export default function LibraryScreen() {
     setCompactFieldState(next);
     AsyncStorage.setItem(COMPACT_FIELD_STORAGE_KEY, next).catch(() => {});
   }
-
-  const nextViewMode = VIEW_MODES[(VIEW_MODES.indexOf(viewMode) + 1) % VIEW_MODES.length];
 
   function reorderFilters(next: LibraryFilter[]) {
     setFilterOrder(next);
@@ -362,10 +360,10 @@ export default function LibraryScreen() {
 
             <View style={styles.headerActions}>
               <Pressable
-                onPress={() => setViewMode(nextViewMode)}
+                onPress={() => setViewMenuOpen(true)}
                 hitSlop={8}
                 accessibilityRole="button"
-                accessibilityLabel={t(VIEW_MODE_LABELS[nextViewMode])}
+                accessibilityLabel={t('library.viewTitle')}
                 style={({ pressed }) => [
                   styles.iconButton,
                   {
@@ -376,7 +374,7 @@ export default function LibraryScreen() {
                   },
                 ]}
               >
-                <Ionicons name={VIEW_MODE_ICONS[nextViewMode]} size={18} color={theme.colors.textMuted} />
+                <Ionicons name={VIEW_MODE_ICONS[viewMode]} size={18} color={theme.colors.textMuted} />
               </Pressable>
 
               {viewMode === 'compact' ? (
@@ -641,6 +639,35 @@ export default function LibraryScreen() {
         />
       </Sheet>
 
+      <Sheet visible={viewMenuOpen} onClose={() => setViewMenuOpen(false)} title={t('library.viewTitle')}>
+        {VIEW_MODES.map((option) => (
+          <Pressable
+            key={option}
+            onPress={() => {
+              setViewMode(option);
+              setViewMenuOpen(false);
+            }}
+            style={({ pressed }) => [
+              styles.sortOption,
+              { paddingVertical: theme.spacing.md },
+              pressed && { backgroundColor: theme.colors.surfaceSunken },
+            ]}
+          >
+            <View style={styles.viewOptionLabel}>
+              <Ionicons
+                name={VIEW_MODE_ICONS[option]}
+                size={20}
+                color={viewMode === option ? theme.colors.primary : theme.colors.textMuted}
+              />
+              <Text variant={viewMode === option ? 'bodyStrong' : 'body'} color={viewMode === option ? 'primary' : 'text'}>
+                {t(VIEW_MODE_LABELS[option])}
+              </Text>
+            </View>
+            {viewMode === option ? <Ionicons name="checkmark" size={20} color={theme.colors.primary} /> : null}
+          </Pressable>
+        ))}
+      </Sheet>
+
       <Sheet visible={compactFieldOpen} onClose={() => setCompactFieldOpen(false)} title={t('library.compactField')}>
         <Text variant="caption" color="textMuted" style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
           {t('library.compactFieldHint')}
@@ -715,5 +742,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
   },
+  viewOptionLabel: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   sortOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
 });
