@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Platform, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Alert, BackHandler, FlatList, Platform, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -13,7 +13,7 @@ import { PullToRefreshIndicator } from '@/components/PullToRefreshIndicator';
 import { Chip, Divider, EmptyState, ListRow, LoadingState, Sheet, Text, TextField } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { setPendingAddQuery } from '@/features/add/pendingAddQuery';
-import { goToTab } from '@/features/tabs/activeTab';
+import { goToTab, TAB_ROUTES, useActiveTabIndex } from '@/features/tabs/activeTab';
 import { useI18n } from '@/lib/i18n';
 import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 import { useHousehold } from '@/lib/queries/household';
@@ -113,6 +113,19 @@ export default function LibraryScreen() {
     setSelectedIds(new Set());
     setSelectionActionsOpen(false);
   }, []);
+
+  // Android's back button leaves selection mode first instead of leaving the
+  // app. Every tab stays mounted in the pager, so only listen while this one
+  // is actually on screen.
+  const onLibraryTab = useActiveTabIndex() === TAB_ROUTES.indexOf('library');
+  useEffect(() => {
+    if (!selectMode || !onLibraryTab) return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      exitSelectMode();
+      return true;
+    });
+    return () => subscription.remove();
+  }, [selectMode, onLibraryTab, exitSelectMode]);
 
   const handleCardPress = useCallback(
     (id: string) => (selectMode ? toggleSelected(id) : openBook(id)),
