@@ -593,9 +593,12 @@ const styles = StyleSheet.create({
   header: { gap: 12 },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
   titleText: { flex: 1, gap: 2 },
-  selectBar: { flexDirection: 'row', alignItems: 'center', gap: 16, minHeight: 40 },
+  // marginRight keeps the header's right-hand icons (and their tap area) clear
+  // of the tab-swipe edge strip in (tabs)/_layout.tsx, which would otherwise
+  // swallow taps on the outermost icon.
+  selectBar: { flexDirection: 'row', alignItems: 'center', gap: 16, minHeight: 40, marginRight: 8 },
   selectCount: { flex: 1, fontVariant: ['tabular-nums'] },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4 },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 4, marginRight: 8 },
   iconButton: {
     width: 34,
     height: 34,
