@@ -59,9 +59,9 @@ describe('pages read in unfinished books', () => {
     expect(computeReadingStats([over]).pagesRead).toBe(252);
   });
 
-  it('adds it to a period that includes today, but not to a past one', () => {
-    expect(computePeriodStats([reading], 'day', new Date()).pagesRead).toBe(114);
-    expect(computePeriodStats([reading], 'day', new Date('2026-03-15T12:00:00')).pagesRead).toBe(0);
+  it('does not add it to a day, week or month — it has no date of its own', () => {
+    expect(computePeriodStats([reading], 'day', new Date()).pagesRead).toBe(0);
+    expect(computePeriodStats([reading], 'week', new Date()).pagesRead).toBe(0);
   });
 });
 

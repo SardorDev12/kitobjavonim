@@ -195,12 +195,10 @@ export function computePeriodStats(library: LibraryEntry[], period: PeriodType, 
     .filter((entry) => isWithinInterval(new Date(entry.date_finished!), { start, end }))
     .sort((a, b) => b.date_finished!.localeCompare(a.date_finished!));
 
-  // Progress on a book that isn't finished has no date of its own (only the
-  // page the reader is on right now), so it's counted in whichever period
-  // contains today and left out of past ones, which stay finished-books-only.
-  const includesToday = isWithinInterval(new Date(), { start, end });
-  const pagesRead =
-    finishedBooks.reduce((sum, entry) => sum + (entry.page_count ?? 0), 0) + (includesToday ? inProgressPages(library) : 0);
+  // Finished books only: the page an unfinished book is on has no date of its
+  // own, so counting it here would show the whole book-so-far as "pages read
+  // today". Only the all-time total in computeReadingStats includes it.
+  const pagesRead = finishedBooks.reduce((sum, entry) => sum + (entry.page_count ?? 0), 0);
 
   const ratedBooks = finishedBooks.filter((entry) => entry.rating != null);
   const avgRating = ratedBooks.length
