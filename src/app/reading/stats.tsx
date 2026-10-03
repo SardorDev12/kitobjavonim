@@ -57,7 +57,7 @@ export default function ReadingStatsScreen() {
   const { data: pagesLog } = useReadingPagesLog();
   const streak = useMemo(() => computeStreak(activityDates ?? []), [activityDates]);
 
-  const [period, setPeriod] = useState<PeriodType>('year');
+  const [period, setPeriod] = useState<PeriodType>('day');
   const [refDate, setRefDate] = useState(() => new Date());
   const periodStats = useMemo(
     () => computePeriodStats(library ?? [], period, refDate, pagesLog ?? []),
