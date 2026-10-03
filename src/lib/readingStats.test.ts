@@ -93,10 +93,10 @@ describe('computePeriodStats', () => {
     const result = computePeriodStats(library, 'week', new Date('2026-03-15T12:00:00'));
 
     expect(result.chart).toHaveLength(7);
-    expect(result.chart[0].count).toBe(2); // Monday
-    expect(result.chart[2].count).toBe(1); // Wednesday
+    expect(result.chart[0].pages).toBe(20); // Monday: two books of 10 pages
+    expect(result.chart[2].pages).toBe(10); // Wednesday
     expect(result.booksFinished).toBe(3);
-    expect(result.chart.reduce((sum, b) => sum + b.count, 0)).toBe(result.booksFinished);
+    expect(result.chart.reduce((sum, b) => sum + b.pages, 0)).toBe(result.pagesRead);
   });
 
   it('buckets "month" into weeks that sum to the month total, ignoring spillover from neighboring months', () => {
@@ -111,7 +111,7 @@ describe('computePeriodStats', () => {
     const result = computePeriodStats(library, 'month', new Date('2026-03-15T12:00:00'));
 
     expect(result.booksFinished).toBe(3);
-    expect(result.chart.reduce((sum, b) => sum + b.count, 0)).toBe(3);
+    expect(result.chart.reduce((sum, b) => sum + b.pages, 0)).toBe(30);
   });
 
   it('buckets "year" into 12 months', () => {
@@ -125,8 +125,8 @@ describe('computePeriodStats', () => {
     const result = computePeriodStats(library, 'year', new Date('2026-06-15T12:00:00'));
 
     expect(result.chart).toHaveLength(12);
-    expect(result.chart[0].count).toBe(1); // January
-    expect(result.chart[5].count).toBe(2); // June
+    expect(result.chart[0].pages).toBe(10); // January
+    expect(result.chart[5].pages).toBe(20); // June
     expect(result.booksFinished).toBe(3);
   });
 
@@ -228,5 +228,19 @@ describe('pages logged per day', () => {
   it('is the finished-books total when nothing has been logged', () => {
     const finished = makeEntry({ date_finished: '2026-03-15', page_count: 200 });
     expect(computePeriodStats([finished], 'day', day, []).pagesRead).toBe(200);
+  });
+});
+
+describe('pages chart', () => {
+  it('shows logged pages per day, including a book that is not finished', () => {
+    const log = [
+      { date: '2026-03-09', pages: 21 },
+      { date: '2026-03-11', pages: 5 },
+    ];
+    const result = computePeriodStats([], 'week', new Date('2026-03-15T12:00:00'), log);
+    expect(result.chart).toHaveLength(7);
+    expect(result.chart[0].pages).toBe(21);
+    expect(result.chart[2].pages).toBe(5);
+    expect(result.chart.reduce((sum, b) => sum + b.pages, 0)).toBe(result.pagesRead);
   });
 });

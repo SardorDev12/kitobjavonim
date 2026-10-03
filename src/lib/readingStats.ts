@@ -142,10 +142,10 @@ export type PeriodStats = {
   avgRating: number | null;
   longestBook: BookCard | null;
   shortestBook: BookCard | null;
-  /** Empty for 'day' — a single bucket isn't a chart. Bucket boundaries
+  /** Pages read per bucket. Empty for 'day' — a single bucket isn't a chart. Bucket boundaries
    *  vary by period (a day, for 'week'/'month'; a month, for 'year') —
    *  the caller picks the axis label per period. */
-  chart: { bucketStart: Date; count: number }[];
+  chart: { bucketStart: Date; pages: number }[];
   /** Finished within [start, end], newest first. */
   finishedBooks: LibraryEntry[];
 };
@@ -233,23 +233,34 @@ export function computePeriodStats(
     if (!shortestBook || entry.page_count < shortestBook.pages) shortestBook = card;
   }
 
-  const finishedDates = finishedBooks.map((entry) => new Date(entry.date_finished!));
-  const countBetween = (bucketStart: Date, bucketEnd: Date) =>
-    finishedDates.filter((date) => isWithinInterval(date, { start: bucketStart, end: bucketEnd })).length;
+  // Pages in one chart bucket: what was logged on those days, plus (before the
+  // log started) the finished books' pages on their finish day — the same rule
+  // as pagesRead above, just cut into smaller ranges. Compared as plain
+  // YYYY-MM-DD keys so a date column never shifts across a day boundary.
+  const pagesBetween = (bucketStart: Date, bucketEnd: Date) => {
+    const from = format(bucketStart, 'yyyy-MM-dd');
+    const to = format(bucketEnd, 'yyyy-MM-dd');
+    const logged = pagesLog.filter((entry) => entry.date >= from && entry.date <= to).reduce((sum, entry) => sum + entry.pages, 0);
+    const legacy = finishedBooks
+      .filter((entry) => entry.date_finished! >= from && entry.date_finished! <= to)
+      .filter((entry) => firstLoggedDate === null || entry.date_finished! < firstLoggedDate)
+      .reduce((sum, entry) => sum + (entry.page_count ?? 0), 0);
+    return logged + legacy;
+  };
 
-  const chart: { bucketStart: Date; count: number }[] =
+  const chart: { bucketStart: Date; pages: number }[] =
     period === 'day'
       ? []
       : period === 'week'
-        ? eachDayOfInterval({ start, end }).map((day) => ({ bucketStart: day, count: countBetween(startOfDay(day), endOfDay(day)) }))
+        ? eachDayOfInterval({ start, end }).map((day) => ({ bucketStart: day, pages: pagesBetween(startOfDay(day), endOfDay(day)) }))
         : period === 'month'
           ? eachWeekOfInterval({ start, end }, { weekStartsOn: 1 }).map((weekStart) => ({
               bucketStart: weekStart,
-              count: countBetween(maxDate([weekStart, start]), minDate([endOfWeek(weekStart, { weekStartsOn: 1 }), end])),
+              pages: pagesBetween(maxDate([weekStart, start]), minDate([endOfWeek(weekStart, { weekStartsOn: 1 }), end])),
             }))
           : eachMonthOfInterval({ start, end }).map((monthStart) => ({
               bucketStart: monthStart,
-              count: countBetween(startOfMonth(monthStart), endOfMonth(monthStart)),
+              pages: pagesBetween(startOfMonth(monthStart), endOfMonth(monthStart)),
             }));
 
   return { start, end, booksFinished: finishedBooks.length, pagesRead, avgRating, longestBook, shortestBook, chart, finishedBooks };

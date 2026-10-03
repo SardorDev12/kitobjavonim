@@ -70,10 +70,10 @@ export default function ReadingStatsScreen() {
   }
 
   const now = new Date();
-  // Everything built from finished books (the count card, the per-bucket chart,
-  // best reads, longest/shortest book and the list) is a month/year-sized
-  // view — for a day or a week it would almost always be empty — so it only
-  // shows for those two.
+  // Everything built from finished books (the count card, best reads,
+  // longest/shortest book and the list) is a month/year-sized view — for a day
+  // or a week it would almost always be empty — so it only shows for those two.
+  // The chart is pages, so it stays for week/month/year.
   const showFinished = period === 'month' || period === 'year';
   const isAtLatestPeriod = now >= periodStats.start && now <= periodStats.end;
 
@@ -146,7 +146,7 @@ export default function ReadingStatsScreen() {
     return String(bucketStart.getDate());
   }
 
-  const maxChartCount = Math.max(1, ...periodStats.chart.map((b) => b.count));
+  const maxChartPages = Math.max(1, ...periodStats.chart.map((b) => b.pages));
   const maxRatingCount = Math.max(1, ...stats.ratingDistribution);
   const categoryEntries = categoryOptions
     .map((option) => ({ ...option, count: categoryCounts?.[option.value] ?? 0 }))
@@ -251,20 +251,20 @@ export default function ReadingStatsScreen() {
             </Card>
           ) : null}
 
-          {showFinished ? (
+          {period !== 'day' ? (
             <Card>
               <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: theme.spacing.xs, height: 100 }}>
                 {periodStats.chart.map((bucket, index) => (
                   <View key={index} style={{ flex: 1, alignItems: 'center', gap: 6 }}>
                     <Text variant="micro" color="textMuted">
-                      {bucket.count > 0 ? bucket.count : ''}
+                      {bucket.pages > 0 ? bucket.pages : ''}
                     </Text>
                     <View
                       style={{
                         width: '100%',
-                        height: Math.max(4, (bucket.count / maxChartCount) * 64),
+                        height: Math.max(4, (bucket.pages / maxChartPages) * 64),
                         borderRadius: theme.radius.sm,
-                        backgroundColor: bucket.count > 0 ? theme.colors.primary : theme.colors.surfaceSunken,
+                        backgroundColor: bucket.pages > 0 ? theme.colors.primary : theme.colors.surfaceSunken,
                       }}
                     />
                     <Text variant="micro" color="textSubtle">
