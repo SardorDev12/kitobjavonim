@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import type { BookCandidate } from '@/lib/books/metadata';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { foldForSearch } from '@/lib/format';
 import { storagePathFromPublicUrl } from '@/lib/images';
 import { supabase } from '@/lib/supabase';
 import type { LibraryEntry, ReadingProgress, ReadingStatus, UserBook } from '@/types/database';
@@ -456,7 +457,7 @@ export function selectLibrary(
   entries: LibraryEntry[],
   { filter, sort, search }: { filter: LibraryFilter; sort: LibrarySort; search: string }
 ): LibraryEntry[] {
-  const term = search.trim().toLowerCase();
+  const term = foldForSearch(search.trim());
 
   const filtered = entries.filter((entry) => {
     switch (filter) {
@@ -480,9 +481,9 @@ export function selectLibrary(
     if (!term) return true;
 
     return (
-      entry.title.toLowerCase().includes(term) ||
-      entry.authors.some((author) => author.toLowerCase().includes(term)) ||
-      (entry.publisher?.toLowerCase().includes(term) ?? false)
+      foldForSearch(entry.title).includes(term) ||
+      entry.authors.some((author) => foldForSearch(author).includes(term)) ||
+      (entry.publisher ? foldForSearch(entry.publisher).includes(term) : false)
     );
   });
 

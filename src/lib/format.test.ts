@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  foldForSearch,
   formatAuthors,
   formatPrice,
   formatWeekRange,
@@ -16,6 +17,19 @@ import {
 // build the expected string the same way rather than hardcoding a
 // space that would silently never match.
 const NBSP = ' ';
+
+describe('foldForSearch', () => {
+  it('treats every apostrophe style as the same character', () => {
+    const folded = foldForSearch("O'zbek");
+    for (const variant of ['Oʻzbek', 'O’zbek', 'O‘zbek', 'Oʼzbek', "O'ZBEK"]) {
+      expect(foldForSearch(variant)).toBe(folded);
+    }
+  });
+
+  it('lowercases', () => {
+    expect(foldForSearch('Abadiy ER')).toBe('abadiy er');
+  });
+});
 
 describe('formatPrice', () => {
   it('groups thousands with a non-breaking space', () => {

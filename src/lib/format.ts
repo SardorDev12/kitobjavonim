@@ -143,3 +143,13 @@ export function isValidIsbn(raw: string): boolean {
 
   return false;
 }
+
+/**
+ * Lowercases text for searching and treats every apostrophe-like character
+ * (' ’ ‘ ʻ ʼ ` ´) as the same one, so typing "o'zbek" on a keyboard finds
+ * "Oʻzbek" or "O’zbek" however the book was entered. Only for comparing —
+ * never stored or shown.
+ */
+export function foldForSearch(text: string): string {
+  return text.toLowerCase().replace(/['’‘ʻʼ`´]/g, "'");
+}
