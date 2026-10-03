@@ -269,6 +269,45 @@ export type UpdateReadingProgressInput = {
   >;
 };
 
+/** Local calendar date as YYYY-MM-DD — what a "day" means on the stats page. */
+function localDateKey(date = new Date()): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+/**
+ * How many pages this update moved the reader forward (negative for a
+ * correction to a lower page), for the per-day pages log. Resetting the page
+ * to nothing (re-reading, backing out to "want to read") counts as 0, not as
+ * un-reading everything. Finishing a book without typing a page counts the
+ * rest of the book as read. Best-effort like the log itself: any lookup that
+ * fails just means nothing is logged.
+ */
+async function pagesMoved(userId: string, userBookId: string, patch: UpdateReadingProgressInput['patch']): Promise<number> {
+  const setsPage = typeof patch.current_page === 'number';
+  const finishing = patch.reading_status === 'finished' && patch.current_page === undefined;
+  if (!setsPage && !finishing) return 0;
+
+  try {
+    const { data: row } = await supabase
+      .from('reading_progress')
+      .select('current_page')
+      .eq('user_book_id', userBookId)
+      .eq('user_id', userId)
+      .maybeSingle();
+    const before = (row as { current_page: number | null } | null)?.current_page ?? 0;
+
+    if (setsPage) return (patch.current_page as number) - before;
+
+    const { data: book } = await supabase.from('user_books').select('page_count').eq('id', userBookId).maybeSingle();
+    const total = (book as { page_count: number | null } | null)?.page_count ?? 0;
+    return total > before ? total - before : 0;
+  } catch {
+    return 0;
+  }
+}
+
 /**
  * The signed-in user's own reading state on a copy — status, progress,
  * rating/review/notes. Upserts rather than updates: the first time someone
@@ -285,10 +324,24 @@ export function useUpdateReadingProgress() {
     mutationFn: async ({ userBookId, patch }: UpdateReadingProgressInput) => {
       if (!user) throw new Error('Not signed in');
 
+      // Looked up before the save, while the row still holds the old page.
+      const moved = await pagesMoved(user.id, userBookId, patch);
+
       const { error } = await supabase
         .from('reading_progress')
         .upsert({ user_book_id: userBookId, user_id: user.id, ...patch }, { onConflict: 'user_book_id,user_id' });
       if (error) throw error;
+
+      // Pages-per-day log (0039_reading_pages_log.sql). Best-effort, and a
+      // no-op until that migration has been run: the rpc just errors and the
+      // save above is untouched.
+      if (moved !== 0) {
+        try {
+          await supabase.rpc('log_pages_read', { p_pages: moved, p_date: localDateKey() });
+        } catch {
+          // Best-effort — see comment above.
+        }
+      }
 
       // Reading-stats streak (0036_reading_stats_extras.sql) — reading_progress
       // itself only ever holds the *latest* state, not a history of which days
@@ -315,6 +368,7 @@ export function useUpdateReadingProgress() {
         queryClient.invalidateQueries({ queryKey: queryKeys.profile.stats(user.id) });
         queryClient.invalidateQueries({ queryKey: queryKeys.plan.status(user.id) });
         queryClient.invalidateQueries({ queryKey: queryKeys.readingActivity.mine(user.id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.readingActivity.pages(user.id) });
       }
     },
   });

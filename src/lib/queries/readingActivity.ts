@@ -25,3 +25,31 @@ export function useReadingActivity() {
     },
   });
 }
+
+export type PagesLogEntry = { date: string; pages: number };
+
+/**
+ * Pages read per day (0039_reading_pages_log.sql), for the stats page's
+ * day/week/month/year pages tile. Empty — never an error — until that
+ * migration has been run, so the rest of the stats page doesn't depend on it.
+ */
+export function useReadingPagesLog() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: queryKeys.readingActivity.pages(user?.id ?? ''),
+    enabled: Boolean(user),
+    queryFn: async (): Promise<PagesLogEntry[]> => {
+      const { data, error } = await supabase
+        .from('reading_activity')
+        .select('activity_date, pages_read')
+        .eq('user_id', user!.id)
+        .gt('pages_read', 0);
+      if (error) return [];
+      return (data as { activity_date: string; pages_read: number }[]).map((row) => ({
+        date: row.activity_date,
+        pages: row.pages_read,
+      }));
+    },
+  });
+}

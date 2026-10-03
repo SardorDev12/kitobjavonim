@@ -38,5 +38,6 @@ export const queryKeys = {
   },
   readingActivity: {
     mine: (userId: string) => ['readingActivity', 'mine', userId] as const,
+    pages: (userId: string) => ['readingActivity', 'pages', userId] as const,
   },
 } as const;

@@ -10,6 +10,7 @@ import {
   endOfMonth,
   endOfWeek,
   endOfYear,
+  format,
   isWithinInterval,
   max as maxDate,
   min as minDate,
@@ -187,7 +188,12 @@ function periodBounds(period: PeriodType, referenceDate: Date): { start: Date; e
  * being browsed — conflating the two would make those tiles wrongly track
  * whatever period is on screen.
  */
-export function computePeriodStats(library: LibraryEntry[], period: PeriodType, referenceDate: Date): PeriodStats {
+export function computePeriodStats(
+  library: LibraryEntry[],
+  period: PeriodType,
+  referenceDate: Date,
+  pagesLog: { date: string; pages: number }[] = []
+): PeriodStats {
   const { start, end } = periodBounds(period, referenceDate);
 
   const finishedBooks = library
@@ -195,10 +201,23 @@ export function computePeriodStats(library: LibraryEntry[], period: PeriodType, 
     .filter((entry) => isWithinInterval(new Date(entry.date_finished!), { start, end }))
     .sort((a, b) => b.date_finished!.localeCompare(a.date_finished!));
 
-  // Finished books only: the page an unfinished book is on has no date of its
-  // own, so counting it here would show the whole book-so-far as "pages read
-  // today". Only the all-time total in computeReadingStats includes it.
-  const pagesRead = finishedBooks.reduce((sum, entry) => sum + (entry.page_count ?? 0), 0);
+  // Pages logged day by day (0039_reading_pages_log.sql) cover reading since
+  // that log started, including books that aren't finished. Before it started
+  // there is nothing logged, so those days keep counting a finished book's
+  // pages on the day it was finished, as they always did.
+  const startKey = format(start, 'yyyy-MM-dd');
+  const endKey = format(end, 'yyyy-MM-dd');
+  const loggedPages = pagesLog
+    .filter((entry) => entry.date >= startKey && entry.date <= endKey)
+    .reduce((sum, entry) => sum + entry.pages, 0);
+  const firstLoggedDate = pagesLog.reduce<string | null>(
+    (first, entry) => (first === null || entry.date < first ? entry.date : first),
+    null
+  );
+  const legacyPages = finishedBooks
+    .filter((entry) => firstLoggedDate === null || entry.date_finished! < firstLoggedDate)
+    .reduce((sum, entry) => sum + (entry.page_count ?? 0), 0);
+  const pagesRead = loggedPages + legacyPages;
 
   const ratedBooks = finishedBooks.filter((entry) => entry.rating != null);
   const avgRating = ratedBooks.length

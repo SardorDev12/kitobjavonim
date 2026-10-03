@@ -20,7 +20,7 @@ import { formatAuthors, formatDate, formatMonthShort, formatMonthYear, formatWee
 import { useI18n } from '@/lib/i18n';
 import { useLibraryCategoryCounts } from '@/lib/queries/categories';
 import { useLibrary } from '@/lib/queries/library';
-import { useReadingActivity } from '@/lib/queries/readingActivity';
+import { useReadingActivity, useReadingPagesLog } from '@/lib/queries/readingActivity';
 import { useCategoryOptions } from '@/lib/queries/reference';
 import { computePeriodStats, computeReadingStats, computeStreak, shiftPeriod, type BookCard, type PeriodType } from '@/lib/readingStats';
 import { useTheme } from '@/theme';
@@ -54,11 +54,15 @@ export default function ReadingStatsScreen() {
   const stats = useMemo(() => computeReadingStats(library ?? []), [library]);
 
   const { data: activityDates } = useReadingActivity();
+  const { data: pagesLog } = useReadingPagesLog();
   const streak = useMemo(() => computeStreak(activityDates ?? []), [activityDates]);
 
   const [period, setPeriod] = useState<PeriodType>('year');
   const [refDate, setRefDate] = useState(() => new Date());
-  const periodStats = useMemo(() => computePeriodStats(library ?? [], period, refDate), [library, period, refDate]);
+  const periodStats = useMemo(
+    () => computePeriodStats(library ?? [], period, refDate, pagesLog ?? []),
+    [library, period, refDate, pagesLog]
+  );
 
   function selectPeriod(next: PeriodType) {
     setPeriod(next);

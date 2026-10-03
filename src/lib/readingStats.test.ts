@@ -59,7 +59,7 @@ describe('pages read in unfinished books', () => {
     expect(computeReadingStats([over]).pagesRead).toBe(252);
   });
 
-  it('does not add it to a day, week or month — it has no date of its own', () => {
+  it('does not add it to a day, week or month by itself — it has no date of its own', () => {
     expect(computePeriodStats([reading], 'day', new Date()).pagesRead).toBe(0);
     expect(computePeriodStats([reading], 'week', new Date()).pagesRead).toBe(0);
   });
@@ -196,5 +196,37 @@ describe('shiftPeriod', () => {
     const result = shiftPeriod('month', new Date('2026-01-31T12:00:00'), 1);
     expect(result.getMonth()).toBe(1); // February
     expect(result.getDate()).toBe(28); // 2026 is not a leap year
+  });
+});
+
+describe('pages logged per day', () => {
+  const day = new Date('2026-03-15T12:00:00');
+  const log = [
+    { date: '2026-03-15', pages: 21 },
+    { date: '2026-03-12', pages: 30 },
+    { date: '2026-02-20', pages: 40 },
+  ];
+
+  it('shows the pages logged for that day, not the whole book so far', () => {
+    const reading = makeEntry({ reading_status: 'reading', current_page: 135, page_count: 252 });
+    expect(computePeriodStats([reading], 'day', day, log).pagesRead).toBe(21);
+    expect(computePeriodStats([reading], 'day', new Date('2026-03-14T12:00:00'), log).pagesRead).toBe(0);
+  });
+
+  it('adds the days up for a week, month and year', () => {
+    expect(computePeriodStats([], 'week', day, log).pagesRead).toBe(51);
+    expect(computePeriodStats([], 'month', day, log).pagesRead).toBe(51);
+    expect(computePeriodStats([], 'year', day, log).pagesRead).toBe(91);
+  });
+
+  it('still counts a finished book from before the log started, on its finish day', () => {
+    const old = makeEntry({ date_finished: '2026-01-10', page_count: 300 });
+    const afterLog = makeEntry({ date_finished: '2026-03-15', page_count: 200 });
+    expect(computePeriodStats([old, afterLog], 'year', day, log).pagesRead).toBe(91 + 300);
+  });
+
+  it('is the finished-books total when nothing has been logged', () => {
+    const finished = makeEntry({ date_finished: '2026-03-15', page_count: 200 });
+    expect(computePeriodStats([finished], 'day', day, []).pagesRead).toBe(200);
   });
 });
