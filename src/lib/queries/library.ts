@@ -325,40 +325,45 @@ export function useUpdateReadingProgress() {
       if (!user) throw new Error('Not signed in');
 
       // Looked up before the save, while the row still holds the old page.
-      const moved = await pagesMoved(user.id, userBookId, patch);
+      // Bounded: the log is a nice-to-have, so a slow lookup must never keep
+      // the save button spinning — it just means nothing is logged this time.
+      const moved = await Promise.race([
+        pagesMoved(user.id, userBookId, patch),
+        new Promise<number>((resolve) => setTimeout(() => resolve(0), 2500)),
+      ]);
 
       const { error } = await supabase
         .from('reading_progress')
         .upsert({ user_book_id: userBookId, user_id: user.id, ...patch }, { onConflict: 'user_book_id,user_id' });
       if (error) throw error;
 
-      // Pages-per-day log (0039_reading_pages_log.sql). Best-effort, and a
-      // no-op until that migration has been run: the rpc just errors and the
-      // save above is untouched.
+      // Everything below is logging that rides along with the save. None of
+      // it is awaited: the save above is the only thing the caller (the
+      // progress sheet's button) waits on, so a slow or failing log call can
+      // never leave it stuck loading. Each one swallows its own errors.
+      const userId = user.id;
+
+      // Pages-per-day log (0039_reading_pages_log.sql). A no-op until that
+      // migration has been run: the rpc just errors and nothing happens.
       if (moved !== 0) {
-        try {
-          await supabase.rpc('log_pages_read', { p_pages: moved, p_date: localDateKey() });
-        } catch {
-          // Best-effort — see comment above.
-        }
+        Promise.resolve(supabase.rpc('log_pages_read', { p_pages: moved, p_date: localDateKey() }))
+          .then(() => queryClient.invalidateQueries({ queryKey: queryKeys.readingActivity.pages(userId) }))
+          .catch(() => {});
       }
 
       // Reading-stats streak (0036_reading_stats_extras.sql) — reading_progress
       // itself only ever holds the *latest* state, not a history of which days
       // it changed, so this is the only place that can log "touched reading
-      // progress today" as it happens. Best-effort: a failed log must never
-      // undo the save above, and ignoreDuplicates means a second update the
-      // same day is a harmless no-op rather than an error.
-      try {
-        await supabase
+      // progress today" as it happens. ignoreDuplicates means a second update
+      // the same day is a harmless no-op rather than an error.
+      Promise.resolve(
+        supabase
           .from('reading_activity')
           .upsert(
-            { user_id: user.id, activity_date: new Date().toISOString().slice(0, 10) },
+            { user_id: userId, activity_date: new Date().toISOString().slice(0, 10) },
             { onConflict: 'user_id,activity_date', ignoreDuplicates: true }
-          );
-      } catch {
-        // Best-effort — see comment above.
-      }
+          )
+      ).catch(() => {});
     },
     onSuccess: (_result, variables) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
