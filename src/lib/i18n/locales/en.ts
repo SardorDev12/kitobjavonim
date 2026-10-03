@@ -118,6 +118,7 @@ export const en = {
   'library.viewGallery': 'Switch to gallery view',
   'library.viewList': 'Switch to list view',
   'library.viewTitle': 'View',
+  'library.viewAndSort': 'View & sort',
   'library.viewOption.list': 'List',
   'library.viewOption.gallery': 'Gallery',
   'library.viewOption.compact': 'Compact',

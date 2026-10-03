@@ -87,10 +87,8 @@ export default function LibraryScreen() {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<LibraryFilter>('all');
   const [sort, setSort] = useState<LibrarySort>('recent');
-  const [sortOpen, setSortOpen] = useState(false);
   const [viewMode, setViewModeState] = useState<ViewMode>('list');
   const [compactField, setCompactFieldState] = useState<CompactField>('pages');
-  const [compactFieldOpen, setCompactFieldOpen] = useState(false);
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const [filterOrder, setFilterOrder] = useState<LibraryFilter[]>(REORDERABLE_FILTERS);
 
@@ -363,7 +361,7 @@ export default function LibraryScreen() {
                 onPress={() => setViewMenuOpen(true)}
                 hitSlop={8}
                 accessibilityRole="button"
-                accessibilityLabel={t('library.viewTitle')}
+                accessibilityLabel={t('library.viewAndSort')}
                 style={({ pressed }) => [
                   styles.iconButton,
                   {
@@ -374,45 +372,7 @@ export default function LibraryScreen() {
                   },
                 ]}
               >
-                <Ionicons name={VIEW_MODE_ICONS[viewMode]} size={18} color={theme.colors.textMuted} />
-              </Pressable>
-
-              {viewMode === 'compact' ? (
-                <Pressable
-                  onPress={() => setCompactFieldOpen(true)}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('library.compactField')}
-                  style={({ pressed }) => [
-                    styles.iconButton,
-                    {
-                      backgroundColor: theme.colors.surface,
-                      borderColor: theme.colors.border,
-                      borderRadius: theme.radius.md,
-                      opacity: pressed ? 0.7 : 1,
-                    },
-                  ]}
-                >
-                  <Ionicons name="options-outline" size={18} color={theme.colors.textMuted} />
-                </Pressable>
-              ) : null}
-
-              <Pressable
-                onPress={() => setSortOpen(true)}
-                hitSlop={8}
-                accessibilityRole="button"
-                accessibilityLabel={`${t('common.sort')}: ${t(`library.sort.${sort}`)}`}
-                style={({ pressed }) => [
-                  styles.iconButton,
-                  {
-                    backgroundColor: theme.colors.surface,
-                    borderColor: theme.colors.border,
-                    borderRadius: theme.radius.md,
-                    opacity: pressed ? 0.7 : 1,
-                  },
-                ]}
-              >
-                <Ionicons name="swap-vertical" size={18} color={theme.colors.textMuted} />
+                <Ionicons name="options-outline" size={18} color={theme.colors.textMuted} />
               </Pressable>
 
               {total > 0 ? (
@@ -639,13 +599,15 @@ export default function LibraryScreen() {
         />
       </Sheet>
 
-      <Sheet visible={viewMenuOpen} onClose={() => setViewMenuOpen(false)} title={t('library.viewTitle')}>
+      <Sheet visible={viewMenuOpen} onClose={() => setViewMenuOpen(false)} title={t('library.viewAndSort')}>
+        <MenuSection label={t('library.viewTitle')} theme={theme} />
         {VIEW_MODES.map((option) => (
           <Pressable
             key={option}
             onPress={() => {
               setViewMode(option);
-              setViewMenuOpen(false);
+              // Compact has one more choice (its extra field), so stay open for it.
+              if (option !== 'compact') setViewMenuOpen(false);
             }}
             style={({ pressed }) => [
               styles.sortOption,
@@ -666,40 +628,39 @@ export default function LibraryScreen() {
             {viewMode === option ? <Ionicons name="checkmark" size={20} color={theme.colors.primary} /> : null}
           </Pressable>
         ))}
-      </Sheet>
 
-      <Sheet visible={compactFieldOpen} onClose={() => setCompactFieldOpen(false)} title={t('library.compactField')}>
-        <Text variant="caption" color="textMuted" style={{ paddingHorizontal: theme.spacing.lg, paddingBottom: theme.spacing.sm }}>
-          {t('library.compactFieldHint')}
-        </Text>
-        {COMPACT_FIELDS.map((option) => (
-          <Pressable
-            key={option}
-            onPress={() => {
-              setCompactField(option);
-              setCompactFieldOpen(false);
-            }}
-            style={({ pressed }) => [
-              styles.sortOption,
-              { paddingVertical: theme.spacing.md },
-              pressed && { backgroundColor: theme.colors.surfaceSunken },
-            ]}
-          >
-            <Text variant={compactField === option ? 'bodyStrong' : 'body'} color={compactField === option ? 'primary' : 'text'}>
-              {t(`library.field.${option}`)}
-            </Text>
-            {compactField === option ? <Ionicons name="checkmark" size={20} color={theme.colors.primary} /> : null}
-          </Pressable>
-        ))}
-      </Sheet>
+        {viewMode === 'compact' ? (
+          <>
+            <MenuSection label={t('library.compactField')} hint={t('library.compactFieldHint')} theme={theme} />
+            {COMPACT_FIELDS.map((option) => (
+              <Pressable
+                key={option}
+                onPress={() => {
+                  setCompactField(option);
+                  setViewMenuOpen(false);
+                }}
+                style={({ pressed }) => [
+                  styles.sortOption,
+                  { paddingVertical: theme.spacing.md },
+                  pressed && { backgroundColor: theme.colors.surfaceSunken },
+                ]}
+              >
+                <Text variant={compactField === option ? 'bodyStrong' : 'body'} color={compactField === option ? 'primary' : 'text'}>
+                  {t(`library.field.${option}`)}
+                </Text>
+                {compactField === option ? <Ionicons name="checkmark" size={20} color={theme.colors.primary} /> : null}
+              </Pressable>
+            ))}
+          </>
+        ) : null}
 
-      <Sheet visible={sortOpen} onClose={() => setSortOpen(false)} title={t('common.sort')}>
+        <MenuSection label={t('common.sort')} theme={theme} />
         {SORTS.map((option) => (
           <Pressable
             key={option}
             onPress={() => {
               setSort(option);
-              setSortOpen(false);
+              setViewMenuOpen(false);
             }}
             style={({ pressed }) => [
               styles.sortOption,
@@ -714,6 +675,21 @@ export default function LibraryScreen() {
           </Pressable>
         ))}
       </Sheet>
+    </View>
+  );
+}
+
+function MenuSection({ label, hint, theme }: { label: string; hint?: string; theme: ReturnType<typeof useTheme> }) {
+  return (
+    <View style={{ paddingTop: theme.spacing.md, paddingBottom: theme.spacing.xs, gap: 2 }}>
+      <Text variant="caption" color="textMuted" style={{ fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' }}>
+        {label}
+      </Text>
+      {hint ? (
+        <Text variant="caption" color="textSubtle">
+          {hint}
+        </Text>
+      ) : null}
     </View>
   );
 }

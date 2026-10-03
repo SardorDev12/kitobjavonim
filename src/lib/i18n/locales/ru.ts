@@ -116,6 +116,7 @@ export const ru: LocaleCatalogue = {
   'library.viewGallery': 'Показать сеткой',
   'library.viewList': 'Показать списком',
   'library.viewTitle': 'Вид',
+  'library.viewAndSort': 'Вид и сортировка',
   'library.viewOption.list': 'Список',
   'library.viewOption.gallery': 'Сетка',
   'library.viewOption.compact': 'Компактный',

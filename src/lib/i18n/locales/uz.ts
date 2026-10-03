@@ -120,6 +120,7 @@ export const uz: LocaleCatalogue = {
   'library.viewGallery': 'Galereya koʻrinishiga oʻtish',
   'library.viewList': 'Roʻyxat koʻrinishiga oʻtish',
   'library.viewTitle': 'Koʻrinish',
+  'library.viewAndSort': 'Koʻrinish va saralash',
   'library.viewOption.list': 'Roʻyxat',
   'library.viewOption.gallery': 'Galereya',
   'library.viewOption.compact': 'Ixcham',
