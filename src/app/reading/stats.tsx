@@ -70,8 +70,10 @@ export default function ReadingStatsScreen() {
   }
 
   const now = new Date();
-  // Finished books are a month/year-sized number — for a day or a week the card
-  // and list would almost always be empty, so they only show for those two.
+  // Everything built from finished books (the count card, the per-bucket chart,
+  // best reads, longest/shortest book and the list) is a month/year-sized
+  // view — for a day or a week it would almost always be empty — so it only
+  // shows for those two.
   const showFinished = period === 'month' || period === 'year';
   const isAtLatestPeriod = now >= periodStats.start && now <= periodStats.end;
 
@@ -249,7 +251,7 @@ export default function ReadingStatsScreen() {
             </Card>
           ) : null}
 
-          {period !== 'day' ? (
+          {showFinished ? (
             <Card>
               <View style={{ flexDirection: 'row', alignItems: 'flex-end', gap: theme.spacing.xs, height: 100 }}>
                 {periodStats.chart.map((bucket, index) => (
@@ -279,7 +281,7 @@ export default function ReadingStatsScreen() {
             <MiniTile icon="library-outline" value={String(stats.finished.year)} label={t('reading.statsBooksYearTile')} />
           </View>
 
-          {periodStats.finishedBooks.some((entry) => entry.rating != null) ? (
+          {showFinished && periodStats.finishedBooks.some((entry) => entry.rating != null) ? (
             <Pressable
               onPress={() => setBestReadsOpen(true)}
               accessibilityRole="button"
@@ -303,7 +305,7 @@ export default function ReadingStatsScreen() {
             </Pressable>
           ) : null}
 
-          {periodStats.longestBook || periodStats.shortestBook ? (
+          {showFinished && (periodStats.longestBook || periodStats.shortestBook) ? (
             <View style={{ flexDirection: 'row', gap: theme.spacing.sm }}>
               {periodStats.longestBook ? (
                 <BookHighlightCard
