@@ -54,7 +54,7 @@ export const BookGridCard = memo(function BookGridCard({
       style={({ pressed }) => [{ width, gap: theme.spacing.sm, opacity: pressed ? 0.85 : 1 }]}
     >
       <View>
-        <BookCover uri={entry.cover_url} title={entry.title} width={width} radius={theme.radius.md} />
+        <BookCover uri={entry.cover_url} title={entry.title} authors={entry.authors} width={width} radius={theme.radius.md} />
         {selectable ? (
           <View style={[styles.checkboxBadge, { backgroundColor: theme.colors.background }]}>
             <Ionicons

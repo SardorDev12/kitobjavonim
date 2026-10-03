@@ -84,7 +84,7 @@ export const BookCard = memo(function BookCard({
         </View>
       ) : null}
 
-      <BookCover uri={entry.cover_url} title={entry.title} width={56} />
+      <BookCover uri={entry.cover_url} title={entry.title} authors={entry.authors} width={56} />
 
       <View style={styles.body}>
         <Text variant="bodyStrong" numberOfLines={2}>

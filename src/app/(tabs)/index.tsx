@@ -285,7 +285,7 @@ function HeroReadingCard({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: (
         accessibilityRole="button"
         style={({ pressed }) => [{ flexDirection: 'row', gap: theme.spacing.md }, pressed && { opacity: 0.6 }]}
       >
-        <BookCover uri={entry.cover_url} title={entry.title} width={84} radius={theme.radius.sm} />
+        <BookCover uri={entry.cover_url} title={entry.title} authors={entry.authors} width={84} radius={theme.radius.sm} />
 
         <View style={{ flex: 1, gap: 2, paddingTop: 2 }}>
           <Text variant="heading" numberOfLines={2}>

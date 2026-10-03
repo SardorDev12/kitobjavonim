@@ -222,7 +222,7 @@ export default function BookDetailScreen() {
       <View style={{ gap: theme.spacing.xl, paddingBottom: theme.spacing.xl }}>
         {/* ---------------------------------------------------------------- */}
         <View style={[styles.hero, { gap: theme.spacing.lg }]}>
-          <BookCover uri={entry.cover_url} title={entry.title} width={110} radius={theme.radius.md} />
+          <BookCover uri={entry.cover_url} title={entry.title} authors={entry.authors} width={110} radius={theme.radius.md} />
 
           <View style={styles.heroText}>
             <Text variant="title">{entry.title}</Text>
