@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { computePeriodStats, shiftPeriod } from './readingStats';
+import { computePeriodStats, computeReadingStats, shiftPeriod } from './readingStats';
 import type { LibraryEntry } from '@/types/database';
 
 let nextId = 0;
@@ -45,6 +45,25 @@ function makeEntry(overrides: Partial<LibraryEntry>): LibraryEntry {
     ...overrides,
   } as LibraryEntry;
 }
+
+describe('pages read in unfinished books', () => {
+  const reading = makeEntry({ reading_status: 'reading', current_page: 114, page_count: 252 });
+  const finished = makeEntry({ date_finished: '2026-03-15', page_count: 200 });
+
+  it('counts the current page of a book being read in the all-time total', () => {
+    expect(computeReadingStats([reading, finished]).pagesRead).toBe(314);
+  });
+
+  it('caps the current page at the book total', () => {
+    const over = makeEntry({ reading_status: 'reading', current_page: 900, page_count: 252 });
+    expect(computeReadingStats([over]).pagesRead).toBe(252);
+  });
+
+  it('adds it to a period that includes today, but not to a past one', () => {
+    expect(computePeriodStats([reading], 'day', new Date()).pagesRead).toBe(114);
+    expect(computePeriodStats([reading], 'day', new Date('2026-03-15T12:00:00')).pagesRead).toBe(0);
+  });
+});
 
 describe('computePeriodStats', () => {
   it('scopes "day" to a single calendar day, excluding neighbors', () => {

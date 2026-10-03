@@ -38,6 +38,20 @@ export type ReadingStats = {
 };
 
 /**
+ * Pages already read in books that aren't finished yet — the page the reader
+ * is on, capped at the book's total when that's known. Counted so the pages
+ * tile moves while a book is being read, not only on the day it's finished.
+ */
+function inProgressPages(library: LibraryEntry[]): number {
+  return library
+    .filter((entry) => entry.reading_status === 'reading' && entry.current_page)
+    .reduce((sum, entry) => {
+      const page = entry.current_page ?? 0;
+      return sum + (entry.page_count ? Math.min(page, entry.page_count) : page);
+    }, 0);
+}
+
+/**
  * Every number on the stats page (streak excepted — see readingActivity.ts,
  * it needs its own query), computed client-side from the already-cached
  * library (useLibrary()) rather than a new query — same reasoning as
@@ -55,7 +69,7 @@ export function computeReadingStats(library: LibraryEntry[]): ReadingStats {
 
   const countSince = (start: Date) => finishedDates.filter((date) => isWithinInterval(date, { start, end: now })).length;
 
-  const pagesRead = finishedEntries.reduce((sum, entry) => sum + (entry.page_count ?? 0), 0);
+  const pagesRead = finishedEntries.reduce((sum, entry) => sum + (entry.page_count ?? 0), 0) + inProgressPages(library);
 
   const ratedEntries = finishedEntries.filter((entry) => entry.rating != null);
   const avgRating = ratedEntries.length
@@ -181,7 +195,12 @@ export function computePeriodStats(library: LibraryEntry[], period: PeriodType, 
     .filter((entry) => isWithinInterval(new Date(entry.date_finished!), { start, end }))
     .sort((a, b) => b.date_finished!.localeCompare(a.date_finished!));
 
-  const pagesRead = finishedBooks.reduce((sum, entry) => sum + (entry.page_count ?? 0), 0);
+  // Progress on a book that isn't finished has no date of its own (only the
+  // page the reader is on right now), so it's counted in whichever period
+  // contains today and left out of past ones, which stay finished-books-only.
+  const includesToday = isWithinInterval(new Date(), { start, end });
+  const pagesRead =
+    finishedBooks.reduce((sum, entry) => sum + (entry.page_count ?? 0), 0) + (includesToday ? inProgressPages(library) : 0);
 
   const ratedBooks = finishedBooks.filter((entry) => entry.rating != null);
   const avgRating = ratedBooks.length
