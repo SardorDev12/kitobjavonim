@@ -146,7 +146,10 @@ export default function ReadingStatsScreen() {
     return String(bucketStart.getDate());
   }
 
-  const maxChartPages = Math.max(1, ...periodStats.chart.map((b) => b.pages));
+  // Year shows how many books were finished each month; week and month show
+  // pages, since a week rarely finishes more than one book.
+  const chartValue = (bucket: { pages: number; books: number }) => (period === 'year' ? bucket.books : bucket.pages);
+  const maxChartValue = Math.max(1, ...periodStats.chart.map(chartValue));
   const maxRatingCount = Math.max(1, ...stats.ratingDistribution);
   const categoryEntries = categoryOptions
     .map((option) => ({ ...option, count: categoryCounts?.[option.value] ?? 0 }))
@@ -257,14 +260,14 @@ export default function ReadingStatsScreen() {
                 {periodStats.chart.map((bucket, index) => (
                   <View key={index} style={{ flex: 1, alignItems: 'center', gap: 6 }}>
                     <Text variant="micro" color="textMuted">
-                      {bucket.pages > 0 ? bucket.pages : ''}
+                      {chartValue(bucket) > 0 ? chartValue(bucket) : ''}
                     </Text>
                     <View
                       style={{
                         width: '100%',
-                        height: Math.max(4, (bucket.pages / maxChartPages) * 64),
+                        height: Math.max(4, (chartValue(bucket) / maxChartValue) * 64),
                         borderRadius: theme.radius.sm,
-                        backgroundColor: bucket.pages > 0 ? theme.colors.primary : theme.colors.surfaceSunken,
+                        backgroundColor: chartValue(bucket) > 0 ? theme.colors.primary : theme.colors.surfaceSunken,
                       }}
                     />
                     <Text variant="micro" color="textSubtle">

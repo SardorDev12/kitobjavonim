@@ -127,6 +127,9 @@ describe('computePeriodStats', () => {
     expect(result.chart).toHaveLength(12);
     expect(result.chart[0].pages).toBe(10); // January
     expect(result.chart[5].pages).toBe(20); // June
+    expect(result.chart[0].books).toBe(1);
+    expect(result.chart[5].books).toBe(2);
+    expect(result.chart.reduce((sum, b) => sum + b.books, 0)).toBe(result.booksFinished);
     expect(result.booksFinished).toBe(3);
   });
 
