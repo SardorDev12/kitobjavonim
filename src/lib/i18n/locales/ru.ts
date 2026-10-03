@@ -262,7 +262,6 @@ export const ru: LocaleCatalogue = {
 
   'reading.tabLabel': 'Чтение',
   'reading.title': 'Трекер чтения',
-  'reading.nextUp': 'Дальше в очереди',
   'celebration.title': 'Отлично!',
   'celebration.body': "Вы дочитали «{{title}}»",
   'celebration.ratePrompt': 'Как вам книга?',

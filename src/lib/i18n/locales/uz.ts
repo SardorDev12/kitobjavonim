@@ -258,7 +258,6 @@ export const uz: LocaleCatalogue = {
 
   'reading.tabLabel': 'Oʻqish',
   'reading.title': 'Mutolaam',
-  'reading.nextUp': 'Navbatdagi kitoblar',
   'celebration.title': 'Tabriklaymiz!',
   'celebration.body': "“{{title}}” kitobini oʻqib tugatdingiz",
   'celebration.ratePrompt': 'Qanday boʻldi?',

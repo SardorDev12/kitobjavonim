@@ -255,7 +255,6 @@ export const en = {
 
   'reading.tabLabel': 'Reading',
   'reading.title': 'Reading tracker',
-  'reading.nextUp': 'Next up',
   'celebration.title': 'Well done!',
   'celebration.body': "You finished “{{title}}”",
   'celebration.ratePrompt': 'How was it?',
