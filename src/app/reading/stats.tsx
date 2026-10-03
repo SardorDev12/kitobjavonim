@@ -70,6 +70,9 @@ export default function ReadingStatsScreen() {
   }
 
   const now = new Date();
+  // Finished books are a month/year-sized number — for a day or a week the card
+  // and list would almost always be empty, so they only show for those two.
+  const showFinished = period === 'month' || period === 'year';
   const isAtLatestPeriod = now >= periodStats.start && now <= periodStats.end;
 
   const earliestYear = useMemo(() => {
@@ -221,28 +224,30 @@ export default function ReadingStatsScreen() {
             </View>
           </View>
 
-          <Card>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
-              <View style={{ flex: 1 }}>
-                <Text variant="display">{t('reading.statsBooksCount', { count: periodStats.booksFinished })}</Text>
-                <Text variant="body" color="textMuted">
-                  {t('reading.statsFinishedBooks')}
-                </Text>
+          {showFinished ? (
+            <Card>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md }}>
+                <View style={{ flex: 1 }}>
+                  <Text variant="display">{t('reading.statsBooksCount', { count: periodStats.booksFinished })}</Text>
+                  <Text variant="body" color="textMuted">
+                    {t('reading.statsFinishedBooks')}
+                  </Text>
+                </View>
+                <View
+                  style={{
+                    width: 56,
+                    height: 56,
+                    borderRadius: theme.radius.pill,
+                    backgroundColor: theme.colors.primarySoft,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name="book" size={26} color={theme.colors.primaryOnSoft} />
+                </View>
               </View>
-              <View
-                style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: theme.radius.pill,
-                  backgroundColor: theme.colors.primarySoft,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Ionicons name="book" size={26} color={theme.colors.primaryOnSoft} />
-              </View>
-            </View>
-          </Card>
+            </Card>
+          ) : null}
 
           {period !== 'day' ? (
             <Card>
@@ -317,23 +322,25 @@ export default function ReadingStatsScreen() {
             </View>
           ) : null}
 
-          <View style={{ gap: theme.spacing.sm }}>
-            <SectionHeader title={t('reading.statsFinishedBooks')} icon="checkmark-done-outline" />
-            {periodStats.finishedBooks.length === 0 ? (
-              <EmptyState icon="checkmark-done-outline" title={t('reading.statsPeriodEmpty')} body={t('reading.statsPeriodEmptyBody')} />
-            ) : (
-              // Capped rather than left to grow with the period's whole shelf —
-              // past ~3 rows this scrolls within its own bounded pane instead
-              // of ballooning the page height for a big month/year.
-              <ScrollView style={{ maxHeight: GRID_VISIBLE_ROWS * GRID_ROW_HEIGHT }} nestedScrollEnabled showsVerticalScrollIndicator={false}>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
-                  {periodStats.finishedBooks.map((entry) => (
-                    <FinishedGridTile key={entry.id} entry={entry} onPress={() => router.push(`/book/${entry.id}`)} />
-                  ))}
-                </View>
-              </ScrollView>
-            )}
-          </View>
+          {showFinished ? (
+            <View style={{ gap: theme.spacing.sm }}>
+              <SectionHeader title={t('reading.statsFinishedBooks')} icon="checkmark-done-outline" />
+              {periodStats.finishedBooks.length === 0 ? (
+                <EmptyState icon="checkmark-done-outline" title={t('reading.statsPeriodEmpty')} body={t('reading.statsPeriodEmptyBody')} />
+              ) : (
+                // Capped rather than left to grow with the period's whole shelf —
+                // past ~3 rows this scrolls within its own bounded pane instead
+                // of ballooning the page height for a big month/year.
+                <ScrollView style={{ maxHeight: GRID_VISIBLE_ROWS * GRID_ROW_HEIGHT }} nestedScrollEnabled showsVerticalScrollIndicator={false}>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.sm }}>
+                    {periodStats.finishedBooks.map((entry) => (
+                      <FinishedGridTile key={entry.id} entry={entry} onPress={() => router.push(`/book/${entry.id}`)} />
+                    ))}
+                  </View>
+                </ScrollView>
+              )}
+            </View>
+          ) : null}
 
           <View style={{ gap: theme.spacing.sm }}>
             <SectionHeader title={t('reading.statsLibrary')} icon="library-outline" />
