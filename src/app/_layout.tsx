@@ -293,10 +293,19 @@ function RootNavigator({ updateChecked }: { updateChecked: boolean }) {
   // Also waits on `updateChecked` (see checkForUpdateWithTimeout()) so
   // this launch is already running the latest published update, if any,
   // before anyone sees its first frame — no second relaunch required.
+  //
+  // Hiding also waits two animation frames after that: this effect runs as
+  // soon as the first render commits, but the commit isn't on screen yet, so
+  // dropping the splash right away showed a blank background-colored frame
+  // (a white flash in light mode) before the first real UI — the loading
+  // spinner — appeared. Two frames lets that first render paint underneath
+  // before the splash lifts, so green goes straight to the app.
   useEffect(() => {
     (async () => {
       await SystemUI.setBackgroundColorAsync(theme.colors.background).catch(() => {});
-      if (theme.modeLoaded && theme.colorThemeLoaded && updateChecked) await SplashScreen.hideAsync().catch(() => {});
+      if (!(theme.modeLoaded && theme.colorThemeLoaded && updateChecked)) return;
+      await new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+      await SplashScreen.hideAsync().catch(() => {});
     })();
   }, [theme.colors.background, theme.modeLoaded, theme.colorThemeLoaded, updateChecked]);
 
