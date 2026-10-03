@@ -52,6 +52,13 @@ export default function ReadingTrackerScreen() {
 
   const stats = useMemo(() => computeReadingStats(library ?? []), [library]);
 
+  // The next few books waiting on the shelf, so the tab still has something
+  // to offer when one book is in progress (or none) instead of a blank page.
+  const nextUp = useMemo(
+    () => (library ?? []).filter((entry) => entry.reading_status === 'want_to_read').slice(0, NEXT_UP_LIMIT),
+    [library]
+  );
+
   // Books that match the search and aren't already being read — those are
   // what the in-progress list above is for. "Not found" here means "not in
   // your library yet," same as Library's own search: there's nothing to
@@ -83,9 +90,6 @@ export default function ReadingTrackerScreen() {
         <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
           <View style={{ gap: theme.spacing.xs, flex: 1 }}>
             <Text variant="display">{t('reading.title')}</Text>
-            <Text variant="body" color="textMuted">
-              {t('reading.subtitle')}
-            </Text>
           </View>
           <Pressable
             onPress={() => router.push('/reading/stats')}
@@ -172,7 +176,7 @@ export default function ReadingTrackerScreen() {
           renderItem={({ item }) => <ReadingRow entry={item} onUpdate={() => setActiveEntry(item)} />}
           keyboardShouldPersistTaps="handled"
           contentContainerStyle={[
-            inProgress.length === 0 && styles.fill,
+            inProgress.length === 0 && nextUp.length === 0 && styles.fill,
             { paddingHorizontal: theme.spacing.lg, paddingTop: theme.spacing.lg, paddingBottom: theme.spacing['2xl'], gap: theme.spacing.lg },
           ]}
           ListHeaderComponent={
@@ -191,6 +195,16 @@ export default function ReadingTrackerScreen() {
               <EmptyState icon="book-outline" title={t('reading.empty')} body={t('reading.emptyBody')} />
             ) : null
           }
+          ListFooterComponent={
+            nextUp.length > 0 ? (
+              <View style={{ gap: theme.spacing.md, marginTop: inProgress.length > 0 ? theme.spacing.sm : 0 }}>
+                <SectionLabel icon="bookmark-outline" label={t('reading.nextUp')} tone="muted" theme={theme} />
+                {nextUp.map((entry) => (
+                  <StartReadingRow key={entry.id} entry={entry} onStarted={() => {}} />
+                ))}
+              </View>
+            ) : null
+          }
         />
       )}
     </View>
@@ -199,6 +213,8 @@ export default function ReadingTrackerScreen() {
     </View>
   );
 }
+
+const NEXT_UP_LIMIT = 5;
 
 const styles = StyleSheet.create({
   fill: { flex: 1, flexGrow: 1 },

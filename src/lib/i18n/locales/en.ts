@@ -255,7 +255,7 @@ export const en = {
 
   'reading.tabLabel': 'Reading',
   'reading.title': 'Reading tracker',
-  'reading.subtitle': 'Books you’re currently reading, and how far along you are.',
+  'reading.nextUp': 'Next up',
   'reading.empty': 'Nothing in progress',
   'reading.emptyBody': 'Mark a book as reading to track your progress here.',
   'reading.updateProgress': 'Update progress',

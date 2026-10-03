@@ -262,7 +262,7 @@ export const ru: LocaleCatalogue = {
 
   'reading.tabLabel': 'Чтение',
   'reading.title': 'Трекер чтения',
-  'reading.subtitle': 'Книги, которые вы сейчас читаете, и ваш прогресс по ним.',
+  'reading.nextUp': 'Дальше в очереди',
   'reading.empty': 'Пока ничего не читается',
   'reading.emptyBody': 'Отметьте книгу как «читаю», чтобы отслеживать прогресс здесь.',
   'reading.updateProgress': 'Обновить прогресс',
