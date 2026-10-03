@@ -7,6 +7,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { FinishCelebration } from '@/components/FinishCelebration';
 import { goToTab, registerTabsPager, setActiveTabIndex, TAB_ROUTES, useActiveTabIndex, type TabRoute } from '@/features/tabs/activeTab';
 import { useI18n } from '@/lib/i18n';
 import { useTheme } from '@/theme';
@@ -110,6 +111,7 @@ export default function TabsLayout() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <FinishCelebration />
       <View style={{ flex: 1 }}>
         <PagerView
           ref={registerTabsPager}

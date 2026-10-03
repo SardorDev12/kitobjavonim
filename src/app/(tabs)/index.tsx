@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BookCover } from '@/components/BookCover';
 import { Button, Card, EmptyState, LoadingState, Sheet, Text, TextField } from '@/components/ui';
+import { celebrateFinish } from '@/features/reading/celebration';
 import { setPendingAddQuery } from '@/features/add/pendingAddQuery';
 import { goToTab } from '@/features/tabs/activeTab';
 import { formatAuthors, formatDate } from '@/lib/format';
@@ -283,10 +284,13 @@ function HeroReadingCard({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: (
   const paceEstimate = useMemo(() => describePace(entry, t), [entry, t]);
 
   function finish() {
-    updateProgress.mutate({
-      userBookId: entry.id,
-      patch: { reading_status: 'finished', date_finished: entry.date_finished ?? new Date().toISOString().slice(0, 10) },
-    });
+    updateProgress.mutate(
+      {
+        userBookId: entry.id,
+        patch: { reading_status: 'finished', date_finished: entry.date_finished ?? new Date().toISOString().slice(0, 10) },
+      },
+      { onSuccess: () => celebrateFinish({ id: entry.id, title: entry.title, authors: entry.authors }) }
+    );
   }
 
   return (
@@ -356,10 +360,13 @@ function ReadingRow({ entry, onUpdate }: { entry: LibraryEntry; onUpdate: () => 
   const paceEstimate = useMemo(() => describePace(entry, t), [entry, t]);
 
   function finish() {
-    updateProgress.mutate({
-      userBookId: entry.id,
-      patch: { reading_status: 'finished', date_finished: entry.date_finished ?? new Date().toISOString().slice(0, 10) },
-    });
+    updateProgress.mutate(
+      {
+        userBookId: entry.id,
+        patch: { reading_status: 'finished', date_finished: entry.date_finished ?? new Date().toISOString().slice(0, 10) },
+      },
+      { onSuccess: () => celebrateFinish({ id: entry.id, title: entry.title, authors: entry.authors }) }
+    );
   }
 
   return (

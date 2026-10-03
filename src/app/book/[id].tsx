@@ -24,6 +24,7 @@ import {
   TextField,
   Toggle,
 } from '@/components/ui';
+import { celebrateFinish } from '@/features/reading/celebration';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { goToTab } from '@/features/tabs/activeTab';
 import { hasContactMethod } from '@/lib/contactMethod';
@@ -157,8 +158,8 @@ export default function BookDetailScreen() {
   // household sharing). See 0020_reading_progress.sql: a shared copy's
   // reading state is per-person, so this always writes to the *viewer's
   // own* reading_progress row, never entry.user_id's.
-  function patchProgress(changes: Parameters<typeof updateProgress.mutate>[0]['patch']) {
-    updateProgress.mutate({ userBookId: entry!.id, patch: changes });
+  function patchProgress(changes: Parameters<typeof updateProgress.mutate>[0]['patch'], onSuccess?: () => void) {
+    updateProgress.mutate({ userBookId: entry!.id, patch: changes }, { onSuccess });
   }
 
   function changeStatus(status: ReadingStatus) {
@@ -171,7 +172,10 @@ export default function BookDetailScreen() {
     }
 
     if (status === 'finished' && !entry!.date_finished) {
-      patchProgress({ reading_status: status, date_finished: new Date().toISOString().slice(0, 10) });
+      patchProgress(
+        { reading_status: status, date_finished: new Date().toISOString().slice(0, 10) },
+        () => celebrateFinish({ id: entry!.id, title: entry!.title, authors: entry!.authors })
+      );
       return;
     }
 
