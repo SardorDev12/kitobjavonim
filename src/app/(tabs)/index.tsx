@@ -585,6 +585,13 @@ function ProgressSheet({ visible, onClose, entry }: { visible: boolean; onClose:
           key={`${entry.id}-${entry.updated_at}`}
           entry={entry}
           onSave={async ({ totalPages, currentPage }) => {
+            // Nothing changed (the page field was left empty and the total
+            // was already known): close without a pointless save.
+            if (totalPages == null && (currentPage ?? null) === (entry.current_page ?? null)) {
+              onClose();
+              return;
+            }
+
             // A newly-entered total goes on the copy itself (user_books.page_count)
             // — shared with the household, unlike current_page below, which is
             // this reader's own reading_progress row.

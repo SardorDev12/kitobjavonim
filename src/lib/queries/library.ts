@@ -332,9 +332,18 @@ export function useUpdateReadingProgress() {
         new Promise<number>((resolve) => setTimeout(() => resolve(0), 2500)),
       ]);
 
-      const { error } = await supabase
-        .from('reading_progress')
-        .upsert({ user_book_id: userBookId, user_id: user.id, ...patch }, { onConflict: 'user_book_id,user_id' });
+      // A request that never answers (a dropped connection that doesn't error)
+      // would otherwise leave the caller spinning forever; after 20s it fails
+      // like any other error instead. The upsert is idempotent, so if the
+      // request does land late, nothing is duplicated.
+      const { error } = await Promise.race([
+        Promise.resolve(
+          supabase
+            .from('reading_progress')
+            .upsert({ user_book_id: userBookId, user_id: user.id, ...patch }, { onConflict: 'user_book_id,user_id' })
+        ),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Save timed out')), 20_000)),
+      ]);
       if (error) throw error;
 
       // Everything below is logging that rides along with the save. None of
