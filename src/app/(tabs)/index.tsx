@@ -508,15 +508,11 @@ function describeProgress(entry: LibraryEntry, t: ReturnType<typeof useI18n>['t'
 }
 
 function describePace(entry: LibraryEntry, t: ReturnType<typeof useI18n>['t']): string | null {
-  if (!entry.date_started) return null;
-  const percent = effectivePercent(entry);
-  if (!percent) return null;
+  const total = effectiveTotal(entry);
+  if (!total || !entry.current_page) return null;
 
-  const daysElapsed = Math.floor((Date.now() - new Date(entry.date_started).getTime()) / 86_400_000);
-  if (daysElapsed < 1) return null;
-
-  const daysLeft = Math.max(0, Math.round(daysElapsed / (percent / 100) - daysElapsed));
-  return daysLeft > 0 ? t('book.progressEstimate', { days: daysLeft }) : null;
+  const pagesLeft = Math.max(0, total - entry.current_page);
+  return pagesLeft > 0 ? t('book.pagesLeft', { count: pagesLeft }) : null;
 }
 
 /**
