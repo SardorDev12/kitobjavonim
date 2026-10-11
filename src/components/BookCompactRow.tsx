@@ -125,15 +125,15 @@ export const BookCompactRow = memo(function BookCompactRow({
         </View>
       ) : null}
 
-      <View style={[styles.cell, styles.authorCell, { paddingVertical: theme.spacing.sm + 2, paddingRight: theme.spacing.sm }]}>
-        <Text variant="caption" color="textMuted" numberOfLines={2}>
-          {authors ?? ''}
+      <View style={[styles.cell, styles.titleCell, { paddingVertical: theme.spacing.sm + 2, paddingRight: theme.spacing.sm }]}>
+        <Text variant="label" numberOfLines={2} style={styles.title}>
+          {entry.title}
         </Text>
       </View>
       {divider}
-      <View style={[styles.cell, styles.titleCell, { paddingVertical: theme.spacing.sm + 2, paddingHorizontal: theme.spacing.sm }]}>
-        <Text variant="label" numberOfLines={2} style={styles.title}>
-          {entry.title}
+      <View style={[styles.cell, styles.authorCell, { paddingVertical: theme.spacing.sm + 2, paddingHorizontal: theme.spacing.sm }]}>
+        <Text variant="caption" color="textMuted" numberOfLines={2}>
+          {authors ?? ''}
         </Text>
       </View>
       {divider}
@@ -158,8 +158,8 @@ const styles = StyleSheet.create({
   // field the least. Each wraps to at most two lines; the dividers stretch the
   // full row height so the columns line up from row to row.
   cell: { flexBasis: 0, justifyContent: 'center', minWidth: 0 },
-  authorCell: { flexGrow: 4 },
-  titleCell: { flexGrow: 3 },
+  titleCell: { flexGrow: 4 },
+  authorCell: { flexGrow: 3 },
   fieldCell: { flexGrow: 2 },
   title: { fontWeight: '700' },
   divider: { width: StyleSheet.hairlineWidth },
