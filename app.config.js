@@ -38,7 +38,7 @@ module.exports = {
     name: IS_PREVIEW ? 'Shelfie (Staging)' : 'Shelfie',
     slug: 'kitobjavonim',
     owner: 'walterobrien1226',
-    version: '0.5.5',
+    version: '0.5.6',
     orientation: 'default',
     icon: IS_PREVIEW ? './assets/images/icon-preview.png' : './assets/images/icon.png',
     scheme,
@@ -70,7 +70,7 @@ module.exports = {
       // Bump it by hand, in the same commit as any `version` bump above,
       // same convention as the "Bump app version to X.Y.Z" commits already
       // in history.
-      versionCode: 21,
+      versionCode: 22,
       // Only the production package is registered as a Firebase Android app
       // (google-services.json is keyed to it by package name — the Google
       // Services Gradle plugin hard-fails the build if there's no matching
@@ -122,6 +122,8 @@ module.exports = {
       // Android-only manifest edit (see the plugin's own comment) — no
       // effect on iOS, safe to run for both variants unconditionally.
       './plugins/withDisableForceDark',
+      // Play's DEX optimization check (see the plugin's own comment).
+      './plugins/withAndroidMinify',
       // See the googleServicesFile comment above — these need a matching
       // Firebase Android app to not crash on init, which only the
       // production package has today.
