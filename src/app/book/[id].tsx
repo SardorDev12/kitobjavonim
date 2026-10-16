@@ -338,14 +338,15 @@ export default function BookDetailScreen() {
             onChangeText={setShelfNote}
             onBlur={flushShelfNote}
             maxLength={200}
-            hint={
-              updateBook.isPending
-                ? t('common.saving')
-                : shelfNote.trim() !== (entry.shelf_note ?? '')
-                  ? undefined
-                  : noteSavedAt > 0
+            labelAccessory={
+              // On the label's own row, so the field never moves while saving.
+              <Text variant="caption" color="textSubtle">
+                {updateBook.isPending
+                  ? t('common.saving')
+                  : shelfNote.trim() === (entry.shelf_note ?? '') && noteSavedAt > 0
                     ? t('common.saved')
-                    : undefined
+                    : ''}
+              </Text>
             }
           />
         </View>

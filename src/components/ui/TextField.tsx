@@ -19,6 +19,8 @@ import { Text } from './Text';
 
 export type TextFieldProps = TextInputProps & {
   label?: string;
+  /** Small content on the label's row, right-aligned — for status text that must not move the field. */
+  labelAccessory?: React.ReactNode;
   hint?: string;
   error?: string | null;
   /** Rendered inside the field on the trailing edge — a unit, a clear button. */
@@ -28,6 +30,7 @@ export type TextFieldProps = TextInputProps & {
 
 export function TextField({
   label,
+  labelAccessory,
   hint,
   error,
   trailing,
@@ -73,9 +76,12 @@ export function TextField({
   return (
     <View style={[styles.container, containerStyle]}>
       {label ? (
-        <Text variant="label" color="textMuted" style={styles.label}>
-          {label}
-        </Text>
+        <View style={styles.labelRow}>
+          <Text variant="label" color="textMuted" style={styles.label}>
+            {label}
+          </Text>
+          {labelAccessory}
+        </View>
       ) : null}
 
       <View
@@ -135,6 +141,7 @@ export function TextField({
 const styles = StyleSheet.create({
   container: { gap: 6 },
   label: { marginLeft: 2 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   field: {
     flexDirection: 'row',
     borderWidth: 1,
