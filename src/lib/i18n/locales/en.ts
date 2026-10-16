@@ -38,6 +38,7 @@ export const en = {
   'common.all': 'All',
   'common.none': 'None',
   'common.saving': 'Saving…',
+  'common.saved': 'Saved',
   'common.confirmDelete': 'This cannot be undone.',
   'common.addPhoto': 'Add a photo',
   'common.takePhoto': 'Take a photo',

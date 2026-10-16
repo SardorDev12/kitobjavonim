@@ -37,6 +37,7 @@ export const ru: LocaleCatalogue = {
   'common.all': 'Все',
   'common.none': 'Нет',
   'common.saving': 'Сохранение…',
+  'common.saved': 'Сохранено',
   'common.confirmDelete': 'Это действие нельзя отменить.',
   'common.addPhoto': 'Добавить фото',
   'common.takePhoto': 'Сделать фото',

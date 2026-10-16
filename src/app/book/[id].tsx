@@ -75,9 +75,10 @@ export default function BookDetailScreen() {
   // could land *after* this screen remounts and clobber a value that
   // already saved, with a stale one read moments earlier from cache.
   //
-  // Saved only via that explicit button now, not on blur or on leaving the
-  // screen — an implicit autosave meant a stray tap into the field, or a
-  // half-typed value, could get silently persisted with nothing to undo it.
+  // Saved automatically once typing pauses (see the autosave effect below),
+  // and straight away when the field loses focus or the screen closes. A
+  // stray tap into the field changes nothing, so nothing is saved, and a
+  // value is only saved after a pause, never half-way through a word.
   const [shelfNote, setShelfNote] = useState('');
   const lastSyncedShelfNoteRef = useRef<string | null>(null);
   useEffect(() => {
@@ -97,6 +98,43 @@ export default function BookDetailScreen() {
     lastSyncedShelfNoteRef.current = serverValue;
     setShelfNote((current) => (previouslySynced === null || current === previouslySynced ? serverValue : current));
   }, [entry]);
+
+  // Autosave for the location. `pendingNoteRef` always holds the value still
+  // waiting to be saved (null when there's none), so the blur handler and the
+  // unmount cleanup can flush exactly that, not a stale closure value.
+  const pendingNoteRef = useRef<string | null>(null);
+  const entryIdRef = useRef<string | null>(null);
+  entryIdRef.current = entry?.id ?? null;
+  const savedNoteRef = useRef<string>('');
+  savedNoteRef.current = entry?.shelf_note ?? '';
+  const [noteSavedAt, setNoteSavedAt] = useState(0);
+
+  function flushShelfNote() {
+    const value = pendingNoteRef.current;
+    const id = entryIdRef.current;
+    pendingNoteRef.current = null;
+    if (value === null || !id || value === savedNoteRef.current) return;
+    updateBook.mutate(
+      { id, patch: { shelf_note: value || null } },
+      { onSuccess: () => setNoteSavedAt(Date.now()) }
+    );
+  }
+
+  useEffect(() => {
+    if (!entry) return;
+    const trimmed = shelfNote.trim();
+    if (trimmed === (entry.shelf_note ?? '')) {
+      pendingNoteRef.current = null;
+      return;
+    }
+    pendingNoteRef.current = trimmed;
+    const timer = setTimeout(flushShelfNote, 900);
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shelfNote, entry?.shelf_note]);
+
+  // Closing the screen within the pause still saves what was typed.
+  useEffect(() => () => flushShelfNote(), []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // A page loaded directly (a deep link, or a browser refresh — both routine
   // on web) has no in-app navigation history to pop, so router.back() alone
@@ -298,17 +336,18 @@ export default function BookDetailScreen() {
             placeholder={t('book.locationPlaceholder')}
             value={shelfNote}
             onChangeText={setShelfNote}
+            onBlur={flushShelfNote}
             maxLength={200}
+            hint={
+              updateBook.isPending
+                ? t('common.saving')
+                : shelfNote.trim() !== (entry.shelf_note ?? '')
+                  ? undefined
+                  : noteSavedAt > 0
+                    ? t('common.saved')
+                    : undefined
+            }
           />
-          {shelfNote.trim() !== (entry.shelf_note ?? '') ? (
-            <Button
-              title={t('common.save')}
-              size="sm"
-              variant="secondary"
-              loading={updateBook.isPending}
-              onPress={() => patch({ shelf_note: shelfNote.trim() || null })}
-            />
-          ) : null}
         </View>
 
         {/* Household sharing -------------------------------------------------

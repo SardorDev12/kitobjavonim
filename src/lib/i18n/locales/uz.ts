@@ -41,6 +41,7 @@ export const uz: LocaleCatalogue = {
   'common.all': 'Hammasi',
   'common.none': 'Yoʻq',
   'common.saving': 'Saqlanmoqda…',
+  'common.saved': 'Saqlandi',
   'common.confirmDelete': 'Buni qaytarib boʻlmaydi.',
   'common.addPhoto': 'Rasm qoʻshish',
   'common.takePhoto': 'Suratga olish',
