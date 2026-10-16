@@ -439,6 +439,8 @@ export default function LibraryScreen() {
             <View style={styles.titleText}>
               <Text variant="display">{t('library.title')}</Text>
               <Text variant="caption" color="textMuted">
+                {/* While a filter or search is on: shown / total. */}
+                {isFiltered ? `${entries.length} / ` : ''}
                 {t('library.bookCount', { count: total })}
               </Text>
             </View>
