@@ -13,6 +13,7 @@ import { goToTab } from '@/features/tabs/activeTab';
 import { useI18n } from '@/lib/i18n';
 import { emptyListingFilters, useListings, type ListingFilters } from '@/lib/queries/listings';
 import { useCategoryOptions, useLocationOptions } from '@/lib/queries/reference';
+import { usePersistedState } from '@/lib/usePersistedState';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useLayout, useTheme } from '@/theme';
 import { BOOK_CONDITIONS, type BookCondition } from '@/types/database';
@@ -37,10 +38,19 @@ export default function DiscoverScreen() {
   // give it nothing stable and defeat it entirely.
   const openListing = useCallback((id: string) => router.push(`/listing/${id}`), [router]);
 
-  const [filters, setFilters] = useState<ListingFilters>(emptyListingFilters);
+  // Filters (not the search text) come back after a refresh or restart.
+  const [filters, setFilters] = usePersistedState<ListingFilters>(
+    'settings.discoverFilters',
+    emptyListingFilters,
+    (stored) =>
+      stored && typeof stored === 'object' ? { ...emptyListingFilters, ...(stored as Partial<ListingFilters>), search: '' } : null,
+    (value) => ({ ...value, search: '' })
+  );
   const [searchInput, setSearchInput] = useState('');
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>('gallery');
+  const [viewMode, setViewMode] = usePersistedState<ViewMode>('settings.discoverViewMode', 'gallery', (stored) =>
+    stored === 'gallery' || stored === 'list' ? stored : null
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => setFilters((prev) => ({ ...prev, search: searchInput })), 400);

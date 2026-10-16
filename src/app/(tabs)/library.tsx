@@ -26,10 +26,12 @@ import {
   type LibraryFilter,
   type LibrarySort,
 } from '@/lib/queries/library';
+import { usePersistedState } from '@/lib/usePersistedState';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useLayout, useTheme } from '@/theme';
 
 const SORTS: LibrarySort[] = ['recent', 'title', 'author', 'finished'];
+const ALL_FILTERS: LibraryFilter[] = ['all', 'want_to_read', 'reading', 'finished', 'exchange', 'sale'];
 type ViewMode = 'list' | 'gallery' | 'compact';
 // The view button opens a menu of these; its own icon shows the current one.
 const VIEW_MODES: ViewMode[] = ['list', 'gallery', 'compact'];
@@ -85,8 +87,13 @@ export default function LibraryScreen() {
   const keyboardHeight = useKeyboardHeight();
 
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<LibraryFilter>('all');
-  const [sort, setSort] = useState<LibrarySort>('recent');
+  // The filter and sort come back after a refresh or restart.
+  const [filter, setFilter] = usePersistedState<LibraryFilter>('settings.libraryFilter', 'all', (stored) =>
+    ALL_FILTERS.includes(stored as LibraryFilter) ? (stored as LibraryFilter) : null
+  );
+  const [sort, setSort] = usePersistedState<LibrarySort>('settings.librarySort', 'recent', (stored) =>
+    SORTS.includes(stored as LibrarySort) ? (stored as LibrarySort) : null
+  );
   const [viewMode, setViewModeState] = useState<ViewMode>('list');
   const [compactField, setCompactFieldState] = useState<CompactField>('pages');
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
