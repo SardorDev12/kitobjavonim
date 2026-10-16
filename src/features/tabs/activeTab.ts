@@ -81,6 +81,13 @@ export function goToTab(route: TabRoute) {
   else pendingRoute = route;
 }
 
+/** Jumps straight to a tab with no animation — used to reopen on the last tab. */
+export function restoreTabIndex(index: number) {
+  if (index < 0 || index >= TAB_ROUTES.length || !pager) return;
+  pager.setPageWithoutAnimation(index);
+  setActiveTabIndex(index);
+}
+
 /** The currently active tab's index, for the bottom bar's highlight — updates on swipe, tap, or goToTab(). */
 export function useActiveTabIndex(): number {
   return useSyncExternalStore(

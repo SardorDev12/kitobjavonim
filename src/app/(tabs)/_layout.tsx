@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useSegments } from 'expo-router';
-import { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useRef, useState } from 'react';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import PagerView from 'react-native-pager-view';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -8,7 +9,7 @@ import { runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FinishCelebration } from '@/components/FinishCelebration';
-import { goToTab, registerTabsPager, setActiveTabIndex, TAB_ROUTES, useActiveTabIndex, type TabRoute } from '@/features/tabs/activeTab';
+import { goToTab, registerTabsPager, restoreTabIndex, setActiveTabIndex, TAB_ROUTES, useActiveTabIndex, type TabRoute } from '@/features/tabs/activeTab';
 import { useI18n } from '@/lib/i18n';
 import { useTheme } from '@/theme';
 
@@ -23,6 +24,7 @@ import ProfileScreen from './profile';
 // between tabs now only works from a thin strip at each screen edge,
 // matching the iOS edge-swipe-back convention, with the pager's native
 // gesture (scrollEnabled below) turned off entirely.
+const LAST_TAB_STORAGE_KEY = 'settings.lastTab';
 const EDGE_ZONE_WIDTH = 16;
 const EDGE_SWIPE_THRESHOLD = 48;
 
@@ -76,6 +78,31 @@ export default function TabsLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const activeIndex = useActiveTabIndex();
+
+  // Reopen on the tab that was open last, unless something asked for a specific
+  // one (a deep link). Nothing is written until that read has finished, so the
+  // default first tab can't overwrite the saved one.
+  const lastTabReadRef = useRef(false);
+  useEffect(() => {
+    if (segments[1]) {
+      lastTabReadRef.current = true;
+      return;
+    }
+    AsyncStorage.getItem(LAST_TAB_STORAGE_KEY)
+      .then((raw) => {
+        const index = TAB_ROUTES.indexOf(raw as TabRoute);
+        if (index > 0) restoreTabIndex(index);
+      })
+      .catch(() => {})
+      .finally(() => {
+        lastTabReadRef.current = true;
+      });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!lastTabReadRef.current) return;
+    AsyncStorage.setItem(LAST_TAB_STORAGE_KEY, TAB_ROUTES[activeIndex]).catch(() => {});
+  }, [activeIndex]);
 
   function goToIndex(index: number) {
     goToTab(TAB_ROUTES[Math.max(0, Math.min(TAB_ROUTES.length - 1, index))]);

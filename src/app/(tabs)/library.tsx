@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, BackHandler, FlatList, Platform, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, BackHandler, FlatList, type NativeScrollEvent, type NativeSyntheticEvent, Platform, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import DraggableFlatList, { type RenderItemParams } from 'react-native-draggable-flatlist';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -29,6 +29,7 @@ import {
 import { usePersistedState } from '@/lib/usePersistedState';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useLayout, useTheme } from '@/theme';
+import type { LibraryEntry } from '@/types/database';
 
 const SORTS: LibrarySort[] = ['recent', 'title', 'author', 'finished'];
 const ALL_FILTERS: LibraryFilter[] = ['all', 'want_to_read', 'reading', 'finished', 'exchange', 'sale'];
@@ -52,6 +53,7 @@ const COMPACT_FIELD_STORAGE_KEY = 'settings.libraryCompactField';
 // are the ones the user can reorder.
 const REORDERABLE_FILTERS: LibraryFilter[] = ['want_to_read', 'reading', 'finished', 'exchange', 'sale'];
 const FILTER_ORDER_STORAGE_KEY = 'settings.libraryFilterOrder';
+const SCROLL_STORAGE_KEY = 'settings.libraryScroll';
 
 /**
  * Drops anything no longer a real filter and appends any filter missing from
@@ -88,13 +90,14 @@ export default function LibraryScreen() {
 
   const [search, setSearch] = useState('');
   // The filter and sort come back after a refresh or restart.
-  const [filter, setFilter] = usePersistedState<LibraryFilter>('settings.libraryFilter', 'all', (stored) =>
+  const [filter, setFilter, filterLoaded] = usePersistedState<LibraryFilter>('settings.libraryFilter', 'all', (stored) =>
     ALL_FILTERS.includes(stored as LibraryFilter) ? (stored as LibraryFilter) : null
   );
-  const [sort, setSort] = usePersistedState<LibrarySort>('settings.librarySort', 'recent', (stored) =>
+  const [sort, setSort, sortLoaded] = usePersistedState<LibrarySort>('settings.librarySort', 'recent', (stored) =>
     SORTS.includes(stored as LibrarySort) ? (stored as LibrarySort) : null
   );
   const [viewMode, setViewModeState] = useState<ViewMode>('list');
+  const [viewModeLoaded, setViewModeLoaded] = useState(false);
   const [compactField, setCompactFieldState] = useState<CompactField>('pages');
   const [viewMenuOpen, setViewMenuOpen] = useState(false);
   const [filterOrder, setFilterOrder] = useState<LibraryFilter[]>(REORDERABLE_FILTERS);
@@ -189,7 +192,10 @@ export default function LibraryScreen() {
         if (VIEW_MODES.includes(storedMode as ViewMode)) setViewModeState(storedMode as ViewMode);
         if (COMPACT_FIELDS.includes(storedField as CompactField)) setCompactFieldState(storedField as CompactField);
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setViewModeLoaded(true);
+      });
     return () => {
       cancelled = true;
     };
@@ -233,9 +239,83 @@ export default function LibraryScreen() {
       ? Math.max(gutter, (listWidth - horizontalPadding * 2 - galleryColumns * GALLERY_TILE_WIDTH) / (galleryColumns - 1))
       : gutter;
 
+  // Scroll position: saved (debounced) as the list moves and put back after a
+  // refresh or restart. It's only restored when the view, filter and sort are
+  // the same as when it was saved — an offset in a different list means
+  // nothing — and only once the list is long enough to scroll that far.
+  const listRef = useRef<FlatList<LibraryEntry>>(null);
+  const listHeightRef = useRef(0);
+  const scrollOffsetRef = useRef(0);
+  const scrollSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingRestoreRef = useRef<number | null>(null);
+  const restoreSettledRef = useRef(false);
+  const [storedScroll, setStoredScroll] = useState<{ offset: number; signature: string } | null | undefined>(undefined);
+  const scrollSignature = `${viewMode}|${filter}|${sort}`;
+
+  useEffect(() => {
+    AsyncStorage.getItem(SCROLL_STORAGE_KEY)
+      .then((raw) => {
+        try {
+          const parsed = raw ? JSON.parse(raw) : null;
+          setStoredScroll(
+            parsed && typeof parsed.offset === 'number' && typeof parsed.signature === 'string' ? parsed : null
+          );
+        } catch {
+          setStoredScroll(null);
+        }
+      })
+      .catch(() => setStoredScroll(null));
+  }, []);
+
+  const settleRestore = useCallback(() => {
+    pendingRestoreRef.current = null;
+    restoreSettledRef.current = true;
+  }, []);
+
+  const tryRestoreScroll = useCallback(
+    (contentHeight: number) => {
+      const target = pendingRestoreRef.current;
+      if (target === null) return;
+      const maxOffset = Math.max(0, contentHeight - listHeightRef.current);
+      listRef.current?.scrollToOffset({ offset: Math.min(target, maxOffset), animated: false });
+      if (maxOffset >= target) settleRestore();
+    },
+    [settleRestore]
+  );
+
   const entries = useMemo(
     () => selectLibrary(data ?? [], { filter, sort, search }),
     [data, filter, sort, search]
+  );
+
+  useEffect(() => {
+    if (restoreSettledRef.current || pendingRestoreRef.current !== null) return;
+    if (!(filterLoaded && sortLoaded && viewModeLoaded) || storedScroll === undefined || entries.length === 0) return;
+    if (!storedScroll || storedScroll.signature !== scrollSignature || storedScroll.offset <= 0) {
+      settleRestore();
+      return;
+    }
+    pendingRestoreRef.current = storedScroll.offset;
+    // Give up after a few seconds so a list that never gets long enough
+    // can't hold the restore open for good.
+    setTimeout(settleRestore, 5000);
+  }, [filterLoaded, sortLoaded, viewModeLoaded, storedScroll, entries.length, scrollSignature, settleRestore]);
+
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      pullHandlers.onScroll?.(event as never);
+      scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+      if (!restoreSettledRef.current) return;
+      if (scrollSaveTimer.current) clearTimeout(scrollSaveTimer.current);
+      scrollSaveTimer.current = setTimeout(() => {
+        AsyncStorage.setItem(
+          SCROLL_STORAGE_KEY,
+          JSON.stringify({ offset: scrollOffsetRef.current, signature: scrollSignature })
+        ).catch(() => {});
+      }, 400);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [scrollSignature]
   );
 
   const isFiltered = filter !== 'all' || search.trim().length > 0;
@@ -450,9 +530,18 @@ export default function LibraryScreen() {
         />
       </View>
 
-      <View style={styles.fill} onLayout={(event) => setListWidth(event.nativeEvent.layout.width)}>
+      <View
+        style={styles.fill}
+        onLayout={(event) => {
+          setListWidth(event.nativeEvent.layout.width);
+          listHeightRef.current = event.nativeEvent.layout.height;
+        }}
+      >
       <PullToRefreshIndicator pullDistance={pullDistance} refreshing={isRefetching} />
       <FlatList
+        ref={listRef}
+        onContentSizeChange={(_w, h) => tryRestoreScroll(h)}
+        onScrollBeginDrag={settleRestore}
         key={viewMode === 'gallery' ? `gallery-${galleryColumns}` : 'list'}
         data={entries}
         keyExtractor={(entry) => entry.id}
@@ -509,6 +598,7 @@ export default function LibraryScreen() {
         ]}
         scrollEventThrottle={16}
         {...pullHandlers}
+        onScroll={handleScroll}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
