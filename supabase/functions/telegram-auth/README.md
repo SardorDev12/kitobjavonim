@@ -58,12 +58,12 @@ Telegram user ids are global, so accounts match across bots.
 **Verified app link (Android).** With the custom-scheme redirect, Telegram
 can't prove the login returns to this app and labels it "Unverified App".
 BotFather's Native Login entry shows an App URL
-(`https://app972755306-login.tg.dev`), and builds from 0.5.4 claim it as a
+(`https://app972755306-login.tg.dev`), and builds from 0.5.7 claim it as a
 verified App Link (`app.config.js` intent filter; see
 `src/features/auth/telegramAppLink.ts`). Once 0.5.4 is installed, switch it on:
 
 ```sql
-insert into app_config (key, value) values ('telegram_oidc_native_redirect', 'https://app972755306-login.tg.dev/tglogin')
+insert into app_config (key, value) values ('telegram_oidc_app_link', 'https://app972755306-login.tg.dev/tglogin')
 on conflict (key) do update set value = excluded.value;
 ```
 
@@ -83,7 +83,7 @@ fresh `telegram_last_login_at`.
 | Function secret | `TELEGRAM_OIDC_CLIENT_SECRET` | The Client Secret from BotFather's Login Widget page. Used only for web sign-ins. |
 | Function secret | `TELEGRAM_ALLOWED_ORIGINS` | Comma-separated web origins (e.g. `https://app.kitobjavonim.uz`). Used for CORS and to validate the web redirect URL. |
 | `app_config` | `telegram_oidc_client_id` | The Client ID. Turns the flow on. |
-| `app_config` | `telegram_oidc_native_redirect` | Optional, Android only: the verified App Link (see above). |
+| `app_config` | `telegram_oidc_app_link` | Optional, Android only: the verified App Link (see above). |
 
 Deploy with `supabase functions deploy telegram-auth --no-verify-jwt`: the
 caller is signed out, so there's no JWT to check; the security boundary is the

@@ -62,16 +62,26 @@ export type TelegramOidcConfig = {
  * vars, so switching needs no rebuild or redeploy (see
  * supabase/functions/telegram-auth/README.md).
  */
+/**
+ * app_config key holding the verified Android App Link. Deliberately not the
+ * older `telegram_oidc_native_redirect`: builds before 0.5.7 read that key but
+ * can't open this link (their manifest has no intent filter for it), so they
+ * would be stranded on Telegram's "Almost done" page. Builds that can read
+ * this key all have the intent filter, and older ones never look at it — so
+ * setting it can't break them, and the choice follows the installed version.
+ */
+const APP_LINK_KEY = 'telegram_oidc_app_link';
+
 export async function getTelegramOidcConfig(): Promise<TelegramOidcConfig | null> {
   const { data, error } = await supabase
     .from('app_config')
     .select('key, value')
-    .in('key', ['telegram_oidc_client_id', 'telegram_oidc_native_redirect']);
+    .in('key', ['telegram_oidc_client_id', APP_LINK_KEY]);
   if (error) throw error;
 
   const value = (key: string) => data?.find((row) => row.key === key)?.value?.trim() || null;
   const clientId = value('telegram_oidc_client_id');
-  return clientId ? { clientId, nativeRedirect: value('telegram_oidc_native_redirect') } : null;
+  return clientId ? { clientId, nativeRedirect: value(APP_LINK_KEY) } : null;
 }
 
 function redirectUri(config: TelegramOidcConfig): string {
