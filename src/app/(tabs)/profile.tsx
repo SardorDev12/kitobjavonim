@@ -1,10 +1,12 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import * as Updates from 'expo-updates';
+import { useEffect, useState } from 'react';
 import { Alert, Linking, Platform, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar, Button, Card, Divider, ListRow, Screen, Sheet, Text } from '@/components/ui';
 import { useAuth } from '@/features/auth/AuthProvider';
+import { getTelegramOidcConfig } from '@/features/auth/telegramOidc';
 import { formatMonthYear } from '@/lib/format';
 import { LOCALE_LABELS, LOCALES, useI18n, type Locale } from '@/lib/i18n';
 import { SUPPORT_EMAIL } from '@/lib/legalContent';
@@ -140,6 +142,8 @@ export default function ProfileScreen() {
         </Card>
 
         <Button title={t('auth.signOut')} variant="secondary" fullWidth onPress={confirmSignOut} />
+
+        <BuildInfo />
       </View>
 
       <Sheet visible={languageOpen} onClose={() => setLanguageOpen(false)} title={t('profile.language')}>
@@ -240,3 +244,35 @@ const styles = StyleSheet.create({
   colorThemeSwatch: { width: 22, height: 22, borderRadius: 11, borderWidth: 1 },
   colorThemeLabel: { flex: 1 },
 });
+
+/**
+ * A one-line build stamp at the bottom of Profile: the installed version, which
+ * JavaScript is running (the code built into the app, or an over-the-air update
+ * and its id), and which return link Telegram sign-in would use. Small and grey
+ * on purpose — it's for diagnosing "did the update arrive?", not for reading.
+ */
+function BuildInfo() {
+  const [telegramLink, setTelegramLink] = useState<string>('…');
+  useEffect(() => {
+    let cancelled = false;
+    getTelegramOidcConfig()
+      .then((config) => {
+        if (cancelled) return;
+        if (!config) setTelegramLink('off');
+        else setTelegramLink(Platform.OS === 'android' && config.nativeRedirect ? 'app link' : 'scheme');
+      })
+      .catch(() => {
+        if (!cancelled) setTelegramLink('?');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const code = Updates.isEmbeddedLaunch ? 'built-in' : (Updates.updateId ?? '').slice(0, 8) || 'update';
+  return (
+    <Text variant="caption" color="textSubtle" align="center">
+      {`v${Updates.runtimeVersion ?? '?'} · ${code} · Telegram: ${telegramLink}`}
+    </Text>
+  );
+}
