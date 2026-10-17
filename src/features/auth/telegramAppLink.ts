@@ -7,7 +7,7 @@
  * "Unverified App". Declared as a verified intent filter in app.config.js,
  * which must stay in sync with this host.
  */
-export const TELEGRAM_APP_LINK_HOST = 'app2863632339-login.tg.dev';
+export const TELEGRAM_APP_LINK_HOST = 'app972755306-login.tg.dev';
 export const TELEGRAM_APP_LINK_PATH = '/tglogin';
 
 /**

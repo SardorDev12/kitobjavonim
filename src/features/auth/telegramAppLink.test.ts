@@ -4,7 +4,7 @@ import { rewriteTelegramAppLink } from './telegramAppLink';
 
 describe('rewriteTelegramAppLink', () => {
   it('rewrites the full App Link callback, keeping its query', () => {
-    expect(rewriteTelegramAppLink('https://app2863632339-login.tg.dev/tglogin?code=abc&state=x')).toBe(
+    expect(rewriteTelegramAppLink('https://app972755306-login.tg.dev/tglogin?code=abc&state=x')).toBe(
       '/auth/telegram-oidc?code=abc&state=x'
     );
   });
@@ -22,8 +22,8 @@ describe('rewriteTelegramAppLink', () => {
 
   it('does not match lookalike hosts or paths', () => {
     expect(rewriteTelegramAppLink('https://evil.example/tglogin?code=abc')).toBe('https://evil.example/tglogin?code=abc');
-    expect(rewriteTelegramAppLink('https://app2863632339-login.tg.dev.evil.example/tglogin')).toBe(
-      'https://app2863632339-login.tg.dev.evil.example/tglogin'
+    expect(rewriteTelegramAppLink('https://app972755306-login.tg.dev.evil.example/tglogin')).toBe(
+      'https://app972755306-login.tg.dev.evil.example/tglogin'
     );
     expect(rewriteTelegramAppLink('/tgloginx')).toBe('/tgloginx');
   });

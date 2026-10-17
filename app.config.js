@@ -38,7 +38,7 @@ module.exports = {
     name: IS_PREVIEW ? 'Shelfie (Staging)' : 'Shelfie',
     slug: 'kitobjavonim',
     owner: 'walterobrien1226',
-    version: '0.5.6',
+    version: '0.5.7',
     orientation: 'default',
     icon: IS_PREVIEW ? './assets/images/icon-preview.png' : './assets/images/icon.png',
     scheme,
@@ -101,7 +101,7 @@ module.exports = {
               {
                 action: 'VIEW',
                 autoVerify: true,
-                data: [{ scheme: 'https', host: 'app2863632339-login.tg.dev', pathPrefix: '/tglogin' }],
+                data: [{ scheme: 'https', host: 'app972755306-login.tg.dev', pathPrefix: '/tglogin' }],
                 category: ['BROWSABLE', 'DEFAULT'],
               },
             ],
