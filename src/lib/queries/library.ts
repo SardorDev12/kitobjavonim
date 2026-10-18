@@ -183,7 +183,6 @@ export function useAddBook() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
-      if (user) queryClient.invalidateQueries({ queryKey: queryKeys.profile.stats(user.id) });
     },
   });
 }
@@ -224,7 +223,6 @@ export type UpdateUserBookInput = {
  */
 export function useUpdateUserBook() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ id, patch, previousCoverUrl }: UpdateUserBookInput) => {
@@ -251,10 +249,6 @@ export function useUpdateUserBook() {
       queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.library.entry(variables.id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
-      if (user) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.profile.stats(user.id) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.plan.status(user.id) });
-      }
     },
   });
 }
@@ -379,8 +373,6 @@ export function useUpdateReadingProgress() {
       queryClient.invalidateQueries({ queryKey: queryKeys.library.entry(variables.userBookId) });
       queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
       if (user) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.profile.stats(user.id) });
-        queryClient.invalidateQueries({ queryKey: queryKeys.plan.status(user.id) });
         queryClient.invalidateQueries({ queryKey: queryKeys.readingActivity.mine(user.id) });
         queryClient.invalidateQueries({ queryKey: queryKeys.readingActivity.pages(user.id) });
       }
@@ -390,7 +382,6 @@ export function useUpdateReadingProgress() {
 
 export function useDeleteUserBook() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -423,7 +414,6 @@ export function useDeleteUserBook() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
-      if (user) queryClient.invalidateQueries({ queryKey: queryKeys.profile.stats(user.id) });
     },
   });
 }
@@ -453,7 +443,6 @@ function chunk<T>(items: T[], size: number): T[][] {
  */
 export function useBulkDeleteUserBooks() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async (ids: string[]) => {
@@ -483,7 +472,6 @@ export function useBulkDeleteUserBooks() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
-      if (user) queryClient.invalidateQueries({ queryKey: queryKeys.profile.stats(user.id) });
     },
   });
 }
@@ -498,7 +486,6 @@ export function useBulkDeleteUserBooks() {
  */
 export function useBulkShareWithHousehold() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({ ids, householdId }: { ids: string[]; householdId: string }) => {
@@ -510,7 +497,6 @@ export function useBulkShareWithHousehold() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
       queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
-      if (user) queryClient.invalidateQueries({ queryKey: queryKeys.profile.stats(user.id) });
     },
   });
 }

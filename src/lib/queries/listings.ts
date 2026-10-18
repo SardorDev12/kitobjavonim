@@ -111,7 +111,6 @@ export function useListingPhotos(userBookId: string | undefined) {
  */
 export function useRequestContact() {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
 
   return useMutation({
     mutationFn: async ({
@@ -133,7 +132,6 @@ export function useRequestContact() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contact-requests'] });
-      if (user) queryClient.invalidateQueries({ queryKey: queryKeys.plan.status(user.id) });
     },
   });
 }

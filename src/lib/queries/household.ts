@@ -157,15 +157,3 @@ export function useRegenerateInviteCode() {
   });
 }
 
-export function useRenameHousehold() {
-  const queryClient = useQueryClient();
-  const { user } = useAuth();
-
-  return useMutation({
-    mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const { error } = await supabase.from('households').update({ name: name.trim() }).eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => invalidateHousehold(queryClient, user?.id),
-  });
-}

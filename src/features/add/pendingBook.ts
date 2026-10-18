@@ -20,7 +20,7 @@ export function setPendingBook(next: BookCandidate | null) {
   listeners.forEach((listener) => listener());
 }
 
-export function getPendingBook(): BookCandidate | null {
+function getPendingBook(): BookCandidate | null {
   return candidate;
 }
 

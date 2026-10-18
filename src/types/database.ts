@@ -65,28 +65,6 @@ export type Profile = {
   updated_at: string;
 };
 
-/** Return shape of the `my_plan_status()` RPC (supabase/migrations/0008_plans_and_limits.sql). */
-export type PlanStatus = {
-  plan: 'free' | 'pro';
-  plan_expires_at: string | null;
-  active_listings: number;
-  active_listing_cap: number;
-  contacts_this_month: number;
-  monthly_contact_cap: number;
-};
-
-export type PublicProfile = {
-  id: string;
-  display_name: string;
-  avatar_url: string | null;
-  bio: string | null;
-  region_id: string | null;
-  district_id: string | null;
-  telegram_username: string | null;
-  phone: string | null;
-  created_at: string;
-};
-
 /**
  * A physical copy — every book field lives here directly (0030_merge_books_
  * into_user_books.sql: no more shared `books` catalog row, so no more
@@ -269,16 +247,6 @@ export type Listing = {
 
   category_ids: string[] | null;
   photo_count: number;
-};
-
-export type ProfileStats = {
-  user_id: string;
-  total_books: number;
-  finished_books: number;
-  reading_books: number;
-  exchange_count: number;
-  sale_count: number;
-  unread_books: number;
 };
 
 export type UserBookPhoto = {

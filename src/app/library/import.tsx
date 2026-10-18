@@ -382,8 +382,6 @@ export default function LibraryImportScreen() {
     queryClient.invalidateQueries({ queryKey: queryKeys.library.all });
     queryClient.invalidateQueries({ queryKey: queryKeys.listings.all });
     queryClient.invalidateQueries({ queryKey: queryKeys.reference.categories });
-    queryClient.invalidateQueries({ queryKey: queryKeys.profile.stats(user.id) });
-    queryClient.invalidateQueries({ queryKey: queryKeys.plan.status(user.id) });
 
     if (mountedRef.current) {
       setProgress(null);

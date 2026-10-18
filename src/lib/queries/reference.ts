@@ -11,7 +11,7 @@ import { queryKeys } from './keys';
 /** Reference data changes about once a year, so it is cached hard. */
 const REFERENCE_STALE_TIME = 1000 * 60 * 60 * 24;
 
-export function useLocations() {
+function useLocations() {
   return useQuery({
     queryKey: queryKeys.reference.locations,
     staleTime: REFERENCE_STALE_TIME,
@@ -26,7 +26,7 @@ export function useLocations() {
   });
 }
 
-export function useCategories() {
+function useCategories() {
   return useQuery({
     queryKey: queryKeys.reference.categories,
     staleTime: REFERENCE_STALE_TIME,

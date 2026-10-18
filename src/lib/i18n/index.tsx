@@ -118,9 +118,4 @@ export function useI18n(): I18nValue {
   return value;
 }
 
-/** Convenience for the common case of only needing `t`. */
-export function useTranslate() {
-  return useI18n().t;
-}
-
 export type { MessageKey };

@@ -12,7 +12,7 @@ import { LOCALE_LABELS, LOCALES, useI18n, type Locale } from '@/lib/i18n';
 import { SUPPORT_EMAIL } from '@/lib/legalContent';
 import { useUpdateProfile } from '@/lib/queries/profile';
 import { useLocationOptions } from '@/lib/queries/reference';
-import { COLOR_THEMES, THEME_MODES, colorThemes, useTheme, type ColorTheme, type ThemeMode } from '@/theme';
+import { COLOR_THEMES, THEME_MODES, colorThemes, useTheme, type ColorTheme } from '@/theme';
 
 export default function ProfileScreen() {
   const theme = useTheme();

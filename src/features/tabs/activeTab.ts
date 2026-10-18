@@ -57,7 +57,7 @@ export function setActiveTabIndex(index: number) {
   listeners.forEach((listener) => listener());
 }
 
-export function getActiveTabIndex(): number {
+function getActiveTabIndex(): number {
   return activeIndex;
 }
 

@@ -58,8 +58,8 @@ export type TelegramOidcConfig = {
 
 /**
  * OIDC settings from app_config, or null if no client id is set — in which
- * case Telegram sign-in keeps using the older bot-chat flow. Rows, not env
- * vars, so switching needs no rebuild or redeploy (see
+ * case Telegram sign-in is off and the button says so. Rows, not env vars, so
+ * switching needs no rebuild or redeploy (see
  * supabase/functions/telegram-auth/README.md).
  */
 /**
