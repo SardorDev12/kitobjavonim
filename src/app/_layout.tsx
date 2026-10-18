@@ -144,10 +144,14 @@ const UPDATE_CHECK_TIMEOUT = 4000;
  */
 function checkForUpdateWithTimeout(): Promise<void> {
   const check = (async () => {
-    // Updates.isEmbeddedLaunch is false in Expo Go and on web (and in a dev
-    // client) — none of those run under eas update's channels at all, and
-    // calling these APIs there either no-ops oddly or throws.
-    if (!Updates.isEmbeddedLaunch) return;
+    // Only real release builds run under eas update's channels; Expo Go, a dev
+    // client and web don't, and calling these APIs there no-ops oddly or
+    // throws. This used to test Updates.isEmbeddedLaunch instead, which is
+    // also false whenever a phone is already running a downloaded update — so
+    // after a phone's first update this check never ran again, and every later
+    // update only arrived several restarts later (expo-updates' own background
+    // download, applied on some following launch).
+    if (__DEV__ || Platform.OS === 'web' || !Updates.isEnabled) return;
     try {
       const result = await Updates.checkForUpdateAsync();
       if (result.isAvailable) {
