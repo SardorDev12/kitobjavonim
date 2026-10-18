@@ -134,13 +134,29 @@ export async function startTelegramOidc(config: TelegramOidcConfig): Promise<voi
   }
 }
 
+/**
+ * The User-Agent the official Android SDK's request carries by default
+ * (HttpURLConnection's "Dalvik/2.1.0 (Linux; U; Android …)"). React Native's
+ * fetch sends "okhttp/…" instead, which Telegram can't place — its login sheet
+ * showed "Unknown OS" for our requests but "Android" for an app using the SDK —
+ * so it couldn't match the request to the registered Android app and labelled
+ * it "Unverified App". Android only; iOS keeps its own default.
+ */
+function nativeUserAgentHeader(): Record<string, string> {
+  if (Platform.OS !== 'android') return {};
+  const constants = Platform.constants as { Release?: string; Model?: string };
+  const release = constants.Release ?? String(Platform.Version);
+  const model = constants.Model ?? 'Android';
+  return { 'User-Agent': `Dalvik/2.1.0 (Linux; U; Android ${release}; ${model})` };
+}
+
 /** Exactly what Telegram's SDKs do first: trade the request for a tg:// link that opens the native sheet. */
 async function fetchCrossAppUrl(params: URLSearchParams): Promise<string | null> {
   const query = new URLSearchParams(params.toString());
   query.set(Platform.OS === 'ios' ? 'ios_sdk' : 'android_sdk', '1');
   try {
     const response = await fetch(`${OAUTH_BASE}/crossapp?${query.toString()}`, {
-      headers: { Accept: 'application/json' },
+      headers: { Accept: 'application/json', ...nativeUserAgentHeader() },
     });
     if (!response.ok) return null;
     const body = (await response.json()) as { url?: unknown; result?: { url?: unknown } };
