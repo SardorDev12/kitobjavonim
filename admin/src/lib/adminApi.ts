@@ -4,6 +4,17 @@ import { supabase } from './supabaseClient';
 
 export type { AdminReport };
 
+// Sort and filter values understood by the list RPCs
+// (supabase/migrations/0040_admin_sort_filter.sql). Unknown values fall back
+// to the defaults server-side.
+export type UserFilter = 'all' | 'admins' | 'banned' | 'regular';
+export type UserSort = 'newest' | 'oldest' | 'name' | 'books' | 'listings';
+export type ListingFilter = 'all' | 'exchange' | 'sale' | 'reported';
+export type ListingSort = 'newest' | 'oldest' | 'title' | 'price_desc' | 'price_asc' | 'reports';
+export type BookFilter = 'all' | 'no_cover' | 'no_authors';
+export type BookSort = 'title' | 'title_desc' | 'newest' | 'oldest' | 'year_desc' | 'year_asc';
+export type AuditSort = 'newest' | 'oldest';
+
 export type AdminStats = {
   total_users: number;
   total_books: number;
@@ -89,20 +100,38 @@ export const adminApi = {
   listReports: () => rpc<AdminReport[]>('admin_list_reports'),
   resolveReport: (reportId: string) => rpc<void>('admin_resolve_report', { p_report_id: reportId }),
 
-  listUsers: (search: string, limit = 50, offset = 0) =>
-    rpc<AdminUser[]>('admin_list_users', { p_search: search || null, p_limit: limit, p_offset: offset }),
+  listUsers: (search: string, filter: UserFilter = 'all', sort: UserSort = 'newest', limit = 50, offset = 0) =>
+    rpc<AdminUser[]>('admin_list_users', {
+      p_search: search || null,
+      p_limit: limit,
+      p_offset: offset,
+      p_filter: filter,
+      p_sort: sort,
+    }),
   setAdmin: (userId: string, isAdmin: boolean) =>
     rpc<void>('admin_set_admin', { p_user_id: userId, p_is_admin: isAdmin }),
 
-  listListings: (search: string, limit = 50, offset = 0) =>
-    rpc<AdminListing[]>('admin_list_listings', { p_search: search || null, p_limit: limit, p_offset: offset }),
+  listListings: (search: string, filter: ListingFilter = 'all', sort: ListingSort = 'newest', limit = 50, offset = 0) =>
+    rpc<AdminListing[]>('admin_list_listings', {
+      p_search: search || null,
+      p_limit: limit,
+      p_offset: offset,
+      p_filter: filter,
+      p_sort: sort,
+    }),
   unlist: (userBookId: string) => rpc<void>('admin_unlist', { p_user_book_id: userBookId }),
 
   // Every copy across every user, not just listed ones (0031_admin_list_books.sql
   // — the old direct `select * from books` relied on "books are public", which
   // no longer exists once catalog rows live on user_books).
-  listBooks: (search: string, limit = 50, offset = 0) =>
-    rpc<AdminBook[]>('admin_list_books', { p_search: search || null, p_limit: limit, p_offset: offset }),
+  listBooks: (search: string, filter: BookFilter = 'all', sort: BookSort = 'title', limit = 50, offset = 0) =>
+    rpc<AdminBook[]>('admin_list_books', {
+      p_search: search || null,
+      p_limit: limit,
+      p_offset: offset,
+      p_filter: filter,
+      p_sort: sort,
+    }),
 
   updateBook: (userBookId: string, book: BookUpdate) =>
     rpc<void>('admin_update_book', {
@@ -131,8 +160,8 @@ export const adminApi = {
     invokeAdminUsers<{ ok: true }>({ action: 'set_ban', user_id: userId, banned }),
   deleteUser: (userId: string) => invokeAdminUsers<{ ok: true }>({ action: 'delete_user', user_id: userId }),
 
-  listAuditLog: (limit = 100, offset = 0) =>
-    rpc<AdminAction[]>('admin_list_audit_log', { p_limit: limit, p_offset: offset }),
+  listAuditLog: (action: string | null = null, sort: AuditSort = 'newest', limit = 100, offset = 0) =>
+    rpc<AdminAction[]>('admin_list_audit_log', { p_limit: limit, p_offset: offset, p_action: action, p_sort: sort }),
 };
 
 async function invokeAdminUsers<T>(body: Record<string, unknown>): Promise<T> {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
-import { adminApi, type AdminAction } from '../lib/adminApi';
+import { Picker } from '../components/Picker';
+import { adminApi, type AdminAction, type AuditSort } from '../lib/adminApi';
 
 const ACTION_LABELS: Record<string, string> = {
   promote_admin: 'Promoted to admin',
@@ -15,21 +16,50 @@ const ACTION_LABELS: Record<string, string> = {
   resolve_report: 'Resolved report',
 };
 
+const ACTION_OPTIONS = [
+  { value: '', label: 'All actions' },
+  ...Object.entries(ACTION_LABELS).map(([value, label]) => ({ value, label })),
+];
+
+const SORTS: { value: AuditSort; label: string }[] = [
+  { value: 'newest', label: 'Newest first' },
+  { value: 'oldest', label: 'Oldest first' },
+];
+
 export function AuditLogPage() {
   const [actions, setActions] = useState<AdminAction[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [action, setAction] = useState('');
+  const [sort, setSort] = useState<AuditSort>('newest');
 
   useEffect(() => {
+    setActions(null);
     adminApi
-      .listAuditLog()
+      .listAuditLog(action || null, sort)
       .then(setActions)
       .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : String(cause)));
-  }, []);
+  }, [action, sort]);
 
-  if (error) return <p style={{ color: 'var(--danger)' }}>{error}</p>;
-  if (!actions) return <p className="text-muted">Loading…</p>;
-  if (actions.length === 0) return <p className="text-muted">No admin actions yet.</p>;
+  return (
+    <div style={{ display: 'grid', gap: 16 }}>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <Picker label="Show" value={action} options={ACTION_OPTIONS} onChange={setAction} />
+        <Picker label="Sort" value={sort} options={SORTS} onChange={setSort} />
+      </div>
+      {error ? (
+        <p style={{ color: 'var(--danger)' }}>{error}</p>
+      ) : !actions ? (
+        <p className="text-muted">Loading…</p>
+      ) : actions.length === 0 ? (
+        <p className="text-muted">{action ? 'No actions of this kind.' : 'No admin actions yet.'}</p>
+      ) : (
+        <AuditTable actions={actions} />
+      )}
+    </div>
+  );
+}
 
+function AuditTable({ actions }: { actions: AdminAction[] }) {
   return (
     <table>
       <thead>

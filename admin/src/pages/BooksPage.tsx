@@ -1,9 +1,27 @@
 import { useEffect, useState } from 'react';
 
-import { adminApi, type AdminBook, type BookUpdate } from '../lib/adminApi';
+import { Picker } from '../components/Picker';
+import { adminApi, type AdminBook, type BookFilter, type BookSort, type BookUpdate } from '../lib/adminApi';
+
+const FILTERS: { value: BookFilter; label: string }[] = [
+  { value: 'all', label: 'All books' },
+  { value: 'no_cover', label: 'Missing cover' },
+  { value: 'no_authors', label: 'Missing author' },
+];
+
+const SORTS: { value: BookSort; label: string }[] = [
+  { value: 'title', label: 'Title A–Z' },
+  { value: 'title_desc', label: 'Title Z–A' },
+  { value: 'newest', label: 'Recently added' },
+  { value: 'oldest', label: 'Oldest added' },
+  { value: 'year_desc', label: 'Publication year: newest' },
+  { value: 'year_asc', label: 'Publication year: oldest' },
+];
 
 export function BooksPage() {
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<BookFilter>('all');
+  const [sort, setSort] = useState<BookSort>('title');
   const [books, setBooks] = useState<AdminBook[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -15,7 +33,7 @@ export function BooksPage() {
     // unlike the old public-readable `books` table this used to query
     // directly).
     adminApi
-      .listBooks(query)
+      .listBooks(query, filter, sort)
       .then(setBooks)
       .catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)));
   }
@@ -23,7 +41,8 @@ export function BooksPage() {
   useEffect(() => {
     const timer = setTimeout(() => load(search.trim()), 300);
     return () => clearTimeout(timer);
-  }, [search]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, filter, sort]);
 
   async function remove(book: AdminBook) {
     if (!confirm(`Delete "${book.title}" from the catalog entirely? This cannot be undone.`)) return;
@@ -47,13 +66,17 @@ export function BooksPage() {
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
-      <input
-        className="input"
-        placeholder="Search by title…"
-        value={search}
-        onChange={(event) => setSearch(event.target.value)}
-        style={{ maxWidth: 360 }}
-      />
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <input
+          className="input"
+          placeholder="Search by title or author…"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          style={{ maxWidth: 360 }}
+        />
+        <Picker label="Show" value={filter} options={FILTERS} onChange={setFilter} />
+        <Picker label="Sort" value={sort} options={SORTS} onChange={setSort} />
+      </div>
 
       {error ? <p style={{ color: 'var(--danger)' }}>{error}</p> : null}
       {!books ? (

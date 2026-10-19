@@ -1,16 +1,35 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 
-import { adminApi, type AdminListing } from '../lib/adminApi';
+import { Picker } from '../components/Picker';
+import { adminApi, type AdminListing, type ListingFilter, type ListingSort } from '../lib/adminApi';
+
+const FILTERS: { value: ListingFilter; label: string }[] = [
+  { value: 'all', label: 'All listings' },
+  { value: 'exchange', label: 'Exchange' },
+  { value: 'sale', label: 'Sale' },
+  { value: 'reported', label: 'Reported' },
+];
+
+const SORTS: { value: ListingSort; label: string }[] = [
+  { value: 'newest', label: 'Newest first' },
+  { value: 'oldest', label: 'Oldest first' },
+  { value: 'title', label: 'Title A–Z' },
+  { value: 'price_desc', label: 'Price: high to low' },
+  { value: 'price_asc', label: 'Price: low to high' },
+  { value: 'reports', label: 'Most reports' },
+];
 
 export function ListingsPage() {
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<ListingFilter>('all');
+  const [sort, setSort] = useState<ListingSort>('newest');
   const [listings, setListings] = useState<AdminListing[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   function load(query: string) {
     adminApi
-      .listListings(query)
+      .listListings(query, filter, sort)
       .then(setListings)
       .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : String(cause)));
   }
@@ -18,7 +37,8 @@ export function ListingsPage() {
   useEffect(() => {
     const timer = setTimeout(() => load(search.trim()), 300);
     return () => clearTimeout(timer);
-  }, [search]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, filter, sort]);
 
   async function unlist(listing: AdminListing) {
     if (!confirm(`Take "${listing.title}" off discovery? It stays in ${listing.owner_name}'s library.`)) return;
@@ -35,13 +55,17 @@ export function ListingsPage() {
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
-      <input
-        className="input"
-        placeholder="Search by title or owner name…"
-        value={search}
-        onChange={(event) => setSearch(event.target.value)}
-        style={{ maxWidth: 360 }}
-      />
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+        <input
+          className="input"
+          placeholder="Search by title or owner name…"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          style={{ maxWidth: 360 }}
+        />
+        <Picker label="Show" value={filter} options={FILTERS} onChange={setFilter} />
+        <Picker label="Sort" value={sort} options={SORTS} onChange={setSort} />
+      </div>
 
       {error ? <p style={{ color: 'var(--danger)' }}>{error}</p> : null}
       {!listings ? (

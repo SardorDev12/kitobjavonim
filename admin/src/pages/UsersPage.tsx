@@ -1,10 +1,28 @@
 import { useEffect, useState, type FormEvent } from 'react';
 
 import { PasswordInput } from '../components/PasswordInput';
-import { adminApi, type AdminUser } from '../lib/adminApi';
+import { Picker } from '../components/Picker';
+import { adminApi, type AdminUser, type UserFilter, type UserSort } from '../lib/adminApi';
+
+const FILTERS: { value: UserFilter; label: string }[] = [
+  { value: 'all', label: 'All users' },
+  { value: 'admins', label: 'Admins' },
+  { value: 'banned', label: 'Banned' },
+  { value: 'regular', label: 'Regular users' },
+];
+
+const SORTS: { value: UserSort; label: string }[] = [
+  { value: 'newest', label: 'Newest first' },
+  { value: 'oldest', label: 'Oldest first' },
+  { value: 'name', label: 'Name A–Z' },
+  { value: 'books', label: 'Most books' },
+  { value: 'listings', label: 'Most listings' },
+];
 
 export function UsersPage({ currentUserId }: { currentUserId: string }) {
   const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState<UserFilter>('all');
+  const [sort, setSort] = useState<UserSort>('newest');
   const [users, setUsers] = useState<AdminUser[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -12,7 +30,7 @@ export function UsersPage({ currentUserId }: { currentUserId: string }) {
 
   function load(query: string) {
     adminApi
-      .listUsers(query)
+      .listUsers(query, filter, sort)
       .then(setUsers)
       .catch((cause: unknown) => setError(cause instanceof Error ? cause.message : String(cause)));
   }
@@ -20,7 +38,8 @@ export function UsersPage({ currentUserId }: { currentUserId: string }) {
   useEffect(() => {
     const timer = setTimeout(() => load(search.trim()), 300);
     return () => clearTimeout(timer);
-  }, [search]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, filter, sort]);
 
   async function run(userId: string, action: () => Promise<unknown>) {
     setBusyId(userId);
@@ -55,13 +74,17 @@ export function UsersPage({ currentUserId }: { currentUserId: string }) {
   return (
     <div style={{ display: 'grid', gap: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        <input
-          className="input"
-          placeholder="Search by name or email…"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          style={{ maxWidth: 360 }}
-        />
+        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          <input
+            className="input"
+            placeholder="Search by name or email…"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            style={{ maxWidth: 360 }}
+          />
+          <Picker label="Show" value={filter} options={FILTERS} onChange={setFilter} />
+          <Picker label="Sort" value={sort} options={SORTS} onChange={setSort} />
+        </div>
         <button className="button button-primary" onClick={() => setCreating(true)}>
           + New admin
         </button>
