@@ -18,7 +18,9 @@ const SORTS: { value: BookSort; label: string }[] = [
   { value: 'year_asc', label: 'Publication year: oldest' },
 ];
 
-export function BooksPage() {
+export type BookOwner = { id: string; name: string };
+
+export function BooksPage({ owner, onClearOwner }: { owner: BookOwner | null; onClearOwner: () => void }) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<BookFilter>('all');
   const [sort, setSort] = useState<BookSort>('title');
@@ -33,7 +35,7 @@ export function BooksPage() {
     // unlike the old public-readable `books` table this used to query
     // directly).
     adminApi
-      .listBooks(query, filter, sort)
+      .listBooks(query, filter, sort, owner?.id ?? null)
       .then(setBooks)
       .catch((cause) => setError(cause instanceof Error ? cause.message : String(cause)));
   }
@@ -42,7 +44,7 @@ export function BooksPage() {
     const timer = setTimeout(() => load(search.trim()), 300);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, filter, sort]);
+  }, [search, filter, sort, owner?.id]);
 
   async function remove(book: AdminBook) {
     if (!confirm(`Delete "${book.title}" from the catalog entirely? This cannot be undone.`)) return;
@@ -69,13 +71,26 @@ export function BooksPage() {
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
         <input
           className="input"
-          placeholder="Search by title or author…"
+          placeholder="Search by title, author or owner…"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           style={{ maxWidth: 360 }}
         />
         <Picker label="Show" value={filter} options={FILTERS} onChange={setFilter} />
         <Picker label="Sort" value={sort} options={SORTS} onChange={setSort} />
+        {owner ? (
+          <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            Books of {owner.name}
+            <button
+              className="button"
+              onClick={onClearOwner}
+              aria-label="Show every user's books"
+              style={{ padding: '0 6px', border: 'none', background: 'transparent' }}
+            >
+              ×
+            </button>
+          </span>
+        ) : null}
       </div>
 
       {error ? <p style={{ color: 'var(--danger)' }}>{error}</p> : null}
@@ -95,6 +110,7 @@ export function BooksPage() {
                   <div className="text-muted" style={{ fontSize: 12 }}>
                     {book.authors.join(', ') || '—'}
                     {book.publication_year ? ` · ${book.publication_year}` : ''}
+                    {owner ? '' : ` · ${book.owner_name || book.owner_email}`}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>

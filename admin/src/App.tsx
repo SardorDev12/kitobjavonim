@@ -4,7 +4,7 @@ import { LoginScreen } from './LoginScreen';
 import { useAdminAuth } from './lib/useAdminAuth';
 import { useIdleSignOut } from './lib/useIdleSignOut';
 import { AuditLogPage } from './pages/AuditLogPage';
-import { BooksPage } from './pages/BooksPage';
+import { BooksPage, type BookOwner } from './pages/BooksPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ListingsPage } from './pages/ListingsPage';
 import { ReportsPage } from './pages/ReportsPage';
@@ -24,6 +24,8 @@ type Section = (typeof SECTIONS)[number]['id'];
 export function App() {
   const auth = useAdminAuth();
   const [section, setSection] = useState<Section>('dashboard');
+  // Set by a user's "Books" button on the Users page; cleared from the Books page.
+  const [booksOwner, setBooksOwner] = useState<BookOwner | null>(null);
 
   useIdleSignOut(auth.status === 'authorized', auth.signOut);
 
@@ -73,8 +75,16 @@ export function App() {
         {section === 'dashboard' ? <DashboardPage /> : null}
         {section === 'reports' ? <ReportsPage /> : null}
         {section === 'listings' ? <ListingsPage /> : null}
-        {section === 'books' ? <BooksPage /> : null}
-        {section === 'users' ? <UsersPage currentUserId={auth.userId} /> : null}
+        {section === 'books' ? <BooksPage owner={booksOwner} onClearOwner={() => setBooksOwner(null)} /> : null}
+        {section === 'users' ? (
+          <UsersPage
+            currentUserId={auth.userId}
+            onViewBooks={(user) => {
+              setBooksOwner({ id: user.user_id, name: user.display_name || user.email });
+              setSection('books');
+            }}
+          />
+        ) : null}
         {section === 'audit' ? <AuditLogPage /> : null}
       </main>
     </div>

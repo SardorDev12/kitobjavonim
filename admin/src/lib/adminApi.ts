@@ -62,6 +62,9 @@ export type AdminBook = {
   language: string | null;
   cover_url: string | null;
   description: string | null;
+  owner_id: string;
+  owner_name: string;
+  owner_email: string;
 };
 
 export type BookUpdate = {
@@ -124,13 +127,22 @@ export const adminApi = {
   // Every copy across every user, not just listed ones (0031_admin_list_books.sql
   // — the old direct `select * from books` relied on "books are public", which
   // no longer exists once catalog rows live on user_books).
-  listBooks: (search: string, filter: BookFilter = 'all', sort: BookSort = 'title', limit = 50, offset = 0) =>
+  // ownerId narrows the list to one user's books (0041_admin_books_by_owner.sql).
+  listBooks: (
+    search: string,
+    filter: BookFilter = 'all',
+    sort: BookSort = 'title',
+    ownerId: string | null = null,
+    limit = 50,
+    offset = 0
+  ) =>
     rpc<AdminBook[]>('admin_list_books', {
       p_search: search || null,
       p_limit: limit,
       p_offset: offset,
       p_filter: filter,
       p_sort: sort,
+      p_owner_id: ownerId,
     }),
 
   updateBook: (userBookId: string, book: BookUpdate) =>

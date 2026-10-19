@@ -19,7 +19,13 @@ const SORTS: { value: UserSort; label: string }[] = [
   { value: 'listings', label: 'Most listings' },
 ];
 
-export function UsersPage({ currentUserId }: { currentUserId: string }) {
+export function UsersPage({
+  currentUserId,
+  onViewBooks,
+}: {
+  currentUserId: string;
+  onViewBooks: (user: AdminUser) => void;
+}) {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<UserFilter>('all');
   const [sort, setSort] = useState<UserSort>('newest');
@@ -138,6 +144,9 @@ export function UsersPage({ currentUserId }: { currentUserId: string }) {
                   <td style={cellStyle}>{new Date(user.created_at).toLocaleDateString()}</td>
                   <td style={cellStyle}>
                     <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                      <button className="button" disabled={user.book_count === 0} onClick={() => onViewBooks(user)}>
+                        Books
+                      </button>
                       <button className="button" disabled={busy || (isSelf && user.is_admin)} onClick={() => toggleAdmin(user)}>
                         {user.is_admin ? 'Demote' : 'Promote'}
                       </button>
