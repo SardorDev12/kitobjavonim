@@ -8,6 +8,7 @@ import { useI18n } from '@/lib/i18n';
 import { useTheme } from '@/theme';
 
 const DISMISSED_KEY = 'home-library.install-app-prompt-dismissed';
+const IOS_DISMISSED_KEY = 'home-library.install-ios-hint-dismissed';
 
 // android.package in app.config.js, duplicated here rather than imported —
 // same reasoning as UpdateAvailableModal's own FALLBACK_PACKAGE: a runtime
@@ -26,6 +27,18 @@ function isAndroidMobileWeb(): boolean {
   return /Android/i.test(navigator.userAgent ?? '');
 }
 
+// iPhone/iPad Safari only: other iOS browsers (Chrome, Firefox, ...) can't add a
+// site to the home screen, so showing them the steps would be misleading. Also
+// skipped once the site is already running as an installed home-screen app.
+function isIosSafariBrowser(): boolean {
+  if (Platform.OS !== 'web' || typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent ?? '';
+  const isIos = /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+  const isSafari = /Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|GSA|Instagram|FBAN|FBAV/i.test(ua);
+  const standalone = (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  return isIos && isSafari && !standalone;
+}
+
 /**
  * A dismissible "get the app" nudge shown only on Android's mobile web build —
  * anyone reaching the site through a phone browser already has everything the
@@ -36,6 +49,47 @@ function isAndroidMobileWeb(): boolean {
  * interrupts a visitor once.
  */
 export function InstallAppPrompt() {
+  if (isIosSafariBrowser()) return <IosHomeScreenHint />;
+  return <AndroidInstallPrompt />;
+}
+
+/** iOS has no install prompt of its own, so this just shows the manual steps once. */
+function IosHomeScreenHint() {
+  const theme = useTheme();
+  const { t } = useI18n();
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem(IOS_DISMISSED_KEY)
+      .then((value) => setVisible(value !== 'true'))
+      .catch(() => setVisible(true));
+  }, []);
+
+  if (!visible) return null;
+
+  function dismiss() {
+    void AsyncStorage.setItem(IOS_DISMISSED_KEY, 'true');
+    setVisible(false);
+  }
+
+  return (
+    <Sheet visible onClose={dismiss} title={t('installIos.title')}>
+      <View style={{ gap: theme.spacing.lg }}>
+        <Text variant="body" color="textMuted">
+          {t('installIos.body')}
+        </Text>
+        <View style={{ gap: theme.spacing.sm }}>
+          <Text variant="body">{`1. ${t('installIos.step1')}`}</Text>
+          <Text variant="body">{`2. ${t('installIos.step2')}`}</Text>
+          <Text variant="body">{`3. ${t('installIos.step3')}`}</Text>
+        </View>
+        <Button title={t('installIos.gotIt')} fullWidth onPress={dismiss} />
+      </View>
+    </Sheet>
+  );
+}
+
+function AndroidInstallPrompt() {
   const theme = useTheme();
   const { t } = useI18n();
   const [dismissed, setDismissed] = useState(false);

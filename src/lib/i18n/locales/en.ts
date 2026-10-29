@@ -440,6 +440,12 @@ export const en = {
   'installApp.body': 'Get the Shelfie app for a faster, smoother experience on your phone.',
   'installApp.installNow': 'Install',
   'installApp.notNow': 'Not now',
+  'installIos.title': 'Add Shelfie to your Home Screen',
+  'installIos.body': 'Open Shelfie like an app, with its own icon and no browser bars.',
+  'installIos.step1': 'Tap the Share button at the bottom of Safari.',
+  'installIos.step2': 'Scroll down and tap “Add to Home Screen”.',
+  'installIos.step3': 'Tap “Add” in the top corner.',
+  'installIos.gotIt': 'Got it',
 
   'import.title': 'Import books',
   'import.explainer': 'Import books from a spreadsheet (.xlsx, .xls, or .csv) exported by another reading app.',

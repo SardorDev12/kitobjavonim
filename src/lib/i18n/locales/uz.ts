@@ -445,6 +445,12 @@ export const uz: LocaleCatalogue = {
   'installApp.body': "Telefoningizda tezroq va qulayroq foydalanish uchun Shelfie ilovasini oʻrnating.",
   'installApp.installNow': "Oʻrnatish",
   'installApp.notNow': 'Hozir emas',
+  'installIos.title': 'Shelfie’ni bosh ekranga qoʻshing',
+  'installIos.body': 'Shelfie’ni ilova kabi oching: oʻz belgisi bilan, brauzer panelisiz.',
+  'installIos.step1': 'Safari pastidagi “Ulashish” tugmasini bosing.',
+  'installIos.step2': 'Pastga aylantirib, “Bosh ekranga qoʻshish” ni bosing.',
+  'installIos.step3': 'Yuqori burchakdagi “Qoʻshish” ni bosing.',
+  'installIos.gotIt': 'Tushundim',
 
   'import.title': 'Kitoblarni import qilish',
   'import.explainer': "Boshqa ilovadan eksport qilingan jadval (.xlsx, .xls yoki .csv) orqali kitoblarni import qiling.",

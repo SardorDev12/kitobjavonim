@@ -458,6 +458,12 @@ export const ru: LocaleCatalogue = {
   'installApp.body': 'Установите приложение Shelfie для более быстрой и удобной работы на телефоне.',
   'installApp.installNow': 'Установить',
   'installApp.notNow': 'Не сейчас',
+  'installIos.title': 'Добавьте Shelfie на главный экран',
+  'installIos.body': 'Открывайте Shelfie как приложение: со своей иконкой и без панелей браузера.',
+  'installIos.step1': 'Нажмите кнопку «Поделиться» внизу Safari.',
+  'installIos.step2': 'Прокрутите вниз и нажмите «На экран „Домой“».',
+  'installIos.step3': 'Нажмите «Добавить» в углу экрана.',
+  'installIos.gotIt': 'Понятно',
 
   'import.title': 'Импорт книг',
   'import.explainer': 'Импортируйте книги из таблицы (.xlsx, .xls или .csv), экспортированной из другого приложения для чтения.',
