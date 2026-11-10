@@ -15,6 +15,7 @@ import { Chip, Divider, EmptyState, ListRow, LoadingState, Sheet, Text, TextFiel
 import { useAuth } from '@/features/auth/AuthProvider';
 import { setPendingAddQuery } from '@/features/add/pendingAddQuery';
 import { goToTab, TAB_ROUTES, useActiveTabIndex } from '@/features/tabs/activeTab';
+import { resumedRecently } from '@/features/tabs/resumeWindow';
 import { useI18n } from '@/lib/i18n';
 import { useKeyboardHeight } from '@/lib/useKeyboardHeight';
 import { useHousehold } from '@/lib/queries/household';
@@ -253,10 +254,12 @@ export default function LibraryScreen() {
   const scrollSignature = `${viewMode}|${filter}|${sort}`;
 
   useEffect(() => {
-    AsyncStorage.getItem(SCROLL_STORAGE_KEY)
-      .then((raw) => {
+    // The saved position only counts if the user was here within the last five
+    // minutes (features/tabs/resumeWindow.ts); after longer away, start at the top.
+    Promise.all([AsyncStorage.getItem(SCROLL_STORAGE_KEY), resumedRecently])
+      .then(([raw, recent]) => {
         try {
-          const parsed = raw ? JSON.parse(raw) : null;
+          const parsed = recent && raw ? JSON.parse(raw) : null;
           setStoredScroll(
             parsed && typeof parsed.offset === 'number' && typeof parsed.signature === 'string' ? parsed : null
           );

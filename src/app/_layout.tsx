@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createAsyncStoragePersister } from '@tanstack/query-async-storage-persister';
 import { MutationCache, QueryClient, focusManager } from '@tanstack/react-query';
 import { PersistQueryClientProvider } from '@tanstack/react-query-persist-client';
-import { Stack, useRouter, usePathname, useSegments } from 'expo-router';
+import { Stack, router, useRouter, usePathname, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import * as SystemUI from 'expo-system-ui';
@@ -20,6 +20,8 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import stagingFaviconAsset from '@/assets/images/favicon-preview.png';
 import { ErrorBoundary, installGlobalErrorReporting, reportError } from '@/components/ErrorBoundary';
 import { InstallAppPrompt } from '@/components/InstallAppPrompt';
+import { restoreTabIndex } from '@/features/tabs/activeTab';
+import { markActive, RESUME_WINDOW_MS } from '@/features/tabs/resumeWindow';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { EmptyState, Screen } from '@/components/ui';
 import { UpdateAvailableModal } from '@/components/UpdateAvailableModal';
@@ -117,8 +119,29 @@ const persister = createAsyncStoragePersister({
 
 // React Query's default focus tracking is web-only; this is what lets a phone
 // returning from the background refetch instead of showing stale shelves.
+let backgroundedAt: number | null = null;
+
 function onAppStateChange(status: AppStateStatus) {
   focusManager.setFocused(status === 'active');
+  if (Platform.OS === 'web') return;
+
+  if (status === 'background') {
+    backgroundedAt = Date.now();
+    markActive();
+    return;
+  }
+
+  // Back after a long time away: start over from the Reading tab instead of
+  // wherever the user happened to leave off (shorter absences resume as-is).
+  if (status === 'active') {
+    const awayFor = backgroundedAt === null ? 0 : Date.now() - backgroundedAt;
+    backgroundedAt = null;
+    markActive();
+    if (awayFor >= RESUME_WINDOW_MS) {
+      if (router.canDismiss()) router.dismissAll();
+      restoreTabIndex(0);
+    }
+  }
 }
 
 const UPDATE_CHECK_TIMEOUT = 4000;
@@ -182,6 +205,17 @@ export default function RootLayout() {
   useEffect(() => {
     const subscription = AppState.addEventListener('change', onAppStateChange);
     return () => subscription.remove();
+  }, []);
+
+  // Keeps "the user was here a moment ago" fresh while the app is open, so a
+  // force-close (which sends no background event) still reads as recent.
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+    markActive();
+    const timer = setInterval(() => {
+      if (AppState.currentState === 'active') markActive();
+    }, 30_000);
+    return () => clearInterval(timer);
   }, []);
 
   // Every drop zone in the app only guards its own bounds. Without a

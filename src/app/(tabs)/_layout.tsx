@@ -9,6 +9,7 @@ import { runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { FinishCelebration } from '@/components/FinishCelebration';
+import { resumedRecently } from '@/features/tabs/resumeWindow';
 import { goToTab, registerTabsPager, restoreTabIndex, setActiveTabIndex, TAB_ROUTES, useActiveTabIndex, type TabRoute } from '@/features/tabs/activeTab';
 import { useI18n } from '@/lib/i18n';
 import { useTheme } from '@/theme';
@@ -88,10 +89,12 @@ export default function TabsLayout() {
       lastTabReadRef.current = true;
       return;
     }
-    AsyncStorage.getItem(LAST_TAB_STORAGE_KEY)
-      .then((raw) => {
+    // Only reopen on the last tab if the user was here within the last five
+    // minutes (see features/tabs/resumeWindow.ts); otherwise start on Reading.
+    Promise.all([AsyncStorage.getItem(LAST_TAB_STORAGE_KEY), resumedRecently])
+      .then(([raw, recent]) => {
         const index = TAB_ROUTES.indexOf(raw as TabRoute);
-        if (index > 0) restoreTabIndex(index);
+        if (recent && index > 0) restoreTabIndex(index);
       })
       .catch(() => {})
       .finally(() => {
